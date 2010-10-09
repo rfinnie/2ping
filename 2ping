@@ -975,6 +975,7 @@ sub sendpacket {
 sub processpacket {
   my($payload) = $_[0];
   my(%peer) = %{$_[1]};
+  my($payloadlen) = length($payload);
 
   debug(sprintf("Received: %*v02x\n", ' ', $payload));
   # $vbuff is a built verbose output line
@@ -983,7 +984,7 @@ sub processpacket {
   # Magic number
   my($pos) = 0;
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-    unless(readbytestest($payload, $pos, LEN_MAGIC_NUMBER));
+    unless(readbytestest($payloadlen, $pos, LEN_MAGIC_NUMBER));
   my($magic) = substr($payload, $pos, LEN_MAGIC_NUMBER);
   $pos += LEN_MAGIC_NUMBER;
   unless($magic eq '2P') {
@@ -992,13 +993,13 @@ sub processpacket {
 
   # Checksum
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-    unless(readbytestest($payload, $pos, LEN_CHECKSUM));
+    unless(readbytestest($payloadlen, $pos, LEN_CHECKSUM));
   my($payload_checksum) = unpack('n', substr($payload, $pos, LEN_CHECKSUM));
   $pos += LEN_CHECKSUM;
   $vbuff .= sprintf('cksum=%04x', $payload_checksum) if $opt_verbose;
   if($payload_checksum > 0) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos));
+      unless(readbytestest($payloadlen, $pos));
     my($test_checksum) = ip_checksum('2P' . pack('n', 0) . substr($payload, $pos), 1);
     unless($payload_checksum == $test_checksum) {
       return(parseerror(sprintf("Invalid checksum from %s: expected %04x, received %04x\n", $peer{'peerhost'}, $test_checksum, $payload_checksum)));
@@ -1007,7 +1008,7 @@ sub processpacket {
 
   # Message ID
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-    unless(readbytestest($payload, $pos, LEN_MESSAGE_ID));
+    unless(readbytestest($payloadlen, $pos, LEN_MESSAGE_ID));
   my($peerid) = substr($payload, $pos, LEN_MESSAGE_ID);
   $pos += LEN_MESSAGE_ID;
   $vbuff .= sprintf(' msgid=%*v02x', '', $peerid) if $opt_verbose;
@@ -1015,7 +1016,7 @@ sub processpacket {
 
   # Opcode flags
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-    unless(readbytestest($payload, $pos, LEN_OPCODES));
+    unless(readbytestest($payloadlen, $pos, LEN_OPCODES));
   my($opcodeflags) = unpack('n', substr($payload, $pos, LEN_OPCODES));
   $pos += LEN_OPCODES;
 
@@ -1028,7 +1029,7 @@ sub processpacket {
   my($peersendreply) = 0;
   if($opcodeflags & OPCODE_SENDREPLY) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     if($opblocklen > 0) {
@@ -1042,14 +1043,14 @@ sub processpacket {
   my($peerreplyto);
   if($opcodeflags & OPCODE_REPLYTO) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     unless($opblocklen == LEN_MESSAGE_ID) {
       return(parseerror(sprintf("Packet error from %s found: REPLYTO: length expected %d, received %d\n", $peer{'peerhost'}, LEN_MESSAGE_ID, $opblocklen)));
     }
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_MESSAGE_ID));
+      unless(readbytestest($payloadlen, $pos, LEN_MESSAGE_ID));
     $peerreplyto = substr($payload, $pos, LEN_MESSAGE_ID);
     $pos += LEN_MESSAGE_ID;
     $vbuff .= sprintf(' replyto=%*v02x', '', $peerreplyto) if $opt_verbose;
@@ -1059,14 +1060,14 @@ sub processpacket {
   my($peerrtt);
   if($opcodeflags & OPCODE_RTT) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     unless($opblocklen == LEN_RTT) {
       return(parseerror(sprintf("Packet error from %s found: RTT: length expected %d, received %d\n", $peer{'peerhost'}, LEN_RTT, $opblocklen)));
     }
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_RTT));
+      unless(readbytestest($payloadlen, $pos, LEN_RTT));
     $peerrtt = unpack('N', substr($payload, $pos, LEN_RTT)) / 1000;
     $pos += LEN_RTT;
     $vbuff .= sprintf(' rtt=%0.03f', $peerrtt) if $opt_verbose;
@@ -1076,14 +1077,14 @@ sub processpacket {
   my(@peerresends);
   if($opcodeflags & OPCODE_LOSTFOUNDS) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     if($opblocklen < LEN_ARRAY_CNT) {
       return(parseerror(sprintf("Packet error from %s found: LOSTFOUNDS: length expected >= %d, received %d\n", $peer{'peerhost'}, LEN_ARRAY_CNT, $opblocklen)));
     }
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_ARRAY_CNT));
+      unless(readbytestest($payloadlen, $pos, LEN_ARRAY_CNT));
     my($found) = unpack('n', substr($payload, $pos, LEN_ARRAY_CNT));
     $pos += LEN_ARRAY_CNT;
     unless($opblocklen == ((LEN_MESSAGE_ID * $found) + LEN_ARRAY_CNT)) {
@@ -1091,7 +1092,7 @@ sub processpacket {
     }
     for(my $mi = 0; $mi < $found; $mi++) {
       return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-        unless(readbytestest($payload, $pos, LEN_MESSAGE_ID));
+        unless(readbytestest($payloadlen, $pos, LEN_MESSAGE_ID));
       my($peerresend) = substr($payload, $pos, LEN_MESSAGE_ID);
       push(@peerresends, $peerresend);
       $pos += LEN_MESSAGE_ID;
@@ -1109,14 +1110,14 @@ sub processpacket {
   my(@peerresendsnotfound);
   if($opcodeflags & OPCODE_LOSTNOTFOUNDS) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     if($opblocklen < LEN_ARRAY_CNT) {
       return(parseerror(sprintf("Packet error from %s found: LOSTNOTFOUNDS: length expected >= %d, received %d\n", $peer{'peerhost'}, LEN_ARRAY_CNT, $opblocklen)));
     }
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_ARRAY_CNT));
+      unless(readbytestest($payloadlen, $pos, LEN_ARRAY_CNT));
     my($found) = unpack('n', substr($payload, $pos, LEN_ARRAY_CNT));
     $pos += LEN_ARRAY_CNT;
     unless($opblocklen == ((LEN_MESSAGE_ID * $found) + LEN_ARRAY_CNT)) {
@@ -1124,7 +1125,7 @@ sub processpacket {
     }
     for(my $mi = 0; $mi < $found; $mi++) {
       return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-        unless(readbytestest($payload, $pos, LEN_MESSAGE_ID));
+        unless(readbytestest($payloadlen, $pos, LEN_MESSAGE_ID));
       my($peerresendnotfound) = substr($payload, $pos, LEN_MESSAGE_ID);
       push(@peerresendsnotfound, $peerresendnotfound);
       $pos += LEN_MESSAGE_ID;
@@ -1142,14 +1143,14 @@ sub processpacket {
   my(@peeroldids);
   if($opcodeflags & OPCODE_LOSTPACKETS) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     if($opblocklen < LEN_ARRAY_CNT) {
       return(parseerror(sprintf("Packet error from %s found: LOSTPACKETS: length expected >= %d, received %d\n", $peer{'peerhost'}, LEN_ARRAY_CNT, $opblocklen)));
     }
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_ARRAY_CNT));
+      unless(readbytestest($payloadlen, $pos, LEN_ARRAY_CNT));
     my($found) = unpack('n', substr($payload, $pos, LEN_ARRAY_CNT));
     $pos += LEN_ARRAY_CNT;
     unless($opblocklen == ((LEN_MESSAGE_ID * $found) + LEN_ARRAY_CNT)) {
@@ -1157,7 +1158,7 @@ sub processpacket {
     }
     for(my $mi = 0; $mi < $found; $mi++) {
       return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-        unless(readbytestest($payload, $pos, LEN_MESSAGE_ID));
+        unless(readbytestest($payloadlen, $pos, LEN_MESSAGE_ID));
       my($peeroldid) = substr($payload, $pos, LEN_MESSAGE_ID);
       push(@peeroldids, $peeroldid);
       $pos += LEN_MESSAGE_ID;
@@ -1175,14 +1176,14 @@ sub processpacket {
   my(@peercourtesies);
   if($opcodeflags & OPCODE_COURTESIES) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     if($opblocklen < LEN_ARRAY_CNT) {
       return(parseerror(sprintf("Packet error from %s found: COURTESIES: length expected >= %d, received %d\n", $peer{'peerhost'}, LEN_ARRAY_CNT, $opblocklen)));
     }
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_ARRAY_CNT));
+      unless(readbytestest($payloadlen, $pos, LEN_ARRAY_CNT));
     my($found) = unpack('n', substr($payload, $pos, LEN_ARRAY_CNT));
     $pos += LEN_ARRAY_CNT;
     unless($opblocklen == ((LEN_MESSAGE_ID * $found) + LEN_ARRAY_CNT)) {
@@ -1190,7 +1191,7 @@ sub processpacket {
     }
     for(my $mi = 0; $mi < $found; $mi++) {
       return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-        unless(readbytestest($payload, $pos, LEN_MESSAGE_ID));
+        unless(readbytestest($payloadlen, $pos, LEN_MESSAGE_ID));
       my($peercourtesy) = substr($payload, $pos, LEN_MESSAGE_ID);
       push(@peercourtesies, $peercourtesy);
       $pos += LEN_MESSAGE_ID;
@@ -1207,7 +1208,7 @@ sub processpacket {
   # 128: Peer MAC hashing
   if($opcodeflags & OPCODE_HASH) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     if($opt_auth) {
@@ -1215,7 +1216,7 @@ sub processpacket {
         return(parseerror(sprintf("Packet error from %s found: HASH: length expected >= %d, received %d\n", $peer{'peerhost'}, LEN_ARRAY_CNT, $opblocklen)));
       }
       return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-        unless(readbytestest($payload, $pos, LEN_DIGEST_TYPE));
+        unless(readbytestest($payloadlen, $pos, LEN_DIGEST_TYPE));
       my($digesttype) = unpack('n', substr($payload, $pos, LEN_DIGEST_TYPE));
       $pos += LEN_DIGEST_TYPE;
       unless($digesttype == $authhashint) {
@@ -1223,12 +1224,12 @@ sub processpacket {
       }
       my($hashpos) = $pos;
       return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-        unless(readbytestest($payload, $pos, $authhashlen));
+        unless(readbytestest($payloadlen, $pos, $authhashlen));
       my($payload_hash) = substr($payload, $pos, $authhashlen);
       $pos += $authhashlen;
       $vbuff .= sprintf(' hash=%*v02x', '', $payload_hash) if $opt_verbose;
       return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-        unless(readbytestest($payload, (LEN_MAGIC_NUMBER + LEN_DIGEST_TYPE), ($hashpos - (LEN_MAGIC_NUMBER + LEN_DIGEST_TYPE))));
+        unless(readbytestest($payloadlen, (LEN_MAGIC_NUMBER + LEN_DIGEST_TYPE), ($hashpos - (LEN_MAGIC_NUMBER + LEN_DIGEST_TYPE))));
       my($test_hash) = hmac($authhashf, '2P' . pack('n', 0) . substr($payload, (LEN_MAGIC_NUMBER + LEN_DIGEST_TYPE), ($hashpos - (LEN_MAGIC_NUMBER + LEN_DIGEST_TYPE))) . (chr(0) x $authhashlen) . substr($payload, $pos), $opt_auth);
       unless($payload_hash eq $test_hash) {
         return(parseerror(sprintf("Invalid hash from %s: expected %*v02x, received %*v02x\n", $peer{'peerhost'}, '', $test_hash, '', $payload_hash)));
@@ -1242,14 +1243,14 @@ sub processpacket {
   my($peerdelay);
   if($opcodeflags & OPCODE_DELAY) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
     my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
     $pos += LEN_OPCODE_HEADER_LEN;
     unless($opblocklen == LEN_DELAY) {
       return(parseerror(sprintf("Packet error from %s found: DELAY: length expected %d, received %d\n", $peer{'peerhost'}, LEN_DELAY, $opblocklen)));
     }
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
-      unless(readbytestest($payload, $pos, LEN_DELAY));
+      unless(readbytestest($payloadlen, $pos, LEN_DELAY));
     $peerdelay = unpack('N', substr($payload, $pos, LEN_DELAY)) / 1000;
     $pos += LEN_DELAY;
     $vbuff .= sprintf(' delay=%0.03f', $peerdelay) if $opt_verbose;
@@ -1266,16 +1267,16 @@ sub processpacket {
 
 # Test for reading beyond the end of the packet
 sub readbytestest {
-  my($packet) = shift;
+  my($packetlen) = shift;
   my($pos) = shift;
   my($readlen) = shift;
   if(defined $readlen) {
-    if(($pos + $readlen) > length($packet)) {
+    if(($pos + $readlen) > $packetlen) {
       return(0);
     }
     return(1);
   } else {
-    if($pos > length($packet)) {
+    if($pos > $packetlen) {
       return(0);
     }
     return(1);
