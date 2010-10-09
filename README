@@ -1,0 +1,41 @@
+2ping, a bi-directional ping utility
+By Ryan Finnie <ryan@finnie.org>
+http://www.finnie.org/software/2ping/
+
+ABOUT
+
+2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP 
+SYN, SYN/ACK, ACK) and after-the-fact state comparison between a 2ping 
+listener and a 2ping client to determine which direction packet loss 
+occurs.
+
+INSTALLATION
+
+2ping requires Perl 5.6.0 or newer.  2ping requires several Perl 
+modules, all of which are in a standard Perl installation (though your 
+distribution may split Perl into "base" and "standard" packages).  
+Several non-standard packages are required for optional features, and 
+can be installed from you distribution's package management system or 
+CPAN.  They are:
+
+  IO::Socket::INET6 (for IPv6 support)
+  Digest::SHA (for HMAC-SHA1 or HMAC-SHA256 auth support)
+  Digest::CRC (for HMAC-CRC32 support)
+
+To "build" and install 2ping:
+
+  make
+  make test
+  make install
+  make clean
+
+USAGE
+
+Please see the man page for full details, but in short, start a listener 
+on the far end:
+
+  2ping --listen
+
+And run 2ping on the near end, connecting to the far end listener:
+
+  2ping <farendhost>

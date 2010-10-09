@@ -1,0 +1,39 @@
+2ping 0.0.3 (2010-10-03)
+
+  * Large cleanup and documentation push -- code is now "acceptable"
+  * Fixed calculation of opcode data area lengths on some opcodes; 
+    implementation now incompatible with 0.0.2
+  * Added more checks against malformed packets; 2ping no longer produces
+    produces Perl warnings when fuzzing
+  * Added a preload (-l) option, mimicking ping's -l functionality
+  * Added a 2ping6 symlink; 2ping will now assume -6 if called as 
+    2ping6
+  * Added a message authentication code (MAC) option with a pre-shared 
+    key (--auth=key), allowing for message authentication and 
+    verification while in transit
+  * Added a timed interval of brief statistics output (--stats=int)
+  * STDOUT buffering is disabled in all modes now
+  * Added compatibility down to Perl 5.6.0
+  * Cleaned up distribution tarball, added a Makefile
+  * Changed man section from 1 to 8
+
+2ping 0.0.2 (2010-09-07)
+
+  * Fixed potential endianness issues
+  * Added packet checksum field, in a fixed position near the
+    beginning of the packet (PROTOCOL NOW INCOMPATIBLE WITH 0.0.1
+    RELEASE)
+  * Added state table cleanup notification between peers, which will
+    keep memory usage down in longer flood ping situations (protocol
+    opcode added)
+  * Added support for multiple binds in listen mode (specify -I IP
+    multiple times)
+  * Added support for multiple peers in client mode (specify multiple IP 
+    arguments)
+  * Added additional packet error checks
+  * Misc code cleanup and documentation (not yet to my satisfaction, but 
+    it's a start)
+
+2ping 0.0.1 (2010-08-29)
+
+  * Initial release
