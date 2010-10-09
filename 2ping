@@ -122,13 +122,6 @@ my($result) = GetOptions(
   'stats=f' => \$opt_stats,
 );
 
-print <<"EOM";
-
-WARNING: This is a pre-1.0 version of 2ping.  Port number, line protocol 
-and arguments are not guaranteed to be compatible with future versions!
-
-EOM
-
 if($opt_version) {
   print "2ping version $VERSION\n";
   exit;
@@ -219,7 +212,7 @@ $opt_maxpacket = 512 unless $opt_maxpacket;
 $opt_maxpacket = 64 if($opt_maxpacket < 64);
 $opt_minpacket = $opt_maxpacket if($opt_minpacket > $opt_maxpacket);
 # Default UDP port.
-$opt_port = 58277 unless $opt_port;
+$opt_port = 15998 unless $opt_port;
 
 # Build a pad pattern from user input.
 # This could probably be cleaned up.
