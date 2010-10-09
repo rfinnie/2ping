@@ -44,6 +44,7 @@ use constant OPCODE_LOSTNOTFOUNDS => 16;
 use constant OPCODE_LOSTPACKETS => 32;
 use constant OPCODE_COURTESIES => 64;
 use constant OPCODE_HASH => 128;
+use constant OPCODE_DELAY => 256;
 use constant LEN_MAGIC_NUMBER => 2;
 use constant LEN_CHECKSUM => 2;
 use constant LEN_MESSAGE_ID => 6;
@@ -52,6 +53,7 @@ use constant LEN_OPCODE_HEADER_LEN => 2;
 use constant LEN_ARRAY_CNT => 2;
 use constant LEN_RTT => 4;
 use constant LEN_DIGEST_TYPE => 2;
+use constant LEN_DELAY => 4;
 
 ########################################################################
 # Command line option parsing
@@ -490,17 +492,17 @@ while(1) {
 # to be parsed, then process its logic.
 sub processincomingpacket {
   my($payload);
-  my($now);
+  my($recvtime);
   my(%peer) = (
     'sock' => $_[0],
   );
   $packetsin++;
   if($peer{'sock'}->recv($payload, 16384)) {
-    $now = time;
+    $recvtime = time;
     if(($opt_packetloss_in > 0) && (rand() < ($opt_packetloss_in / 100))) {
       return;
     }
-    $lastreply = $now;
+    $lastreply = $recvtime;
   } else {
     return(parseerror(sprintf("From %s: %s\n", $peer{'sock'}->peerhost, $!)));
   }
@@ -510,7 +512,7 @@ sub processincomingpacket {
   $peer{'peertuple'} = $peer{'sock'}->sockaddr . $peer{'sock'}->sockport . $peer{'sock'}->peeraddr . $peer{'sock'}->peerport . $peer{'sock'}->protocol;
   $peer{'peername'} = $peer{'sock'}->peername;
 
-  my($peerid, $peersendreply, $peerreplyto, $peerrtt, $peerresendsref, $peerresendsnotfoundref, $peeroldidsref, $peercourtesiesref) = processpacket($payload, \%peer);
+  my($peerid, $peersendreply, $peerreplyto, $peerrtt, $peerresendsref, $peerresendsnotfoundref, $peeroldidsref, $peercourtesiesref, $peerdelay) = processpacket($payload, \%peer);
   return unless $peerid;
   my(@peerresendsnotfound) = @{$peerresendsnotfoundref};
   my(@peerresends) = @{$peerresendsref};
@@ -551,7 +553,11 @@ sub processincomingpacket {
   }
   if($peerreplyto && $msginfo{$peer{'peertuple'} . $peerreplyto}) {
     my(%thismsginfo) = %{$msginfo{$peer{'peertuple'} . $peerreplyto}};
-    my($rtt) = (($now - $thismsginfo{'time'}) * 1000);
+    my($rtt) = (($recvtime - $thismsginfo{'time'}) * 1000);
+    # If the peer specified a host processing delay, subtract it.
+    if($peerdelay) {
+      $rtt -= $peerdelay;
+    }
     $msginfo{$peer{'peertuple'} . $peerreplyto}->{'courtesy'} = 1;
 
     # If they want a reply, send it as early as possible.
@@ -560,7 +566,7 @@ sub processincomingpacket {
       # set), then we know the peer was the 2nd leg of a 3-way ping, and
       # is requesting the 3rd leg.  So we shouldn't expect a reply
       # ourselves.
-      sendpacket(\%peer, 0, $peerid, $rtt, \@resends, \@resendsnotfound);
+      sendpacket(\%peer, 0, $peerid, $rtt, \@resends, \@resendsnotfound, $recvtime);
     }
 
     if(scalar(@peerresends) > 0) {
@@ -633,11 +639,11 @@ sub processincomingpacket {
       # Either the peer's response was 2nd leg of a 3-way ping (it had a
       # reply-to), or it's the 1st leg of a ping and config explicitly
       # disables 3-way pings.  Either way, do not request a reply.
-      sendpacket(\%peer, 0, $peerid, 0, \@resends, \@resendsnotfound);
+      sendpacket(\%peer, 0, $peerid, 0, \@resends, \@resendsnotfound, $recvtime);
     } else {
       # Request a reply, this was the 1st leg of a 3-way ping, which we
       # will continue to make a 2nd and request a 3rd.
-      sendpacket(\%peer, 1, $peerid, 0, \@resends, \@resendsnotfound);
+      sendpacket(\%peer, 1, $peerid, 0, \@resends, \@resendsnotfound, $recvtime);
     }
   }
 }
@@ -671,6 +677,7 @@ sub sendpacket {
   my $rtt = $_[3]; # RTT reported (3rd leg)
   my @resends = ($_[4] ? @{$_[4]} : ()); # List of investigated IDs (received)
   my @resendsnotfound = ($_[5] ? @{$_[5]} : ()); # List of investigated IDs (never received)
+  my $recvtime = $_[6]; # Time the recv() happened
 
   # Generate a random message ID
   my($msgid) = '';
@@ -726,6 +733,12 @@ sub sendpacket {
     if($opt_verbose) {
       $vbuff .= sprintf(' replyto=%*v02x', '', $replyto);
     }
+  }
+
+  # 256: RTT delay
+  if($recvtime) {
+    $opcodeflags |= OPCODE_DELAY;
+    $outbufflen += LEN_OPCODE_HEADER_LEN + LEN_DELAY;
   }
 
   # 4: RTT included (3rd leg)
@@ -859,6 +872,17 @@ sub sendpacket {
     }
   }
 
+  my($sendtime) = time;
+
+  # If a delay is being sent, calculate it as late as possible here
+  if($recvtime) {
+    my($delaymicro) = ($sendtime - $recvtime) * 1000000;
+    $outbuffs{OPCODE_DELAY()} = pack('n', LEN_DELAY) . pack('N', $delaymicro);
+    if($opt_verbose) {
+      $vbuff .= sprintf(' delay=%0.03f', $delaymicro/1000);
+    }
+  }
+
   my $hashpos;
   foreach my $i (sort { $a <=> $b } keys %outbuffs) {
     $outbuff .= $outbuffs{$i};
@@ -921,7 +945,7 @@ sub sendpacket {
       'id' => $msgid,
       'idx' => $cntbypeer{$peer{'peertuple'}},
       'peer' => $peer{'peertuple'},
-      'time' => time,
+      'time' => $sendtime,
       'replyto' => $replyto,
       'courtesy' => 0,
     };
@@ -1193,12 +1217,28 @@ sub processpacket {
     }
   }
 
+  my($peerdelay);
+  if($opcodeflags & OPCODE_DELAY) {
+    return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+      unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
+    my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
+    $pos += LEN_OPCODE_HEADER_LEN;
+    unless($opblocklen == LEN_DELAY) {
+      return(parseerror(sprintf("Packet error from %s found: DELAY: length expected %d, received %d\n", $peer{'peerhost'}, LEN_DELAY, $opblocklen)));
+    }
+    return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+      unless(readbytestest($payload, $pos, LEN_DELAY));
+    $peerdelay = unpack('N', substr($payload, $pos, LEN_DELAY)) / 1000;
+    $pos += LEN_DELAY;
+    $vbuff .= sprintf(' delay=%0.03f', $peerdelay) if $opt_verbose;
+  }
+
   $vbuff .= sprintf(' pad=%d', (length($payload) - $pos)) if $opt_verbose;
 
   if($opt_verbose) {
     printf("RECV: %d bytes from %s:%s: %s\n", length($payload), $peer{'peerhost'}, $peer{'peerport'}, $vbuff);
   }
-  return($peerid, $peersendreply, $peerreplyto, $peerrtt, \@peerresends, \@peerresendsnotfound, \@peeroldids, \@peercourtesies);
+  return($peerid, $peersendreply, $peerreplyto, $peerrtt, \@peerresends, \@peerresendsnotfound, \@peeroldids, \@peercourtesies, $peerdelay);
 }
 
 # Test for reading beyond the end of the packet
@@ -1245,8 +1285,21 @@ sub gracefulexit {
     lazydiv(($pingsout-$pingsin), $pingsout)*100,
     (time-$starttime)*1000
   );
-  printf("%d outbound ping losses (%d%%), %d inbound (%d%%), %d undetermined (%d%%)\n", $outlost, lazydiv($outlost, $pingsout)*100, $inlost, lazydiv($inlost, $pingsout)*100, $pingsout-$pingsin-$outlost-$inlost, lazydiv(($pingsout-$pingsin-$outlost-$inlost), $pingsout)*100);
-  printf("rtt min/avg/max = %0.03f/%0.03f/%0.03f ms\n", $pingsinrttmin, lazydiv($pingsinrttsum, $pingsin), $pingsinrttmax);
+  printf(
+    "%d outbound ping losses (%d%%), %d inbound (%d%%), %d undetermined (%d%%)\n",
+    $outlost,
+    lazydiv($outlost, $pingsout)*100,
+    $inlost,
+    lazydiv($inlost, $pingsout)*100,
+    $pingsout-$pingsin-$outlost-$inlost,
+    lazydiv(($pingsout-$pingsin-$outlost-$inlost), $pingsout)*100
+  );
+  printf(
+    "rtt min/avg/max = %0.03f/%0.03f/%0.03f ms\n",
+    $pingsinrttmin,
+    lazydiv($pingsinrttsum, $pingsin),
+    $pingsinrttmax
+  );
   printf("%d raw packets transmitted, %d received\n", $packetsout, $packetsin);
   exit(0);
 }
