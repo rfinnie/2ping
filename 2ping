@@ -213,7 +213,7 @@ $opt_minpacket = 64 unless $opt_minpacket;
 $opt_maxpacket = 512 unless $opt_maxpacket;
 $opt_maxpacket = 64 if($opt_maxpacket < 64);
 $opt_minpacket = $opt_maxpacket if($opt_minpacket > $opt_maxpacket);
-# Default UDP port.
+# Default UDP port (IANA-registered port for 2ping)
 $opt_port = 15998 unless $opt_port;
 
 # Build a pad pattern from user input.
@@ -438,21 +438,21 @@ while(1) {
     debug("Cleanup run\n");
     # IDs we sent that have not been purged, and are older than 10
     # minutes should be purged.
-    foreach my $testa (keys %msginfo) {
-      my $delta = $now - $msginfo{$testa}->{'time'};
-      debug(sprintf("  msginfo: %*v02x is %d sec old\n", '', $testa, $delta));
+    foreach my $testmsgid (keys %msginfo) {
+      my $delta = $now - $msginfo{$testmsgid}->{'time'};
+      debug(sprintf("  msginfo: %*v02x is %d sec old\n", '', $testmsgid, $delta));
       if($delta > 600) {
-        debug(sprintf("msginfo: Deleting %*v02x (expired)\n", '', $testa));
-        delete($msginfo{$testa});
+        debug(sprintf("msginfo: Deleting %*v02x (expired)\n", '', $testmsgid));
+        delete($msginfo{$testmsgid});
       }
     }
     # IDs we replied to that are older than 2 minutes should be purged.
-    foreach my $testa (keys %msgreplyinfo) {
-      my $delta = $now - $msgreplyinfo{$testa}->{'time'};
-      debug(sprintf("  msgreplyinfo: %*v02x is %d sec old\n", '', $testa, $delta));
+    foreach my $testmsgid (keys %msgreplyinfo) {
+      my $delta = $now - $msgreplyinfo{$testmsgid}->{'time'};
+      debug(sprintf("  msgreplyinfo: %*v02x is %d sec old\n", '', $testmsgid, $delta));
       if($delta > 600) {
-        debug(sprintf("msgreplyinfo: Deleting %*v02x (expired)\n", '', $testa));
-        delete($msgreplyinfo{$testa});
+        debug(sprintf("msgreplyinfo: Deleting %*v02x (expired)\n", '', $testmsgid));
+        delete($msgreplyinfo{$testmsgid});
       }
     }
     $lastcleanup = $now;
@@ -606,6 +606,8 @@ sub processincomingpacket {
       debug(sprintf("msgreplyinfo: Deleting %*v02x\n", '', ($peer{'peertuple'} . $thismsginfo{'replyto'})));
       delete($msgreplyinfo{$peer{'peertuple'} . $thismsginfo{'replyto'}});
     }
+
+    # Print the ping result
     if(!$opt_quiet) {
       if($opt_flood) {
         print chr(8) . ' ' . chr(8);
@@ -685,10 +687,15 @@ sub sendpacket {
     $msgid .= chr(int(rand(256)));
   }
 
-  # $outbuff: Opcode data area (everything between opcode flags and padding, exclusive)
+  # $outbuff: Opcode data area (everything between opcode flags and
+  # padding, exclusive)
   my $outbuff = '';
+  # %outbuffs: Opcode data area segments, indexed by opcode flag (used to
+  # build $outbuff)
   my %outbuffs;
+  # $outbufflen: Working length of what $outbuff will eventually be
   my $outbufflen;
+  # $opcodeflags: 32-bit opcode flag area
   my $opcodeflags = 0;
 
   # If we're beyond the deadline or count period, only send the packet if
@@ -706,7 +713,7 @@ sub sendpacket {
     $vbuff = sprintf('msgid=%*v02x', '', $msgid);
   }
 
-  # 128: hashing
+  # 128: MAC hashing
   # We want room for this as soon as possible, so we're doing it now.
   # The actual hash will be filled in at the end.
   if($opt_auth) {
@@ -799,11 +806,11 @@ sub sendpacket {
   # 32: Investigation requests
   my(@validoldas) = ();
   if($sendreply && ((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen + LEN_OPCODE_HEADER_LEN + LEN_ARRAY_CNT) <= $opt_maxpacket)) {
-    foreach my $testa (keys %msginfo) {
-      next unless($msginfo{$testa}->{'peer'} eq $peer{'peertuple'});
-      next if($msginfo{$testa}->{'courtesy'});
-      if($msginfo{$testa}->{'time'} < (time() - $opt_inqwait)) {
-        push(@validoldas, $msginfo{$testa}->{'id'});
+    foreach my $testmsgid (keys %msginfo) {
+      next unless($msginfo{$testmsgid}->{'peer'} eq $peer{'peertuple'});
+      next if($msginfo{$testmsgid}->{'courtesy'});
+      if($msginfo{$testmsgid}->{'time'} < (time() - $opt_inqwait)) {
+        push(@validoldas, $msginfo{$testmsgid}->{'id'});
       }
     }
   }
@@ -832,12 +839,12 @@ sub sendpacket {
   # 64: Courtesies
   my(@courtesies) = ();
   if((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen + LEN_OPCODE_HEADER_LEN + LEN_ARRAY_CNT) <= $opt_maxpacket) {
-    foreach my $testa (keys %msginfo) {
-      next unless($msginfo{$testa}->{'peer'} eq $peer{'peertuple'});
-      next unless($msginfo{$testa}->{'courtesy'});
-      push(@courtesies, $msginfo{$testa}->{'id'});
-      debug(sprintf("msginfo: Deleting %*v02x (courtesy sent)\n", '', $testa));
-      delete($msginfo{$testa});
+    foreach my $testmsgid (keys %msginfo) {
+      next unless($msginfo{$testmsgid}->{'peer'} eq $peer{'peertuple'});
+      next unless($msginfo{$testmsgid}->{'courtesy'});
+      push(@courtesies, $msginfo{$testmsgid}->{'id'});
+      debug(sprintf("msginfo: Deleting %*v02x (courtesy sent)\n", '', $testmsgid));
+      delete($msginfo{$testmsgid});
     }
   }
   if((scalar(@courtesies) > 0) && ((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen + LEN_OPCODE_HEADER_LEN + LEN_ARRAY_CNT + LEN_MESSAGE_ID) <= $opt_maxpacket)) {
@@ -884,6 +891,7 @@ sub sendpacket {
   }
 
   my $hashpos;
+  # Loop through %outbuffs in numeric (opcode) order, assembling $outbuff
   foreach my $i (sort { $a <=> $b } keys %outbuffs) {
     $outbuff .= $outbuffs{$i};
     # If this is the hash area, record it for later use
@@ -972,6 +980,7 @@ sub processpacket {
   # $vbuff is a built verbose output line
   my($vbuff) = '';
 
+  # Magic number
   my($pos) = 0;
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
     unless(readbytestest($payload, $pos, LEN_MAGIC_NUMBER));
@@ -981,6 +990,7 @@ sub processpacket {
     return(parseerror(sprintf("Invalid magic number from %s: expected %*v02x, received %*v02x\n", $peer{'peerhost'}, '', '2P', '', $magic)));
   }
 
+  # Checksum
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
     unless(readbytestest($payload, $pos, LEN_CHECKSUM));
   my($payload_checksum) = unpack('n', substr($payload, $pos, LEN_CHECKSUM));
@@ -995,6 +1005,7 @@ sub processpacket {
     }
   }
 
+  # Message ID
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
     unless(readbytestest($payload, $pos, LEN_MESSAGE_ID));
   my($peerid) = substr($payload, $pos, LEN_MESSAGE_ID);
@@ -1002,15 +1013,18 @@ sub processpacket {
   $vbuff .= sprintf(' msgid=%*v02x', '', $peerid) if $opt_verbose;
   return unless(length($peerid) == LEN_MESSAGE_ID);
 
+  # Opcode flags
   return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
     unless(readbytestest($payload, $pos, LEN_OPCODES));
   my($opcodeflags) = unpack('n', substr($payload, $pos, LEN_OPCODES));
   $pos += LEN_OPCODES;
 
+  # Don't accept a packet if we were expecting a hash
   if($opt_auth && !($opcodeflags & OPCODE_HASH)) {
     return(parseerror(sprintf("Auth hash expected from %s but not found: msgid=%*v02x\n", $peer{'peerhost'}, '', $peerid)));
   }
 
+  # 1: Peer reply expected
   my($peersendreply) = 0;
   if($opcodeflags & OPCODE_SENDREPLY) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1024,6 +1038,7 @@ sub processpacket {
     $vbuff .= ' sendreply=yes' if $opt_verbose;
   }
 
+  # 2: Peer replying to this Message ID
   my($peerreplyto);
   if($opcodeflags & OPCODE_REPLYTO) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1040,6 +1055,7 @@ sub processpacket {
     $vbuff .= sprintf(' replyto=%*v02x', '', $peerreplyto) if $opt_verbose;
   }
 
+  # 4: Peer RTT included (3rd leg)
   my($peerrtt);
   if($opcodeflags & OPCODE_RTT) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1056,6 +1072,7 @@ sub processpacket {
     $vbuff .= sprintf(' rtt=%0.03f', $peerrtt) if $opt_verbose;
   }
 
+  # 8: Peer investigation complete, found these IDs
   my(@peerresends);
   if($opcodeflags & OPCODE_LOSTFOUNDS) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1088,6 +1105,7 @@ sub processpacket {
     }
   }
 
+  # 16: Peer investigation complete, didn't fing these IDs
   my(@peerresendsnotfound);
   if($opcodeflags & OPCODE_LOSTNOTFOUNDS) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1120,6 +1138,7 @@ sub processpacket {
     }
   }
 
+  # 32: Peer investigation requests
   my(@peeroldids);
   if($opcodeflags & OPCODE_LOSTPACKETS) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1152,6 +1171,7 @@ sub processpacket {
     }
   }
 
+  # 64: Peer courtesies
   my(@peercourtesies);
   if($opcodeflags & OPCODE_COURTESIES) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1184,6 +1204,7 @@ sub processpacket {
     }
   }
 
+  # 128: Peer MAC hashing
   if($opcodeflags & OPCODE_HASH) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
       unless(readbytestest($payload, $pos, LEN_OPCODE_HEADER_LEN));
@@ -1217,6 +1238,7 @@ sub processpacket {
     }
   }
 
+  # 256: Peer RTT delay
   my($peerdelay);
   if($opcodeflags & OPCODE_DELAY) {
     return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
@@ -1233,6 +1255,7 @@ sub processpacket {
     $vbuff .= sprintf(' delay=%0.03f', $peerdelay) if $opt_verbose;
   }
 
+  # Peer padding
   $vbuff .= sprintf(' pad=%d', (length($payload) - $pos)) if $opt_verbose;
 
   if($opt_verbose) {
@@ -1337,6 +1360,7 @@ sub shortstats {
   );
 }
 
+# Output text only if $opt_debug is on
 sub debug {
   if($opt_debug) {
     my $msg = shift;
@@ -1344,6 +1368,7 @@ sub debug {
   }
 }
 
+# Division, replacing divide-by-zero with zero
 sub lazydiv {
   my($a) = shift;
   my($b) = shift;
@@ -1399,7 +1424,7 @@ sub ip_checksum {
   return($checksum);
 }
 
-# Generate an HMAC checksum
+# Generate an HMAC hash
 sub hmac {
   my($f) = shift;
   my($message) = shift;
@@ -1592,8 +1617,6 @@ Print a line of brief current statistics every I<interval> seconds.  The same li
 =head1 BUGS
 
 There are probably lots and lots and lots of unknown bugs.
-
-This is a pre-1.0 version of 2ping.  Port number, line protocol and arguments are not guaranteed to be compatible with future versions.
 
 By default, source IP logic doesn't work as expected, see B<-I> for details.  There appears to be no way to peg the source IP of reply UDP packets to the destination of the packet that is being replied to.  As a result, packets always go out the interface's main IP address if not specified manually.  (Please, prove the author wrong.)
 
