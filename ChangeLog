@@ -1,10 +1,12 @@
-ping 0.9.0 (2010-10-09)
-  * Version bumped to 0.9.0 to signify a stable standardization is close
+2ping 0.9.1 (2010-10-09)
+  * Version bumped to 0.9.1 to signify a stable standardization is close
   * Changed the default UDP port from 58277 to 15998 (IANA-registered 
     port)
   * Host processing latency is now subtracted where possible (protocol 
     extension, backwards compatible)
   * Minor code cleanup
+  * 0.9.0 (unreleased) was a Brown Paper Bag commit; typo in ChangeLog 
+    fixed
 
 2ping 0.0.3 (2010-10-03)
 
