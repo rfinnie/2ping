@@ -16,6 +16,10 @@ PIDFILE=/var/run/2ping.pid
 test -f ${TWOPING} || exit 0
 
 # 2ping configuration
+
+# If you have multiple IPs on an interface, it is strongly recommended 
+# that you specify the IPs to bind to (-I) in TWOPING_OPTIONS in 
+# /etc/default/2ping.  -I may be specified multiple times.
 TWOPING_OPTIONS=""
 TWOPING_USER="nobody"
 TWOPING_GROUP="nogroup"
@@ -31,13 +35,13 @@ case "$1" in
   stop)
     echo -n "Stopping 2ping listener:"
     echo -n " 2ping"
-    start-stop-daemon --stop --quiet --chuid ${TWOPING_USER} --group ${TWOPING_GROUP} --exec ${TWOPING} --background --make-pidfile --pidfile ${PIDFILE} -- --listen ${TWOPING_OPTIONS} >/dev/null
+    start-stop-daemon --stop --quiet --pidfile ${PIDFILE}
     echo "."
     ;;
   reload|restart|force-reload)
     echo -n "Restarting 2ping listener:"
     echo -n " 2ping"
-    start-stop-daemon --stop --quiet --chuid ${TWOPING_USER} --group ${TWOPING_GROUP} --exec ${TWOPING} --background --make-pidfile --pidfile ${PIDFILE} -- --listen ${TWOPING_OPTIONS} >/dev/null
+    start-stop-daemon --stop --quiet --pidfile ${PIDFILE}
     sleep 2
     start-stop-daemon --start --quiet --chuid ${TWOPING_USER} --group ${TWOPING_GROUP} --exec ${TWOPING} --background --make-pidfile --pidfile ${PIDFILE} -- --listen ${TWOPING_OPTIONS} >/dev/null
     echo "."
