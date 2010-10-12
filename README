@@ -29,6 +29,8 @@ To "build" and install 2ping:
   make install
   make clean
 
+/usr/local is the default Makefile prefix, use PREFIX to override.
+
 USAGE
 
 Please see the man page for full details, but in short, start a listener 
@@ -38,4 +40,6 @@ on the far end:
 
 And run 2ping on the near end, connecting to the far end listener:
 
-  2ping <farendhost>
+  2ping $LISTENER
+
+Where "$LISTENER" is the name or IP address of the listener.
