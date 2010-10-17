@@ -36,9 +36,9 @@ install: all
 	install -d -m 0755 $(DESTDIR)$(PREFIX)/bin
 	install -d -m 0755 $(DESTDIR)$(PREFIX)/share/man/man8
 	install -m 0755 2ping $(DESTDIR)$(PREFIX)/bin
-	install -m 0755 2ping6 $(DESTDIR)$(PREFIX)/bin
+	ln -sf 2ping $(DESTDIR)$(PREFIX)/bin/2ping6
 	install -m 0644 2ping.8 $(DESTDIR)$(PREFIX)/share/man/man8
-	install -m 0644 2ping6.8 $(DESTDIR)$(PREFIX)/share/man/man8
+	ln -sf 2ping.8 $(DESTDIR)$(PREFIX)/share/man/man8/2ping6.8
 
 distclean: clean
 
