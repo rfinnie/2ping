@@ -135,7 +135,9 @@ if($0 =~ /[\/\\^]2ping6$/) {
 }
 
 if(((scalar @ARGV == 0) && !$opt_listen) || $opt_help) {
-  print STDERR "2ping version $VERSION\n\n";
+  print STDERR "2ping version $VERSION\n";
+  print STDERR "Copyright (C) 2010 Ryan Finnie <ryan\@finnie.org>\n";
+  print STDERR "\n";
   pod2usage(2);
 }
 
