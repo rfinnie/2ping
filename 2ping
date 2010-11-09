@@ -1609,7 +1609,7 @@ Simulate random packet loss outbound and inbound.  For example, I<25:10> means a
 
 =item B<--port>=I<port>
 
-Use UDP port I<port>.  With B<--listen>, this is the port to bind as, otherwise this is the port to send to.  Default is UDP port 58277 (B<WILL CHANGE IN THE FUTURE>).
+Use UDP port I<port>.  With B<--listen>, this is the port to bind as, otherwise this is the port to send to.  Default is UDP port 15998.
 
 =item B<--stats>=I<interval>
 
