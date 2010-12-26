@@ -452,7 +452,7 @@ while(1) {
     foreach my $testmsgid (keys %msgreplyinfo) {
       my $delta = $now - $msgreplyinfo{$testmsgid}->{'time'};
       debug(sprintf("  msgreplyinfo: %*v02x is %d sec old\n", '', $testmsgid, $delta));
-      if($delta > 600) {
+      if($delta > 120) {
         debug(sprintf("msgreplyinfo: Deleting %*v02x (expired)\n", '', $testmsgid));
         delete($msgreplyinfo{$testmsgid});
       }
