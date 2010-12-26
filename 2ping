@@ -556,10 +556,6 @@ sub processincomingpacket {
   if($peerreplyto && $msginfo{$peer{'peertuple'} . $peerreplyto}) {
     my(%thismsginfo) = %{$msginfo{$peer{'peertuple'} . $peerreplyto}};
     my($rtt) = (($recvtime - $thismsginfo{'time'}) * 1000);
-    # If the peer specified a host processing delay, subtract it.
-    if($peerdelay) {
-      $rtt -= $peerdelay;
-    }
     $msginfo{$peer{'peertuple'} . $peerreplyto}->{'courtesy'} = 1;
 
     # If they want a reply, send it as early as possible.
