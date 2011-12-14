@@ -285,6 +285,10 @@ my($pingsin) = 0;
 my($errors) = 0;
 # RTT sum in ms ($pingsinrttsum / $pingsin = avg rtt)
 my($pingsinrttsum) = 0;
+# Sum of squares of RTTs, for quick stddev calculation
+my($pingsinrttsumsq) = 0;
+# Exponentially weighted moving average
+my($pingsinewma) = 0;
 # Maximum single RTT computed
 my($pingsinrttmax) = 0;
 # Minimum single RTT computed
@@ -621,6 +625,8 @@ sub processincomingpacket {
       }
     }
     $pingsinrttsum += $rtt;
+    $pingsinrttsumsq += $rtt ** 2;
+    $pingsinewma = ($pingsinewma ? ($rtt * 8) : ($pingsinewma + ($rtt - ($pingsinewma / 8))));
     $pingsinrttmax = $rtt if($rtt > $pingsinrttmax);
     $pingsinrttmin = $rtt if(($rtt < $pingsinrttmin) || !$pingsinrttmin);
     $pingsin++;
@@ -1317,10 +1323,12 @@ sub gracefulexit {
     lazydiv(($pingsout-$pingsin-$outlost-$inlost), $pingsout)*100
   );
   printf(
-    "rtt min/avg/max = %0.03f/%0.03f/%0.03f ms\n",
+    "rtt min/avg/ewma/max/mdev = %0.03f/%0.03f/%0.03f/%0.03f/%0.03f ms\n",
     $pingsinrttmin,
     lazydiv($pingsinrttsum, $pingsin),
-    $pingsinrttmax
+    $pingsinewma / 8,
+    $pingsinrttmax,
+    sqrt(lazydiv($pingsinrttsumsq, $pingsin) - (lazydiv($pingsinrttsum, $pingsin) ** 2))
   );
   printf("%d raw packets transmitted, %d received\n", $packetsout, $packetsin);
   exit(0);
@@ -1346,7 +1354,7 @@ sub processsigquit {
 
 # Print one line of statistics without exiting
 sub shortstats {
-  printf("%d/%d pings, %d%% loss (%d/%d/%d out/in/undet), min/avg/max = %0.03f/%0.03f/%0.03f ms\n",
+  printf("%d/%d pings, %d%% loss (%d/%d/%d out/in/undet), min/avg/max/ewma/mdev = %0.03f/%0.03f/%0.03f/%0.03f/%0.03f ms\n",
     $pingsout,
     $pingsin,
     lazydiv(($pingsout-$pingsin), $pingsout)*100,
@@ -1355,7 +1363,9 @@ sub shortstats {
     $pingsout-$pingsin-$outlost-$inlost,
     $pingsinrttmin,
     lazydiv($pingsinrttsum, $pingsin),
-    $pingsinrttmax
+    $pingsinewma / 8,
+    $pingsinrttmax,
+    sqrt(lazydiv($pingsinrttsumsq, $pingsin) - (lazydiv($pingsinrttsum, $pingsin) ** 2))
   );
 }
 
