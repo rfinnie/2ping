@@ -1,3 +1,7 @@
+2ping 2.2 (2011-12-24)
+  * Added exponentially-weighted moving average (ewma) and moving 
+    standard drviation (mdev) statistics to the summary display
+
 2ping 1.1 (2011-04-05)
   * Host processing delays sent by the peer are no longer considered
     when calculating RTT
