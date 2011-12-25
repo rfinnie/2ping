@@ -626,7 +626,7 @@ sub processincomingpacket {
     }
     $pingsinrttsum += $rtt;
     $pingsinrttsumsq += $rtt ** 2;
-    $pingsinewma = ($pingsinewma ? ($rtt * 8) : ($pingsinewma + ($rtt - ($pingsinewma / 8))));
+    $pingsinewma = ($pingsinewma ? ($pingsinewma + ($rtt - ($pingsinewma / 8))) : ($rtt * 8));
     $pingsinrttmax = $rtt if($rtt > $pingsinrttmax);
     $pingsinrttmin = $rtt if(($rtt < $pingsinrttmin) || !$pingsinrttmin);
     $pingsin++;
