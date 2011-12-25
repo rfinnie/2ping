@@ -1,5 +1,5 @@
 Name:           2ping
-Version:        1.2
+Version:        1.2.2
 Release:        1%{?dist}
 Summary:        A bi-directional ping utility
 
