@@ -1,4 +1,9 @@
-2ping 2.2 (2011-12-24)
+2ping 1.2.3 (2012-01-01)
+  * Fixed ewma report (was always showing the last rtt)
+  * Fixed the various brown paper bag stuff I did in 1.2.1 and 1.2.2 
+    while I rediscovered the magical journey that is git
+
+2ping 1.2 (2011-12-24)
   * Added exponentially-weighted moving average (ewma) and moving 
     standard drviation (mdev) statistics to the summary display
 
