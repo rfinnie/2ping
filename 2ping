@@ -337,6 +337,8 @@ if($opt_listen) {
     if($opt_ipv6 && $opt_intaddr =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
       $is_ipv6 = 0;
     }
+    my $sockerr = '';
+    my $sockaddlerr = '';
     if($is_ipv6) {
       $sock = IO::Socket::INET6->new(
         Domain => 10, # AF_INET6
@@ -344,6 +346,7 @@ if($opt_listen) {
         LocalPort => $opt_port,
         Proto => 'udp'
       );
+      unless($sock) { $sockerr = $!; $sockaddlerr = $@; }
     } else {
       $sock = IO::Socket::INET->new(
         Domain => 2, # AF_INET
@@ -351,8 +354,9 @@ if($opt_listen) {
         LocalPort => $opt_port,
         Proto => 'udp'
       );
+      unless($sock) { $sockerr = $!; $sockaddlerr = $@; }
     }
-    die "Could not create socket: $!\n" unless $sock;
+    die sprintf("Could not create socket: %s%s\n", $sockerr, ($sockaddlerr ? " ($sockaddlerr)" : "")) unless $sock;
     binmode($sock, ':raw');
     printf("2PING listener (%s): %d to %d bytes of data.\n", $sock->sockhost, $opt_minpacket, $opt_maxpacket);
     push(@socks, $sock);
@@ -370,6 +374,8 @@ if($opt_listen) {
     if($opt_ipv6 && $to =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
       $is_ipv6 = 0;
     }
+    my $sockerr = '';
+    my $sockaddlerr = '';
     if($is_ipv6) {
       $sock = IO::Socket::INET6->new(
         Domain => 10, # AF_INET6
@@ -378,6 +384,7 @@ if($opt_listen) {
         PeerAddr  => $to,
         Proto     => 'udp',
       );
+      unless($sock) { $sockerr = $!; $sockaddlerr = $@; }
     } else {
       $sock = IO::Socket::INET->new(
         Domain => 2, # AF_INET
@@ -386,8 +393,9 @@ if($opt_listen) {
         PeerAddr  => $to,
         Proto     => 'udp',
       );
+      unless($sock) { $sockerr = $!; $sockaddlerr = $@; }
     }
-    die "Could not create socket: $!\n" unless $sock;
+    die sprintf("Could not create socket: %s%s\n", $sockerr, ($sockaddlerr ? " ($sockaddlerr)" : "")) unless $sock;
     printf("2PING %s (%s): %d to %d bytes of data.\n", $to, $sock->peerhost, $opt_minpacket, $opt_maxpacket);
     binmode($sock, ':raw');
     push(@socks, $sock);
@@ -1453,6 +1461,17 @@ sub hmac {
 sub crc32_bin {
   my($data) = shift;
   return pack('N', Digest::CRC::crc32($data));
+}
+
+sub resolve_host {
+  my $inname = shift;
+  my $is_ipv6 = shift;
+
+  if($is_ipv6) {
+
+  } else {
+    my($name, $aliases, $addrtype, $length, @addrs)
+  }
 }
 
 __END__
