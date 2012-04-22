@@ -20,7 +20,7 @@
 # 02110-1301, USA.
 ########################################################################
 
-my $VERSION = '1.2.3';
+my $VERSION = '2.0';
 my $EXTRAVERSION = '#EXTRAVERSION#';
 
 use warnings;
