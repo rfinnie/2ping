@@ -1,10 +1,10 @@
 PREFIX := /usr/local
 
-all: 2ping symlinks
+all: 2ping
 
 2ping: src/2ping.pl
-	perl -pe 's%#EXTRAVERSION#%'$(EXTRAVERSION)'%g' src/2ping.pl >2ping
-	chmod 0755 2ping
+	perl -pe 's%#EXTRAVERSION#%'$(EXTRAVERSION)'%g' $< >$@
+	chmod 0755 $@
 
 # Docs are shipped pre-compiled
 doc: 2ping.8 2ping.8.html
@@ -15,14 +15,6 @@ doc: 2ping.8 2ping.8.html
 2ping.8.html: 2ping
 	pod2html $< >$@
 	rm -f pod2htmd.tmp pod2htmi.tmp
-
-2ping6: 2ping
-	ln -sf $< $@
-
-2ping6.8: 2ping.8
-	ln -sf $< $@
-
-symlinks: 2ping6 2ping6.8
 
 test:
 	@perl -MConfig -e 'print "Config is installed.\n";'
@@ -48,7 +40,7 @@ install: all
 distclean: clean
 
 clean:
-	rm -f 2ping6 2ping6.8 2ping
+	rm -f 2ping
 
 doc-clean:
 	rm -f 2ping.8 2ping.8.html
