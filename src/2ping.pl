@@ -101,11 +101,13 @@ my(
   $opt_stats,
   $opt_notice,
   $opt_sendversion,
+  $opt_matchpacketsize,
 );
 
 $opt_preload = 1;
 $opt_sendversion = 1;
 $opt_3way = 1;
+$opt_matchpacketsize = 1;
 
 Getopt::Long::Configure("bundling");
 my($result) = GetOptions(
@@ -139,6 +141,7 @@ my($result) = GetOptions(
   'stats=f' => \$opt_stats,
   'notice=s' => \$opt_notice,
   'send-version!' => \$opt_sendversion,
+  'match-packet-size!' => \$opt_matchpacketsize,
 );
 
 if($opt_version) {
@@ -594,7 +597,7 @@ sub processincomingpacket {
       # set), then we know the peer was the 2nd leg of a 3-way ping, and
       # is requesting the 3rd leg.  So we shouldn't expect a reply
       # ourselves.
-      sendpacket(\%peer, 0, $peerid, $rtt, \@resends, \@resendsnotfound, $recvtime);
+      sendpacket(\%peer, 0, $peerid, $rtt, \@resends, \@resendsnotfound, $recvtime, length($payload));
     }
 
     if(scalar(@peerresends) > 0) {
@@ -674,11 +677,11 @@ sub processincomingpacket {
       # Either the peer's response was 2nd leg of a 3-way ping (it had a
       # reply-to), or it's the 1st leg of a ping and config explicitly
       # disables 3-way pings.  Either way, do not request a reply.
-      sendpacket(\%peer, 0, $peerid, 0, \@resends, \@resendsnotfound, $recvtime);
+      sendpacket(\%peer, 0, $peerid, 0, \@resends, \@resendsnotfound, $recvtime, length($payload));
     } else {
       # Request a reply, this was the 1st leg of a 3-way ping, which we
       # will continue to make a 2nd and request a 3rd.
-      sendpacket(\%peer, 1, $peerid, 0, \@resends, \@resendsnotfound, $recvtime);
+      sendpacket(\%peer, 1, $peerid, 0, \@resends, \@resendsnotfound, $recvtime, length($payload));
     }
   }
 }
@@ -713,6 +716,7 @@ sub sendpacket {
   my @resends = ($_[4] ? @{$_[4]} : ()); # List of investigated IDs (received)
   my @resendsnotfound = ($_[5] ? @{$_[5]} : ()); # List of investigated IDs (never received)
   my $recvtime = $_[6]; # Time the recv() happened
+  my $recvpayloadlen = $_[7]; # Length of the received payload
 
   # Generate a random message ID
   my($msgid) = '';
@@ -934,11 +938,23 @@ sub sendpacket {
     $vbuff .= ' extended=yes';
   }
 
+  # Determine how small the packet should be.
+  my($minpacket);
+  if($opt_matchpacketsize && $recvpayloadlen) {
+    if($recvpayloadlen < $opt_maxpacket) {
+      $minpacket = $recvpayloadlen;
+    } else {
+      $minpacket = $opt_minpacket;
+    }
+  } else {
+    $minpacket = $opt_minpacket;
+  }
+
   # If there is room left, build padding according to the pattern.
   my($outpad) = '';
   my($pad) = 0;
-  if((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen) < $opt_minpacket) {
-    $pad = ($opt_minpacket - ((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen)));
+  if((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen) < $minpacket) {
+    $pad = ($minpacket - ((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen)));
     $outpad = substr(($pad_pattern x int(($pad / length($pad_pattern)) + 1)), 0, $pad);
     if($opt_verbose) {
       $vbuff .= sprintf(' pad=%d', $pad);
@@ -1736,6 +1752,10 @@ Set the maximum total payload size to I<max> bytes, default 512, absolute minimu
 Do not perform 3-way pings.  Used most often when combined with B<--listen>, as the listener is usually the one to determine whether a ping reply should become a 3-way ping.
 
 Strictly speaking, a 3-way ping is not necessary for determining directional packet loss between the client and the listener.  However, the extra leg of the 3-way ping allows for extra chances to determine packet loss more efficiently.  Also, with 3-way ping disabled, the listener will receive no client performance indicators, nor will the listener be able to determine directional packet loss that it detects.
+
+=item B<--no-match-packet-size>
+
+When sending replies, 2ping will try to match the packet size of the received packet by adding padding if necessary, but will not exceed B<--max-packet-size>.  B<--no-match-packet-size> disabled this behavior, always setting the minimum to B<--min-packet-size>.
 
 =item B<--no-send-version>
 
