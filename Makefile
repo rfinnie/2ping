@@ -25,6 +25,7 @@ doc: 2ping.8 2ping.8.html
 symlinks: 2ping6 2ping6.8
 
 test:
+	@perl -MConfig -e 'print "Config is installed.\n";'
 	@perl -MGetopt::Long -e 'print "Getopt::Long is installed.\n";'
 	@perl -MPod::Usage -e 'print "Pod::Usage is installed.\n";'
 	@perl -MIO::Select -e 'print "IO::Select is installed.\n";'
