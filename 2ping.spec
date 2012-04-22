@@ -23,7 +23,7 @@ occurs.
 
 
 %build
-make %{?_smp_mflags}
+make EXTRAVERSION=-$RPM_PACKAGE_RELEASE
 
 
 %install

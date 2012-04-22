@@ -21,6 +21,7 @@
 ########################################################################
 
 my $VERSION = '1.2.3';
+my $EXTRAVERSION = '#EXTRAVERSION#';
 
 use warnings;
 use strict;
@@ -61,7 +62,11 @@ use constant LEN_DELAY => 4;
 use constant LEN_EXTENDED_ID => 4;
 use constant LEN_EXTENDED_LEN => 2;
 
-my $versionstring = sprintf('2ping %s (%s)', $VERSION, $Config{'archname'});
+my $versionstring = sprintf('2ping %s%s (%s)',
+  $VERSION,
+  ($EXTRAVERSION eq ('#'.'EXTRAVERSION'.'#') ? '' : $EXTRAVERSION),
+  $Config{'archname'}
+);
 
 ########################################################################
 # Command line option parsing
@@ -139,7 +144,7 @@ my($result) = GetOptions(
 );
 
 if($opt_version) {
-  print "2ping version $VERSION\n";
+  print "$versionstring\n";
   exit;
 }
 
@@ -149,7 +154,7 @@ if($0 =~ /[\/\\^]2ping6$/) {
 }
 
 if(((scalar @ARGV == 0) && !$opt_listen) || $opt_help) {
-  print STDERR "2ping version $VERSION\n";
+  print STDERR "$versionstring\n";
   print STDERR "Copyright (C) 2010 Ryan Finnie <ryan\@finnie.org>\n";
   print STDERR "\n";
   pod2usage(2);

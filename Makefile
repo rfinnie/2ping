@@ -2,6 +2,10 @@ PREFIX := /usr/local
 
 all: 2ping symlinks
 
+2ping: src/2ping.pl
+	perl -pe 's%#EXTRAVERSION#%'$(EXTRAVERSION)'%g' src/2ping.pl >2ping
+	chmod 0755 2ping
+
 # Docs are shipped pre-compiled
 doc: 2ping.8 2ping.8.html
 
@@ -43,7 +47,7 @@ install: all
 distclean: clean
 
 clean:
-	rm -f 2ping6 2ping6.8
+	rm -f 2ping6 2ping6.8 2ping
 
 doc-clean:
 	rm -f 2ping.8 2ping.8.html
