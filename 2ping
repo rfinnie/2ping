@@ -24,6 +24,7 @@ my $VERSION = '1.2.3';
 
 use warnings;
 use strict;
+use Config;
 use Getopt::Long;
 use Pod::Usage;
 use IO::Select;
@@ -45,6 +46,9 @@ use constant OPCODE_LOSTPACKETS => 32;
 use constant OPCODE_COURTESIES => 64;
 use constant OPCODE_HASH => 128;
 use constant OPCODE_DELAY => 256;
+use constant OPCODE_EXTENDED => 32768;
+use constant EXTENDED_ID_VERSION => 0x3250564e;
+use constant EXTENDED_ID_NOTICE => 0xa837b44e;
 use constant LEN_MAGIC_NUMBER => 2;
 use constant LEN_CHECKSUM => 2;
 use constant LEN_MESSAGE_ID => 6;
@@ -54,6 +58,10 @@ use constant LEN_ARRAY_CNT => 2;
 use constant LEN_RTT => 4;
 use constant LEN_DIGEST_TYPE => 2;
 use constant LEN_DELAY => 4;
+use constant LEN_EXTENDED_ID => 4;
+use constant LEN_EXTENDED_LEN => 2;
+
+my $versionstring = sprintf('2ping %s (%s)', $VERSION, $Config{'archname'});
 
 ########################################################################
 # Command line option parsing
@@ -88,9 +96,12 @@ my(
   $opt_auth,
   $opt_authdigest,
   $opt_stats,
+  $opt_notice,
+  $opt_sendversion,
 );
 
 $opt_preload = 1;
+$opt_sendversion = 1;
 
 Getopt::Long::Configure("bundling");
 my($result) = GetOptions(
@@ -122,6 +133,8 @@ my($result) = GetOptions(
   'packet-loss=s' => \$opt_packetloss,
   'port=i' => \$opt_port,
   'stats=f' => \$opt_stats,
+  'notice=s' => \$opt_notice,
+  'send-version!' => \$opt_sendversion,
 );
 
 if($opt_version) {
@@ -526,12 +539,13 @@ sub processincomingpacket {
   $peer{'peertuple'} = $peer{'sock'}->sockaddr . $peer{'sock'}->sockport . $peer{'sock'}->peeraddr . $peer{'sock'}->peerport . $peer{'sock'}->protocol;
   $peer{'peername'} = $peer{'sock'}->peername;
 
-  my($peerid, $peersendreply, $peerreplyto, $peerrtt, $peerresendsref, $peerresendsnotfoundref, $peeroldidsref, $peercourtesiesref, $peerdelay) = processpacket($payload, \%peer);
+  my($peerid, $peersendreply, $peerreplyto, $peerrtt, $peerresendsref, $peerresendsnotfoundref, $peeroldidsref, $peercourtesiesref, $peerdelay, $peerextoptionsref) = processpacket($payload, \%peer);
   return unless $peerid;
   my(@peerresendsnotfound) = @{$peerresendsnotfoundref};
   my(@peerresends) = @{$peerresendsref};
   my(@peeroldids) = @{$peeroldidsref};
   my(@peercourtesies) = @{$peercourtesiesref};
+  my(%peerextoptions) = %{$peerextoptionsref};
 
   debug(sprintf("msginfo count: %d\n", scalar keys(%msginfo)));
   foreach my $i (keys %msginfo) {
@@ -630,6 +644,9 @@ sub processincomingpacket {
           ($peerrtt ? sprintf(' peertime=%0.03f ms', $peerrtt) : ''),
           ($opt_audible ? chr(7) : '')
         );
+        if($peerextoptions{'notice'}) {
+          printf("  Peer notice: %s\n", $peerextoptions{'notice'});
+        }
       }
     }
     $pingsinrttsum += $rtt;
@@ -878,6 +895,39 @@ sub sendpacket {
     }
     $outbuffs{OPCODE_COURTESIES()} .= pack('n', LEN_ARRAY_CNT + length($tmpoutbuff)) . pack('n', $cnt) . $tmpoutbuff;
     $outbufflen += LEN_OPCODE_HEADER_LEN + LEN_ARRAY_CNT + length($tmpoutbuff);
+  }
+
+  # Extended options.  Only build the opcode block if any extended
+  # options are set.
+  my($buildextended) = 0;
+  my(%extendedout) = ();
+
+  # Extended 0xa837b44e: Notice text
+  if($opt_notice && ((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen + LEN_OPCODE_HEADER_LEN + LEN_EXTENDED_ID + LEN_EXTENDED_LEN + length($opt_notice)) <= $opt_maxpacket)) {
+    $buildextended = 1;
+    $extendedout{EXTENDED_ID_NOTICE()} = $opt_notice;
+    $outbufflen += LEN_EXTENDED_ID + LEN_EXTENDED_LEN + length($opt_notice);
+    $vbuff .= sprintf(' notice="%s"', $opt_notice);
+  }
+
+  # Extended 0x3250564e: Program version
+  if($opt_sendversion && ((LEN_MAGIC_NUMBER + LEN_CHECKSUM + LEN_MESSAGE_ID + LEN_OPCODES + $outbufflen + LEN_OPCODE_HEADER_LEN + LEN_EXTENDED_ID + LEN_EXTENDED_LEN + length($versionstring)) <= $opt_maxpacket)) {
+    $buildextended = 1;
+    $extendedout{EXTENDED_ID_VERSION()} = $versionstring;
+    $outbufflen += LEN_EXTENDED_ID + LEN_EXTENDED_LEN + length($versionstring);
+    $vbuff .= sprintf(' version="%s"', $versionstring);
+  }
+
+  # If any extended options are set, build the opcode block.
+  if($buildextended) {
+    $opcodeflags |= OPCODE_EXTENDED;
+    my $extendedoutbuff = '';
+    foreach my $extid (sort { $a <=> $b } keys %extendedout) {
+      $extendedoutbuff .= pack('N', $extid) . pack('n', length($extendedout{$extid})) . $extendedout{$extid};
+    }
+    $outbufflen += LEN_OPCODE_HEADER_LEN;
+    $outbuffs{OPCODE_EXTENDED()} .= pack('n', length($extendedoutbuff)) . $extendedoutbuff;
+    $vbuff .= ' extended=yes';
   }
 
   # If there is room left, build padding according to the pattern.
@@ -1268,13 +1318,68 @@ sub processpacket {
     $vbuff .= sprintf(' delay=%0.03f', $peerdelay) if $opt_verbose;
   }
 
+  # Skip over unknown (undefined at the time of this writing) opcodes
+  foreach my $unknownflag (qw/512 1024 2048 4096 8192 16384/) {
+    if($opcodeflags & $unknownflag) {
+      return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+        unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
+      my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
+      $pos += LEN_OPCODE_HEADER_LEN;
+      return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+        unless(readbytestest($payloadlen, $pos, $opblocklen));
+      $pos += $opblocklen;
+      $vbuff .= sprintf(' unknown_opcode(%04x)=%dB', $unknownflag, $opblocklen) if $opt_verbose;
+    }
+  }
+
+  # 32768: Extended format
+  my %extoptions = ();
+  if($opcodeflags & OPCODE_EXTENDED) {
+    return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+      unless(readbytestest($payloadlen, $pos, LEN_OPCODE_HEADER_LEN));
+    $vbuff .= ' extended=yes';
+    my($opblockpos) = 0;
+    my($opblocklen) = unpack('n', substr($payload, $pos, LEN_OPCODE_HEADER_LEN));
+    $pos += LEN_OPCODE_HEADER_LEN;
+    while($opblockpos < $opblocklen) {
+      return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+        unless(readbytestest($payloadlen, $pos, LEN_EXTENDED_ID));
+      my($extid) = unpack('N', substr($payload, $pos, LEN_EXTENDED_ID));
+      $pos += LEN_EXTENDED_ID;
+      $opblockpos += LEN_EXTENDED_ID;
+      return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+        unless(readbytestest($payloadlen, $pos, LEN_EXTENDED_LEN));
+      my($extlen) = unpack('n', substr($payload, $pos, LEN_EXTENDED_LEN));
+      $pos += LEN_EXTENDED_LEN;
+      $opblockpos += LEN_EXTENDED_LEN;
+      return(parseerror(sprintf("Packet received from %s: attempt to read beyond packet\n", $peer{'peerhost'})))
+        unless(readbytestest($payloadlen, $pos, $extlen));
+      if($extid == EXTENDED_ID_VERSION) {
+        my($extdata) = substr($payload, $pos, $extlen);
+        $pos += $extlen;
+        $opblockpos += $extlen;
+        $vbuff .= sprintf(' version="%s"', $extdata) if $opt_verbose;
+      } elsif($extid == EXTENDED_ID_NOTICE) {
+        my($extdata) = substr($payload, $pos, $extlen);
+        $pos += $extlen;
+        $opblockpos += $extlen;
+        $vbuff .= sprintf(' notice="%s"', $extdata) if $opt_verbose;
+        $extoptions{'notice'} = $extdata;
+      } else {
+        $pos += $extlen;
+        $opblockpos += $extlen;
+        $vbuff .= sprintf(' unknown_ext(%08x)=%dB', $extid, $extlen) if $opt_verbose;
+      }
+    }
+  }
+
   # Peer padding
   $vbuff .= sprintf(' pad=%d', (length($payload) - $pos)) if $opt_verbose;
 
   if($opt_verbose) {
     printf("RECV: %d bytes from %s:%s: %s\n", length($payload), $peer{'peerhost'}, $peer{'peerport'}, $vbuff);
   }
-  return($peerid, $peersendreply, $peerreplyto, $peerrtt, \@peerresends, \@peerresendsnotfound, \@peeroldids, \@peercourtesies, $peerdelay);
+  return($peerid, $peersendreply, $peerreplyto, $peerrtt, \@peerresends, \@peerresendsnotfound, \@peeroldids, \@peercourtesies, $peerdelay, \%extoptions);
 }
 
 # Test for reading beyond the end of the packet
@@ -1627,6 +1732,14 @@ Set the maximum total payload size to I<max> bytes, default 512, absolute minimu
 Do not perform 3-way pings.  Used most often when combined with B<--listen>, as the listener is usually the one to determine whether a ping reply should become a 3-way ping.
 
 Strictly speaking, a 3-way ping is not necessary for determining directional packet loss between the client and the listener.  However, the extra leg of the 3-way ping allows for extra chances to determine packet loss more efficiently.  Also, with 3-way ping disabled, the listener will receive no client performance indicators, nor will the listener be able to determine directional packet loss that it detects.
+
+=item B<--no-send-version>
+
+Do not send the current running version of 2ping with each packet.
+
+=item B<--notice>=I<text>
+
+Arbitrary notice text to send with each packet.  If the remote peer supports it, this may be displayed to the user.
 
 =item B<--packet-loss>=I<out:in>
 
