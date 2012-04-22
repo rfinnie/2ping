@@ -1588,17 +1588,6 @@ sub crc32_bin {
   return pack('N', Digest::CRC::crc32($data));
 }
 
-sub resolve_host {
-  my $inname = shift;
-  my $is_ipv6 = shift;
-
-  if($is_ipv6) {
-
-  } else {
-    my($name, $aliases, $addrtype, $length, @addrs)
-  }
-}
-
 __END__
 
 =head1 NAME
