@@ -91,7 +91,7 @@ my(
   $opt_adaptive,
   $opt_count,
   $opt_deadline,
-  $opt_no3way,
+  $opt_3way,
   $opt_preload,
   $opt_auth,
   $opt_authdigest,
@@ -102,6 +102,7 @@ my(
 
 $opt_preload = 1;
 $opt_sendversion = 1;
+$opt_3way = 1;
 
 Getopt::Long::Configure("bundling");
 my($result) = GetOptions(
@@ -129,7 +130,7 @@ my($result) = GetOptions(
   'listen' => \$opt_listen,
   'min-packet-size=i' => \$opt_minpacket,
   'max-packet-size=i' => \$opt_maxpacket,
-  'no-3way' => \$opt_no3way,
+  '3way!' => \$opt_3way,
   'packet-loss=s' => \$opt_packetloss,
   'port=i' => \$opt_port,
   'stats=f' => \$opt_stats,
@@ -662,7 +663,7 @@ sub processincomingpacket {
     }
   } elsif($peersendreply) {
     # Peer has requested a reply.
-    if($peerreplyto || (!$peerreplyto && $opt_no3way)) {
+    if($peerreplyto || (!$peerreplyto && !$opt_3way)) {
       # Send back a normal ping reply.
       # If $peerreplyto was set and it wasn't caught above, that must mean
       # we somehow didn't know info about the packet (old expired?).
