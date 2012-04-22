@@ -231,7 +231,7 @@ $opt_inqwait = 10 unless $opt_inqwait;
 $opt_minpacket = $opt_compat_packetsize + 8 if(!$opt_minpacket && $opt_compat_packetsize);
 # Default minimum/maximum packet sizes.  Absolute minimum maximum (if that
 # makes sense) is 64.
-$opt_minpacket = 64 unless $opt_minpacket;
+$opt_minpacket = 128 unless $opt_minpacket;
 $opt_maxpacket = 512 unless $opt_maxpacket;
 $opt_maxpacket = 64 if($opt_maxpacket < 64);
 $opt_minpacket = $opt_maxpacket if($opt_minpacket > $opt_maxpacket);
@@ -1741,7 +1741,7 @@ Start as a listener.  The listener will not send out ping requests at regular in
 
 =item B<--min-packet-size>=I<min>
 
-Set the minimum total payload size to I<min> bytes, default 64.  If the payload is smaller than I<min> bytes, padding will be added to the end of the packet.
+Set the minimum total payload size to I<min> bytes, default 128.  If the payload is smaller than I<min> bytes, padding will be added to the end of the packet.
 
 =item B<--max-packet-size>=I<max>
 
