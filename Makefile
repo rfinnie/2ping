@@ -3,7 +3,7 @@ PREFIX := /usr/local
 all: 2ping
 
 2ping: src/2ping.pl
-	perl -pe 's%#EXTRAVERSION#%'$(EXTRAVERSION)'%g' $< >$@
+	perl -pe 's%#EXTRAVERSION#%$(EXTRAVERSION)%g' $< >$@
 	chmod 0755 $@
 
 # Docs are shipped pre-compiled
@@ -17,7 +17,6 @@ doc: 2ping.8 2ping.8.html
 	rm -f pod2htmd.tmp pod2htmi.tmp
 
 test:
-	@perl -MConfig -e 'print "Config is installed.\n";'
 	@perl -MGetopt::Long -e 'print "Getopt::Long is installed.\n";'
 	@perl -MPod::Usage -e 'print "Pod::Usage is installed.\n";'
 	@perl -MIO::Select -e 'print "IO::Select is installed.\n";'

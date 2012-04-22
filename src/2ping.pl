@@ -25,7 +25,6 @@ my $EXTRAVERSION = '#EXTRAVERSION#';
 
 use warnings;
 use strict;
-use Config;
 use Getopt::Long;
 use Pod::Usage;
 use IO::Select;
@@ -62,10 +61,9 @@ use constant LEN_DELAY => 4;
 use constant LEN_EXTENDED_ID => 4;
 use constant LEN_EXTENDED_LEN => 2;
 
-my $versionstring = sprintf('2ping %s%s (%s)',
+my $versionstring = sprintf('2ping %s%s',
   $VERSION,
-  ($EXTRAVERSION eq ('#'.'EXTRAVERSION'.'#') ? '' : $EXTRAVERSION),
-  $Config{'archname'}
+  ($EXTRAVERSION eq ('#'.'EXTRAVERSION'.'#') ? '' : $EXTRAVERSION)
 );
 
 ########################################################################
