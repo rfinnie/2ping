@@ -1,0 +1,10 @@
+MANIFEST
+2ping.spec
+ChangeLog
+COPYING
+Makefile.PL
+META.yml
+META.json
+README
+script/2ping.in
+script/build.PL

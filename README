@@ -24,6 +24,7 @@ CPAN.  They are:
 
 To "build" and install 2ping:
 
+  perl Makefile.PL
   make
   make test
   make install

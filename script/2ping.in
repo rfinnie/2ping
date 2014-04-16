@@ -20,8 +20,7 @@
 # 02110-1301, USA.
 ########################################################################
 
-my $VERSION = '2.0';
-my $EXTRAVERSION = '#EXTRAVERSION#';
+our $VERSION = '2.0' . ('#EXTRAVERSION#' eq ('#'.'EXTRAVERSION'.'#') ? '' : '#EXTRAVERSION#');
 
 use warnings;
 use strict;
@@ -61,10 +60,7 @@ use constant LEN_DELAY => 4;
 use constant LEN_EXTENDED_ID => 4;
 use constant LEN_EXTENDED_LEN => 2;
 
-my $versionstring = sprintf('2ping %s%s',
-  $VERSION,
-  ($EXTRAVERSION eq ('#'.'EXTRAVERSION'.'#') ? '' : $EXTRAVERSION)
-);
+my $versionstring = sprintf('2ping %s', $VERSION);
 
 ########################################################################
 # Command line option parsing
