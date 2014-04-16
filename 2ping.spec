@@ -1,6 +1,6 @@
 Name:           2ping
-Version:        2.0
-Release:        1%{?dist}
+Version:        2.1
+Release:        0%{?dist}
 Summary:        Bi-directional ping utility
 License:        GPLv2+
 URL:            http://www.finnie.org/software/2ping
