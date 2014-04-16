@@ -31,7 +31,7 @@ WriteMakefile(
     'script/build.PL' => 'script/2ping'
   },
   MAN1PODS => {
-    'script/2ping'  => 'blib/man1/2ping.1',
+    'script/2ping'  => 'blib/man1/2ping.1p',
   },
   clean => {
     FILES => 'script/2ping',

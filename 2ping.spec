@@ -35,7 +35,7 @@ make EXTRAVERSION=-%{release} %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
 ln -sf 2ping $RPM_BUILD_ROOT/%{_bindir}/2ping6
-ln -sf 2ping.1 $RPM_BUILD_ROOT/%{_mandir}/man1/2ping6.1
+ln -sf 2ping.1p $RPM_BUILD_ROOT/%{_mandir}/man1/2ping6.1p
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %{_fixperms} $RPM_BUILD_ROOT/*
@@ -50,7 +50,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc ChangeLog COPYING README
 %{_bindir}/2ping
 %{_bindir}/2ping6
-%{_mandir}/man1/2ping.1*
-%{_mandir}/man1/2ping6.1*
+%{_mandir}/man1/2ping.1p*
+%{_mandir}/man1/2ping6.1p*
 
 %changelog
