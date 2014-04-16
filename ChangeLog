@@ -1,5 +1,5 @@
-2ping 2.1 (2014-04-15)
- * Switch to Switch to ExtUtils::MakeMaker build system
+2ping 2.1.1 (2014-04-15)
+  * Switch to Switch to ExtUtils::MakeMaker build system
 
 2ping 2.0 (2012-04-22)
   * Updated to support 2ping protocol 2.0

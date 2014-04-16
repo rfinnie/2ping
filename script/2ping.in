@@ -20,7 +20,7 @@
 # 02110-1301, USA.
 ########################################################################
 
-our $VERSION = '2.1' . ('#EXTRAVERSION#' eq ('#'.'EXTRAVERSION'.'#') ? '' : '#EXTRAVERSION#');
+our $VERSION = '2.1.1' . ('#EXTRAVERSION#' eq ('#'.'EXTRAVERSION'.'#') ? '' : '#EXTRAVERSION#');
 
 use warnings;
 use strict;
