@@ -350,7 +350,8 @@ if($opt_listen) {
   foreach my $opt_intaddr (@working_opt_intaddrs) {
     my($sock);
     my($is_ipv6) = $opt_ipv6;
-    if($opt_ipv6 && $opt_intaddr =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
+    if($opt_ipv6 && defined $opt_intaddr &&
+		$opt_intaddr =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
       $is_ipv6 = 0;
     }
     my $sockerr = '';
