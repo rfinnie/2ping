@@ -29,7 +29,7 @@ All data is in network byte format: octets are most significant bit first, and m
 An exception is the order of opcode data segments; data for opcodes is stored in sequence according to which flags are set, starting with the least significant bit.
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Magic number 0x3250 | 2 octets, required |
 | Checksum | 2 octets, field required, checksum optional |
 | Message ID | 6 octets, required |
@@ -50,9 +50,9 @@ Zero or more opcode data segments are appended to form the opcode data area.
 Each opcode data segment is comprised of the following:
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Segment data length (not including length header itself) | 2 octets, required |
-| Segment data |Variable, zero or more octets, determined by segment data length header above |
+| Segment data | Variable, zero or more octets, determined by segment data length header above |
 
 An opcode data segment may be between zero and 65,535 octets long, plus 2 octets for the segment header.
 
@@ -109,7 +109,7 @@ If 0x0001 and 0x0020 flags are set, the entire opcode data area consists of the 
 ### 0x0001 - Reply requested
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | No segment data | 0 octets |
 
 The sending end requests a reply from the receiving end.
@@ -119,7 +119,7 @@ Note: No segment data is part of this opcode, but as all used opcode segments mu
 ### 0x0002 - In reply to
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Replied message ID | 6 octets, required |
 
 This opcode signifies the reply to a packet that requested a reply.
@@ -128,7 +128,7 @@ The original sender's message ID is enclosed.
 ### 0x0004 - RTT enclosed
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | RTT in microseconds | 4 octets, required |
 
 If this packet is a reply packet and an RTT is enclosed, the packet being replied to was a successful ping, and the RTT is the round trip time of the previous operation, in microseconds.
@@ -139,7 +139,7 @@ Thus the server will know both the server->client->server ping RTT, as well as t
 ### 0x0008 - Investigation complete, originally replied to as requested
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Number of message IDs enclosed | 2 octets, required |
 | Message ID | 6 octets, optional |
 | Message ID... | 6 octets..., optional |
@@ -159,7 +159,7 @@ It is the responsibility of the requester to resend investigation requests if th
 ### 0x0010 - Investigation complete, request never received
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Number of message IDs enclosed | 2 octets, required |
 | Message ID | 6 octets, optional |
 | Message ID... | 6 octets..., optional |
@@ -179,7 +179,7 @@ It is the responsibility of the requester to resend investigation requests if th
 ### 0x0020 - Expected reply never received, please investigate
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Number of message IDs enclosed | 2 octets, required |
 | Message ID | 6 octets, optional |
 | Message ID... | 6 octets..., optional |
@@ -201,7 +201,7 @@ Thus it is the responsibility of the requester to continue to send inquiries unt
 ### 0x0040 - Courtesy message ID expiration
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Number of message IDs enclosed | 2 octets, required |
 | Message ID | 6 octets, optional |
 | Message ID... | 6 octets..., optional |
@@ -230,7 +230,7 @@ Peers may send unsolicited messages with courtesy opcodes (a message not request
 ### 0x0080 - Message authentication code (MAC)
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Digest type index | 2 octets, required |
 | Computed hash value | Length depends on digest type, required |
 
@@ -241,7 +241,7 @@ The payload data, combined with a shared secret key, is hashed and is verified b
 The digest types supported are:
 
 | Index | Digest Type | Computed hash size |
-| - | - | - |
+| ----- | ----------- | ------------------ |
 | 0 | Private / locally reserved | Variable |
 | 1 | HMAC-MD5 | 16 octets |
 | 2 | HMAC-SHA1 | 20 octets |
@@ -269,7 +269,7 @@ The HMAC specification requires aligning the key to the digest function's block 
 ### 0x0100 - Host processing latency
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Delay in microseconds | 4 octets, required |
 
 The time between receiving a message packet and sending a reply packet may be non-trivial, due to host processing.
@@ -287,7 +287,7 @@ Within the opcode segment data area is a series of sub-segments, referred to as 
 Each part is built as so:
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Extended segment ID | 8 octets, required |
 | Extended segment data length | 2 octets, required |
 | Extended segment data | Variable, zero or more octets, determined by extended segment data length header above |
@@ -310,7 +310,7 @@ An implementation is not required to implement any extended segments (or the ext
 ### 0x3250564e - Program version
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Program version text | Variable length |
 
 The human-readable text version of the program or firmware generating the packet, with optional information such as architecture, etc.
@@ -322,7 +322,7 @@ It is recommended that this field be sent with every packet, but received segmen
 ### 0xa837b44e - Notice text
 
 | Field | Length |
-| - | - |
+| ----- | ------ |
 | Notice text | Variable length |
 
 Arbitrary text to be sent with the packet.
