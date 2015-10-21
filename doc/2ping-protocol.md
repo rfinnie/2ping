@@ -484,7 +484,7 @@ TODO: Compute checksums in examples.
 This creates a functional incompatibility with previous versions of the specification.
 However, it was discovered that the only known 2ping implementation which computed checksums at the time was using an incorrect method, so the specification was changed to match the implementation to preserve compatibility.
 * Fixed a typo in the extended segment table, changing "Extended segment ID" from 8 octets to 4 octets.
-This clarifies and assets the previous (correct) assertion that the segment ID is 32 bits (4 octets).
+This clarifies the previous (correct) assertion that the segment ID is 32 bits (4 octets).
 
 ### 2.0 (20120422)
 
