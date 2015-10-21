@@ -299,7 +299,10 @@ class OpcodeExtended(Opcode):
 
 class Packet():
     def __repr__(self):
-        return '<Packet: %s>' % repr(sorted(self.opcodes.values(), key=lambda x: x.id))
+        return '<Packet (0x%s): %s>' % (
+            ''.join(['%02x' % x for x in self.message_id]),
+            repr(sorted(self.opcodes.values(), key=lambda x: x.id))
+        )
 
     def __init__(self):
         self.message_id = bytearray()
