@@ -1,0 +1,7 @@
+include README
+include COPYING
+include Makefile
+include *.md
+include doc/*
+include 2ping
+include 2ping.spec

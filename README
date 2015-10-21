@@ -1,46 +1,56 @@
-2ping, a bi-directional ping utility
-By Ryan Finnie <ryan@finnie.org>
+2ping - A bi-directional ping utility
+=====================================
+
 http://www.finnie.org/software/2ping/
 
-ABOUT
+About
+-----
 
-2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP 
-SYN, SYN/ACK, ACK) and after-the-fact state comparison between a 2ping 
-listener and a 2ping client to determine which direction packet loss 
+2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP
+SYN, SYN/ACK, ACK) and after-the-fact state comparison between a 2ping
+listener and a 2ping client to determine which direction packet loss
 occurs.
 
-INSTALLATION
+Installation
+------------
 
-2ping requires Perl 5.6.0 or newer.  2ping requires several Perl 
-modules, all of which are in a standard Perl installation (though your 
-distribution may split Perl into "base" and "standard" packages).  
-Several non-standard packages are required for optional features, and 
-can be installed from you distribution's package management system or 
-CPAN.  They are:
+2ping requires Python 2.7.
 
-  IO::Socket::INET6 (for IPv6 support)
-  Digest::SHA (for HMAC-SHA1 or HMAC-SHA256 auth support)
-  Digest::CRC (for HMAC-CRC32 support)
+To install:
 
-To "build" and install 2ping:
+    sudo python setup.py install
 
-  perl Makefile.PL
-  make
-  make test
-  make install
-  make clean
+Usage
+-----
 
-/usr/local is the default Makefile prefix, use PREFIX to override.
+Please see the 2ping manpage for invocation options, but in short, start
+a listener on the far end:
 
-USAGE
-
-Please see the man page for full details, but in short, start a listener 
-on the far end:
-
-  2ping --listen
+    2ping --listen
 
 And run 2ping on the near end, connecting to the far end listener:
 
-  2ping $LISTENER
+    2ping $LISTENER
 
 Where "$LISTENER" is the name or IP address of the listener.
+
+License
+-------
+
+2ping - A bi-directional ping utility
+
+Copyright (C) 2015 Ryan Finnie
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.

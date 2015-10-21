@@ -1,23 +1,15 @@
-Name:           2ping
-Version:        2.1.1
-Release:        0%{?dist}
-Summary:        Bi-directional ping utility
-License:        GPLv2+
-URL:            http://www.finnie.org/software/2ping
-Source0:        http://www.finnie.org/software/%{name}/%{name}-%{version}.tar.gz
-BuildArch:      noarch
+Name: 2ping
+Version: 3.0.0
+Release: 1%{?dist}
+Summary: Bi-directional ping utility
 
-BuildRequires:  perl
-BuildRequires:  perl(Config)
-BuildRequires:  perl(ExtUtils::MakeMaker)
-BuildRequires:  perl(strict)
-# Run-time
-BuildRequires:  perl(Digest::CRC)
-BuildRequires:  perl(Digest::MD5)
-BuildRequires:  perl(Digest::SHA)
-BuildRequires:  perl(IO::Socket::INET6)
-
-Requires:       perl(:MODULE_COMPAT_%(eval "`perl -V:version`"; echo $version))
+Group: Applications/System
+License: GPLv2+
+Url: http://www.finnie.org/software/2ping/
+Source0: http://www.finnie.org/software/2ping/%{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Prefix: %{_prefix}
+Vendor: Ryan Finnie <ryan@finnie.org>
 
 %description
 2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP SYN, 
@@ -25,32 +17,24 @@ SYN/ACK, ACK) and after-the-fact state comparison between a 2ping listener and
 a 2ping client to determine which direction packet loss occurs.
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}
 
 %build
-%{__perl} Makefile.PL INSTALLDIRS=vendor
-make EXTRAVERSION=-%{release} %{?_smp_mflags}
+python setup.py build
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
-ln -sf 2ping $RPM_BUILD_ROOT/%{_bindir}/2ping6
-ln -sf 2ping.1p $RPM_BUILD_ROOT/%{_mandir}/man1/2ping6.1p
-find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
-find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
-%{_fixperms} $RPM_BUILD_ROOT/*
+python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
+install -d -m 0755 $RPM_BUILD_ROOT/usr/share/man/man1
+install -m 0755 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1
 
-%check
-make test
 
 %clean
+python setup.py clean
 rm -rf $RPM_BUILD_ROOT
 
-%files
-%doc ChangeLog COPYING README
-%{_bindir}/2ping
-%{_bindir}/2ping6
-%{_mandir}/man1/2ping.1p*
-%{_mandir}/man1/2ping6.1p*
-
-%changelog
+%files -f INSTALLED_FILES
+%defattr(-,root,root)
+/usr/share/man/man1/2ping.1.gz
+%doc README
+%doc COPYING
