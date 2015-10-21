@@ -84,21 +84,37 @@ The implementation may therefore wish to keep a local mapping between message ID
 ## Checksum
 
 The checksum allows for verification of packet integrity from unintentional transit errors.
-(If cryptographic verification is desired to prevent intentional tampering in transit, see opcode 0x0080 below.)  While UDP includes its own checksum, it is optional in IPv4 and cannot be relied upon.
-(IPv6 makes the UDP checksum mandatory.)  The 2ping protocol adopts the UDP method of computing checksums, as defined in RFC 768.
-The only difference between the two is 2ping checksums only the entire packet data payload (from the magic number to the end of the padding), while UDP checksums a pseudo-IP header, UDP header, and UDP data payload.
+(If cryptographic verification is desired to prevent intentional tampering in transit, see opcode 0x0080 below.)
+While UDP includes its own checksum, it is optional in IPv4 and cannot be relied upon.
+(IPv6 makes the UDP checksum mandatory.)
 
-: Checksum is the 16-bit one's complement of the one's complement sum of the UDP data payload, padded with zero octets at the end (if necessary) to make a multiple of two octets.
-The checksum pad is not transmitted as part of the segment.
-While computing the checksum, the checksum field itself is replaced with zeros.
+The 2ping protocol uses the following checksum method, as described in pseudocode:
 
-: If the computed checksum is zero, it is transmitted as all ones (the equivalent in one's complement arithmetic).
+    checksum = 0
+
+    if length(input) is not even:
+        input.append(0)
+
+    for (a, b) in input as ((int1, int2), (int3, int4), ...):
+        checksum = checksum + (a << 8) + b
+        checksum = ((checksum & 0xffff) + (checksum >> 16))
+
+    checksum = ~checksum & 0xffff
+
+    if checksum == 0:
+        checksum = 0xffff
+
+The input data is defined as the entire packet data payload, from the magic number to the end of the padding.
+The checksum field itself is zeroed for the purpose of the method input, and is replaced with the result of the method.
 An all zero transmitted checksum value means that the transmitter generated no checksum.
 
 The checksum field is required, though an implementation is not required to perform or verify checksums.
 However, if verification of checksums are performed, the verifier must be able to recognize the zero transmitted checksum value from a peer that did not compute a checksum.
 
 Checksum computation and verification attempts are strongly recommend for IPv4 packets, but should not be necessary for IPv6 packets, as verification is already performed at the UDPv6 level, and malformed packets should be discarded by the time they reach the userland.
+
+This specification originally specified a different checksum method (RFC 768's UDP checksum method).
+However, it was discovered that the only known 2ping implementation which computed checksums at the time was using an incorrect method, so the specification was changed to match the implementation to preserve compatibility.
 
 ## Opcodes
 
@@ -288,7 +304,7 @@ Each part is built as so:
 
 | Field | Length |
 | ----- | ------ |
-| Extended segment ID | 8 octets, required |
+| Extended segment ID | 4 octets, required |
 | Extended segment data length | 2 octets, required |
 | Extended segment data | Variable, zero or more octets, determined by extended segment data length header above |
 
@@ -462,6 +478,13 @@ TODO: Compute checksums in examples.
 (Zeroed checksums are valid per the protocol, but should still be computed.)
 
 ## Changelog
+
+### 3.0 (20151020)
+* Changed the checksum method from RFC 768 to a custom method with example pseudocode.
+This creates a functional incompatibility with previous versions of the specification.
+However, it was discovered that the only known 2ping implementation which computed checksums at the time was using an incorrect method, so the specification was changed to match the implementation to preserve compatibility.
+* Fixed a typo in the extended segment table, changing "Extended segment ID" from 8 octets to 4 octets.
+This clarifies and assets the previous (correct) assertion that the segment ID is 32 bits (4 octets).
 
 ### 2.0 (20120422)
 
