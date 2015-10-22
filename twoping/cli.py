@@ -114,29 +114,35 @@ class TwoPing():
         self.print_stats()
         sys.exit(0)
 
+    def handle_socket_error(self, e, sock, peer_address=None):
+        # Errors from the last send() can be trapped via IP_RECVERR (Linux only).
+        self.errors_received += 1
+        error_string = str(e)
+        try:
+            MSG_ERRQUEUE = 8192
+            (error_data, error_address) = sock.recvfrom(16384, MSG_ERRQUEUE)
+            if self.args.quiet:
+                pass
+            elif self.args.flood:
+                self.print_out('\x08E', end='', flush=True)
+            else:
+                self.print_out('%s: %s' % (error_address[0], error_string))
+        except socket.error:
+            if self.args.quiet:
+                pass
+            elif self.args.flood:
+                self.print_out('\x08E', end='', flush=True)
+            else:
+                if peer_address:
+                    self.print_out('%s: %s' % (error_address[0], error_string))
+                else:
+                    self.print_out(error_string)
+
     def process_incoming_packet(self, sock):
         try:
             (data, peer_address) = sock.recvfrom(16384)
         except socket.error as e:
-            # Errors from the last send() can be trapped via IP_RECVERR (Linux only).
-            self.errors_received += 1
-            error_string = str(e)
-            try:
-                MSG_ERRQUEUE = 8192
-                (error_data, error_address) = sock.recvfrom(16384, MSG_ERRQUEUE)
-                if self.args.quiet:
-                    pass
-                elif self.args.flood:
-                    self.print_out('\x08E', end='', flush=True)
-                else:
-                    self.print_out('%s: %s' % (error_address[0], error_string))
-            except:
-                if self.args.quiet:
-                    pass
-                elif self.args.flood:
-                    self.print_out('\x08E', end='', flush=True)
-                else:
-                    self.print_out(error_string)
+            self.handle_socket_error(e, sock)
             return
         socket_address = sock.getsockname()
         self.print_debug('Socket address: %s' % repr(socket_address))
@@ -339,7 +345,10 @@ class TwoPing():
         if self.args.packet_loss_out and (random.random() < (self.args.packet_loss_out / 100.0)):
             return
         # Send the packet.
-        sock.sendto(data, address)
+        try:
+            sock.sendto(data, address)
+        except socket.error as e:
+            self.handle_socket_error(e, sock, peer_address=address)
 
     def start_investigations(self, peer_tuple, packet_check):
         if len(self.sent_messages[peer_tuple]) == 0:
