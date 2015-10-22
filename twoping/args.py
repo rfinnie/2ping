@@ -18,7 +18,7 @@ def parse_args():
 
     # Positionals
     parser.add_argument(
-        'host', type=str, default=None, nargs='?',
+        'host', type=str, default=None, nargs='*',
         help='host to ping',
     )
 

@@ -53,7 +53,7 @@ class TwoPing():
         # List of socket objects.
         self.sockets = []
         # Used during client mode for the host tuple to send UDP packets to.
-        self.host_info = None
+        self.client_hosts = []
 
         # Statistics
         self.pings_transmitted = 0
@@ -417,38 +417,52 @@ class TwoPing():
         self.print_out('2PING listener: %d to %d bytes of data.' % (self.args.min_packet_size, self.args.max_packet_size))
 
     def setup_client(self):
-        for l in socket.getaddrinfo(self.args.host, self.args.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+        for hostname in self.args.host:
+            try:
+                self.setup_client_host(hostname)
+            except socket.error as e:
+                eargs = list(e.args)
+                if len(eargs) == 1:
+                    eargs[0] = '%s: %s' % (hostname, eargs[0])
+                else:
+                    eargs[1] = '%s: %s' % (hostname, eargs[1])
+                raise socket.error(*eargs)
+
+    def setup_client_host(self, hostname):
+        host_info = None
+        for l in socket.getaddrinfo(hostname, self.args.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
             if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
-                self.host_info = l
+                host_info = l
                 break
             elif (l[0] == socket.AF_INET) and (not self.args.ipv6):
-                self.host_info = l
+                host_info = l
                 break
             else:
                 continue
-        if self.host_info is None:
+        if host_info is None:
             raise socket.error('Name or service not known')
 
         bind_info = None
         if self.args.interface_address:
             h = self.args.interface_address[-1]
         else:
-            if self.host_info[0] == socket.AF_INET6:
+            if host_info[0] == socket.AF_INET6:
                 h = '::'
             else:
                 h = '0.0.0.0'
-        for l in socket.getaddrinfo(h, 0, self.host_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+        for l in socket.getaddrinfo(h, 0, host_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP):
             bind_info = l
             break
         if bind_info is None:
-            raise Exception('Cannot find suitable bind for %s' % self.host_info[4])
+            raise socket.error('Cannot find suitable bind for %s' % host_info[4])
         sock = self.new_socket(bind_info[0], bind_info[1], bind_info[4])
         self.sockets.append(sock)
         self.print_out(
             '2PING %s (%s): %d to %d bytes of data.' % (
-                self.args.host, self.host_info[4][0], self.args.min_packet_size, self.args.max_packet_size
+                hostname, host_info[4][0], self.args.min_packet_size, self.args.max_packet_size
             )
         )
+        self.client_hosts.append((host_info, sock))
 
     def send_new_ping(self, sock, peer_address):
         socket_address = sock.getsockname()
@@ -526,8 +540,10 @@ class TwoPing():
             self.print_out('')
             if self.args.listen:
                 self.print_out('--- Listener 2ping statistics ---')
+            elif len(self.client_hosts) > 1:
+                self.print_out('--- Multiple host 2ping statistics ---')
             else:
-                self.print_out('--- %s 2ping statistics ---' % self.host_info[4][0])
+                self.print_out('--- %s 2ping statistics ---' % self.client_hosts[0][0][4][0])
             self.print_out('%d pings transmitted, %d received, %d%% ping loss, time %dms' % (
                 self.pings_transmitted, self.pings_received, lost_pct, (time_end - time_start) * 1000)
             )
@@ -551,8 +567,8 @@ class TwoPing():
         else:
             try:
                 self.setup_client()
-            except (socket.error, Exception) as e:
-                self.print_out('%s: %s' % (self.args.host, str(e)))
+            except socket.error as e:
+                self.print_out(str(e))
                 return 1
         try:
             self.loop()
@@ -635,9 +651,11 @@ class TwoPing():
                         self.shutdown()
                     if (self.pings_transmitted == 0) and (self.args.preload > 1):
                         for i in xrange(self.args.preload):
-                            self.send_new_ping(self.sockets[0], self.host_info[4])
+                            for host in self.client_hosts:
+                                self.send_new_ping(host[1], host[0][4])
                     else:
-                        self.send_new_ping(self.sockets[0], self.host_info[4])
+                        for host in self.client_hosts:
+                            self.send_new_ping(host[1], host[0][4])
                     if self.args.adaptive and self.rtt_ewma:
                         target = self.rtt_ewma / 8.0 / 1000.0
                         self.next_send = now + target
