@@ -1,7 +1,7 @@
 # 2ping protocol
 
-* Line protocol version: 2.0
-* Document version: 20120422
+* Line protocol version: 3.0
+* Document version: 20151020
 
 ## Introduction
 
