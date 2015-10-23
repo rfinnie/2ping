@@ -20,10 +20,14 @@ class MonotonicClock():
 
     def try_monotonic_clock(self):
         import ctypes
+        import ctypes.util
 
         # https://github.com/ThomasHabets/monotonic_clock
+        found_library = ctypes.util.find_library('monotonic_clock')
+        if found_library is None:
+            return False
         try:
-            monotonic_clock = ctypes.CDLL('libmonotonic_clock.so')
+            monotonic_clock = ctypes.cdll.LoadLibrary(found_library)
         except OSError:
             return False
 
