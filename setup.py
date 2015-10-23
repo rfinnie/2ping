@@ -32,6 +32,7 @@ setup(
     entry_points={
         'console_scripts': [
             '2ping = twoping.cli:main',
+            '2ping6 = twoping.cli:main',
         ],
     },
 )

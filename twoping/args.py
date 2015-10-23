@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, division
+import sys
 import argparse
 from . import __version__
 
 
 def parse_args():
+    if sys.argv[0].endswith('2ping6'):
+        ipv6_default = True
+    else:
+        ipv6_default = False
+
     parser = argparse.ArgumentParser(
         description='2ping (%s)' % __version__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -95,7 +101,7 @@ def parse_args():
         help='force IPv4',
     )
     parser.add_argument(
-        '--ipv6', '-6', action='store_true',
+        '--ipv6', '-6', action='store_true', default=ipv6_default,
         help='force IPv6',
     )
     parser.add_argument(
