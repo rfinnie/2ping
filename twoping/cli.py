@@ -10,13 +10,12 @@ import sys
 import errno
 from . import __version__
 from . import packets
-from .monotonic_clock import MonotonicClock
+from . import monotonic_clock
 from .args import parse_args
 from .utils import lazy_div, bytearray_to_int
 
 
-mc_instance = MonotonicClock()
-clock = mc_instance.clock
+clock = monotonic_clock.clock
 
 
 class TwoPing():
@@ -567,7 +566,7 @@ class TwoPing():
             )
 
     def run(self):
-        self.print_debug('Monotonic clock: %s, clock value: %f' % (mc_instance.is_monotonic, clock()))
+        self.print_debug('Clock: %s, value: %f' % (monotonic_clock.get_clock_info('clock'), clock()))
         if hasattr(signal, 'SIGQUIT'):
             signal.signal(signal.SIGQUIT, self.sigquit_handler)
 
