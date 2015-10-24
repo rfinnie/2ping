@@ -400,6 +400,7 @@ class TwoPing():
                 self.lost_outbound += 1
 
     def setup_listener(self):
+        bound_addresses = []
         if self.args.interface_address:
             interface_addresses = self.args.interface_address
         else:
@@ -414,7 +415,9 @@ class TwoPing():
                 socket.SOCK_DGRAM,
                 socket.IPPROTO_UDP
             ):
-                if (l[0] == socket.AF_INET6) and (not self.args.ipv4):
+                if l in bound_addresses:
+                    continue
+                if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
                     pass
                 elif (l[0] == socket.AF_INET) and (not self.args.ipv6):
                     pass
@@ -422,7 +425,12 @@ class TwoPing():
                     continue
                 sock = self.new_socket(l[0], l[1], l[4])
                 self.sockets.append(sock)
-        self.print_out('2PING listener: %d to %d bytes of data.' % (self.args.min_packet_size, self.args.max_packet_size))
+                bound_addresses.append(l)
+                self.print_out('2PING listener (%s): %d to %d bytes of data.' % (
+                    l[4][0],
+                    self.args.min_packet_size,
+                    self.args.max_packet_size,
+                ))
 
     def setup_client(self):
         for hostname in self.args.host:
