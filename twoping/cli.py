@@ -539,7 +539,7 @@ class TwoPing():
                 ' (%d/%d/%d out/in/undet),' % (
                     self.lost_outbound, self.lost_inbound, lost_undetermined,
                 ) +
-                ' min/avg/max/ewma/mdev = %0.03f/%0.03f/%0.03f/%0.03f/%0.03f ms' % (
+                ' min/avg/ewma/max/mdev = %0.03f/%0.03f/%0.03f/%0.03f/%0.03f ms' % (
                     self.rtt_min, rtt_avg, rtt_ewma, self.rtt_max, rtt_mdev,
                 ),
                 file=sys.stderr,
