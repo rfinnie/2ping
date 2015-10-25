@@ -2,13 +2,11 @@
 % Ryan Finnie
 # NAME
 
-twuewand - A TrueRand algorithm for generating entropy
-
-2ping - A bi-directional ping client/listener
+2ping - A bi-directional ping utility
 
 # SYNOPSIS
 
-twuewand [*options*] *--listen* | host/IP
+2ping [*options*] *--listen* | host/IP
 
 # DESCRIPTION
 

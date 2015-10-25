@@ -1,27 +1,35 @@
-2ping - A bi-directional ping utility
-=====================================
+
+
+2PING - A BI-DIRECTIONAL PING UTILITY
+
 
 http://www.finnie.org/software/2ping/
 
+
 About
------
 
 2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP
 SYN, SYN/ACK, ACK) and after-the-fact state comparison between a 2ping
 listener and a 2ping client to determine which direction packet loss
 occurs.
 
-Installation
-------------
 
-2ping requires Python 2.7.
+Installation
+
+Python 2.7 is recommended for 2ping. Python 2.6 is also supported, with
+the following notes:
+
+-   The argparse module is also required.
+-   Monotonic clock support is not available on Unix platforms, instead
+    falling back to time.time() (which will likely be using
+    gettimeofday()).
 
 To install:
 
     sudo python setup.py install
 
+
 Usage
------
 
 Please see the 2ping manpage for invocation options, but in short, start
 a listener on the far end:
@@ -34,8 +42,8 @@ And run 2ping on the near end, connecting to the far end listener:
 
 Where "$LISTENER" is the name or IP address of the listener.
 
+
 License
--------
 
 2ping - A bi-directional ping utility
 

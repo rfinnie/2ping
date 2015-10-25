@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# twuewand random number generator
+# 2ping - A bi-directional ping utility
 # Copyright (C) 2015 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or

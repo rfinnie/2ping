@@ -18,4 +18,3 @@ doc: README
 
 README: README.md
 	pandoc -s -t plain -o $@ $<
-

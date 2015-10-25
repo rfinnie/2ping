@@ -9,7 +9,11 @@ It uses 3-way pings (akin to TCP SYN, SYN/ACK, ACK) and after-the-fact state com
 
 ## Installation
 
-2ping requires Python 2.7.
+Python 2.7 is recommended for 2ping.
+Python 2.6 is also supported, with the following notes:
+
+  * The argparse module is also required.
+  * Monotonic clock support is not available on Unix platforms, instead falling back to `time.time()` (which will likely be using `gettimeofday()`).
 
 To install:
 

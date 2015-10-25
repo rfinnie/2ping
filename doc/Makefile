@@ -1,10 +1,11 @@
 MARKDOWN=2ping.md
-MAN=$(patsubst %.md,%.1,$(MARKDOWN)) 
+MAN=$(patsubst %.md,%.1,$(MARKDOWN))
 
 all: man
+doc: man
 man: ${MAN}
 
-clean: 
+clean:
 	rm -f ${MAN}
 
 %.1: %.md
