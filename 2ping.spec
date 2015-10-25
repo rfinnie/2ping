@@ -12,7 +12,7 @@ Prefix: %{_prefix}
 Vendor: Ryan Finnie <ryan@finnie.org>
 
 %description
-2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP SYN, 
+2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP SYN,
 SYN/ACK, ACK) and after-the-fact state comparison between a 2ping listener and
 a 2ping client to determine which direction packet loss occurs.
 
@@ -26,8 +26,8 @@ python setup.py build
 rm -rf $RPM_BUILD_ROOT
 python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
 install -d -m 0755 $RPM_BUILD_ROOT/usr/share/man/man1
-install -m 0755 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1
-
+install -m 0644 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1/2ping.1
+install -m 0644 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1/2ping6.1
 
 %clean
 python setup.py clean
