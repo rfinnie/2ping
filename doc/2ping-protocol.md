@@ -1,7 +1,7 @@
 # 2ping protocol
 
 * Line protocol version: 3.0
-* Document version: 20151020
+* Document version: 20151025
 
 ## Introduction
 
@@ -374,7 +374,7 @@ A 3-way ping further extends this.
 ### Example 3
 
     CLIENT: 00000000a001, reply requested
-    SERVER: 00000000b001, in reply to 00000000a001, reply requested
+    SERVER: 00000000b001, reply requested, in reply to 00000000a001
     CLIENT: 00000000a002, in reply to 00000000b001, successful ping rtt 12345 µs
 
 The client successfully received the response from the server and was able to measure an RTT of 12345 µs.
@@ -388,7 +388,7 @@ The client can start inquiring about whether the server saw the original request
 
     CLIENT: 00000000a001, reply requested
     CLIENT: 00000000a002, reply requested, did not receive reply to 00000000a001
-    SERVER: 00000000b002, in reply to 00000000a002, reply requested, received and replied to 00000000a001
+    SERVER: 00000000b002, reply requested, in reply to 00000000a002, received and replied to 00000000a001
     CLIENT: 00000000a003, in reply to 00000000b002, successful ping rtt 12345 µs
 
 Now the client can tell that the server received the original request, and replied, which suggests inbound packet loss.
@@ -401,7 +401,7 @@ Conversely, for a request for reply that the server never actually received:
 
     CLIENT: 00000000a001, reply requested
     CLIENT: 00000000a002, reply requested, did not receive reply to 00000000a001
-    SERVER: 00000000b001, in reply to 00000000a002, reply requested, never received 00000000a001
+    SERVER: 00000000b001, reply requested, in reply to 00000000a002, never received 00000000a001
     CLIENT: 00000000a003, in reply to 00000000b001, successful ping rtt 12345 µs
 
 This suggests outbound packet loss.
@@ -413,11 +413,11 @@ An actual sequence of events may look something like this:
     CLIENT: 00000000a001, reply requested
     CLIENT: 00000000a002, reply requested
     CLIENT: 00000000a003, reply requested
-    SERVER: 00000000b002, in reply to 00000000a003, reply requested
+    SERVER: 00000000b002, reply requested, in reply to 00000000a003
     CLIENT: 00000000a004, in reply to 00000000b002, successful ping rtt 12823 µs
     ... etc
     CLIENT: 00000000a00a, reply requested, did not receive reply to 00000000a001 or 00000000a002
-    SERVER: 00000000b006, in reply to 00000000a00a, reply requested, received and replied to 00000000a001, never received 00000000a002, did not receive reply to 00000000b002
+    SERVER: 00000000b006, reply requested, in reply to 00000000a00a, received and replied to 00000000a001, never received 00000000a002, did not receive reply to 00000000b002
     CLIENT: 00000000a00b, in reply to 00000000b006, successful ping rtt 13112 µs, received and replied to 00000000b002
 
 The client waited a few seconds before asking about 00000000a001 and 00000000a002.
@@ -435,56 +435,56 @@ But if the "server" decides to randomly initiate a ping request of its own, the 
 
 ### Example 1
 
-    CLIENT: 32 50 00 00 00 00 00 00 a0 01 00 00
+    CLIENT: 32 50 2d ae 00 00 00 00 a0 01 00 00
 
 ### Example 2
 
-    CLIENT: 32 50 00 00 00 00 00 00 a0 01 00 01 00 00
-    SERVER: 32 50 00 00 00 00 00 00 b0 01 00 02 00 06 00 00 00 00 a0 01
+    CLIENT: 32 50 2d ad 00 00 00 00 a0 01 00 01 00 00
+    SERVER: 32 50 7d a4 00 00 00 00 b0 01 00 02 00 06 00 00 00 00 a0 01
 
 ### Example 3
 
-    CLIENT: 32 50 00 00 00 00 00 00 a0 01 00 01 00 00
-    SERVER: 32 50 00 00 00 00 00 00 b0 01 00 03 00 00 00 06 00 00 00 00 a0 01
-    CLIENT: 32 50 00 00 00 00 00 00 a0 02 00 06 00 06 00 00 00 00 b0 01 00 04 00 00 30 39
+    CLIENT: 32 50 2d ad 00 00 00 00 a0 01 00 01 00 00
+    SERVER: 32 50 7d a3 00 00 00 00 b0 01 00 03 00 00 00 06 00 00 00 00 a0 01
+    CLIENT: 32 50 4d 62 00 00 00 00 a0 02 00 06 00 06 00 00 00 00 b0 01 00 04 00 00 30 39
 
 ### Example 4
 
-    CLIENT: 32 50 00 00 00 00 00 00 a0 01 00 01 00 00
-    CLIENT: 32 50 00 00 00 00 00 00 a0 02 00 21 00 00 00 08 00 01 00 00 00 00 a0 01
-    SERVER: 32 50 00 00 00 00 00 00 b0 02 00 0b 00 00 00 06 00 00 00 00 a0 02 00 08 00 01 00 00 00 00 a0 01
-    CLIENT: 32 50 00 00 00 00 00 00 a0 03 00 06 00 06 00 00 00 00 b0 02 00 04 00 00 30 39
+    CLIENT: 32 50 2d ad 00 00 00 00 a0 01 00 01 00 00
+    CLIENT: 32 50 8d 81 00 00 00 00 a0 02 00 21 00 00 00 08 00 01 00 00 00 00 a0 01
+    SERVER: 32 50 dd 8e 00 00 00 00 b0 02 00 0b 00 00 00 06 00 00 00 00 a0 02 00 08 00 01 00 00 00 00 a0 01
+    CLIENT: 32 50 4d 60 00 00 00 00 a0 03 00 06 00 06 00 00 00 00 b0 02 00 04 00 00 30 39
 
 ### Example 5
 
-    CLIENT: 32 50 00 00 00 00 00 00 a0 01 00 01 00 00
-    CLIENT: 32 50 00 00 00 00 00 00 a0 02 00 21 00 00 00 08 00 01 00 00 00 00 a0 01
-    SERVER: 32 50 00 00 00 00 00 00 b0 01 00 13 00 00 00 06 00 00 00 00 a0 02 00 08 00 01 00 00 00 00 a0 01
-    CLIENT: 32 50 00 00 00 00 00 00 a0 03 00 06 00 06 00 00 00 00 b0 01 00 04 00 00 30 39
+    CLIENT: 32 50 2d ad 00 00 00 00 a0 01 00 01 00 00
+    CLIENT: 32 50 8d 81 00 00 00 00 a0 02 00 21 00 00 00 08 00 01 00 00 00 00 a0 01
+    SERVER: 32 50 dd 87 00 00 00 00 b0 01 00 13 00 00 00 06 00 00 00 00 a0 02 00 08 00 01 00 00 00 00 a0 01
+    CLIENT: 32 50 4d 61 00 00 00 00 a0 03 00 06 00 06 00 00 00 00 b0 01 00 04 00 00 30 39
 
 ### Example 6
 
-    CLIENT: 32 50 00 00 00 00 00 00 a0 01 00 01 00 00
-    CLIENT: 32 50 00 00 00 00 00 00 a0 02 00 01 00 00
-    CLIENT: 32 50 00 00 00 00 00 00 a0 03 00 01 00 00
-    SERVER: 32 50 00 00 00 00 00 00 b0 02 00 03 00 00 00 06 00 00 00 00 a0 03
-    CLIENT: 32 50 00 00 00 00 00 00 a0 04 00 06 00 06 00 00 00 00 b0 02 00 04 00 00 32 17
-    ...
-    CLIENT: 32 50 00 00 00 00 00 00 a0 0a 00 21 00 00 00 0e 00 02 00 00 00 00 a0 01 00 01 00 00 00 00 a0 02
-    SERVER: 32 50 00 00 00 00 00 00 b0 06 00 3b 00 00 00 06 00 00 00 00 a0 0a 00 08 00 01 00 00 00 00 a0 01 00 08 00 01 00 00 00 00 a0 02 00 08 00 01 00 00 00 00 b0 02
-    CLIENT: 32 50 00 00 00 00 00 00 a0 0b 00 0e 00 06 00 00 00 00 b0 06 00 04 00 00 33 38 00 08 00 01 00 00 00 00 b0 02
-
-TODO: Compute checksums in examples.
-(Zeroed checksums are valid per the protocol, but should still be computed.)
+    CLIENT: 32 50 2d ad 00 00 00 00 a0 01 00 01 00 00
+    CLIENT: 32 50 2d ac 00 00 00 00 a0 02 00 01 00 00
+    CLIENT: 32 50 2d ab 00 00 00 00 a0 03 00 01 00 00
+    SERVER: 32 50 7d a0 00 00 00 00 b0 02 00 03 00 00 00 06 00 00 00 00 a0 03
+    CLIENT: 32 50 4b 81 00 00 00 00 a0 04 00 06 00 06 00 00 00 00 b0 02 00 04 00 00 32 17
+    ... etc
+    CLIENT: 32 50 ed 6f 00 00 00 00 a0 0a 00 21 00 00 00 0e 00 02 00 00 00 00 a0 01 00 00 00 00 a0 02
+    SERVER: 32 50 8d 3b 00 00 00 00 b0 06 00 3b 00 00 00 06 00 00 00 00 a0 0a 00 08 00 01 00 00 00 00 a0 01 00 08 00 01 00 00 00 00 a0 02 00 08 00 01 00 00 00 00 b0 02
+    CLIENT: 32 50 9a 41 00 00 00 00 a0 0b 00 0e 00 06 00 00 00 00 b0 06 00 04 00 00 33 38 00 08 00 01 00 00 00 00 b0 02
 
 ## Changelog
 
-### 3.0 (20151020)
+### 3.0 (20151025)
 * Changed the checksum method from RFC 768 to a custom method with example pseudocode.
 This creates a functional incompatibility with previous versions of the specification.
 However, it was discovered that the only known 2ping implementation which computed checksums at the time was using an incorrect method, so the specification was changed to match the implementation to preserve compatibility.
 * Fixed a typo in the extended segment table, changing "Extended segment ID" from 8 octets to 4 octets.
 This clarifies the previous (correct) assertion that the segment ID is 32 bits (4 octets).
+* Populated checksums of example packet dumps.
+* Corrected the 5th client line of Example 6's packet dump (pseudocode version was correct, but example dump had 2 incorrect bytes added).
+* Adjusted wording of psuedocode examples to clarify "reply requested" opcode comes before "in reply to" opcode.
 
 ### 2.0 (20120422)
 
