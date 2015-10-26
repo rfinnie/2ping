@@ -151,7 +151,7 @@ class TwoPing():
                 self.print_out('\x08E', end='', flush=True)
             else:
                 if peer_address:
-                    self.print_out('%s: %s' % (error_address[0], error_string))
+                    self.print_out('%s: %s' % (peer_address[0], error_string))
                 else:
                     self.print_out(error_string)
 
