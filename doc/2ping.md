@@ -18,7 +18,7 @@ The relative network stability of the 2ping listener host should not be in quest
 
 Once the listener is started, start 2ping in client mode and tell it to connect to the listener.
 The ends will begin pinging each other and displaying network statistics.
-If packet loss occurs, 2ping will wait a few seconds (default 10, configurable with -w) before comparing notes between the two endpoints to determine which direction the packet loss is occurring.
+If packet loss occurs, 2ping will wait a few seconds (default 10, configurable with *--inquire-wait*) before comparing notes between the two endpoints to determine which direction the packet loss is occurring.
 
 To quit 2ping on the client or listener ends, enter \^C, and a list of statistics will be displayed.
 To get a short inline display of statistics without quitting, send the process a QUIT signal (yes, that's the opposite of what you would think, but it's in line with the normal ping utility).
@@ -105,9 +105,15 @@ To get a short inline display of statistics without quitting, send the process a
 
 -4, --ipv4
 :   Limit binds to IPv4.
+    In client mode, this forces resolution of dual-homed hostnames to the IPv4 address.
+    (Without *-4* or *-6*, the first result will be used as specified by your operating system, usually the AAAA address on IPv6-routable machines, or the A address on IPv4-only machines.)
+    In listener mode, this filters out any non-IPv4 *-I* binds, either through hostname resolution or explicit passing.
 
 -6, --ipv6
 :   Limit binds to IPv6.
+    In client mode, this forces resolution of dual-homed hostnames to the IPv6 address.
+    (Without *-4* or *-6*, the first result will be used as specified by your operating system, usually the AAAA address on IPv6-routable machines, or the A address on IPv4-only machines.)
+    In listener mode, this filters out any non-IPv6 *-I* binds, either through hostname resolution or explicit passing.
 
 --auth=*key*
 :   Set a shared key, send cryptographic hashes with each packet, and require cryptographic hashes from peer packets signed with the same shared key.

@@ -23,8 +23,9 @@ connect to the listener.
 The ends will begin pinging each other and displaying network
 statistics.
 If packet loss occurs, 2ping will wait a few seconds (default 10,
-configurable with \-w) before comparing notes between the two endpoints
-to determine which direction the packet loss is occurring.
+configurable with \f[I]\-\-inquire\-wait\f[]) before comparing notes
+between the two endpoints to determine which direction the packet loss
+is occurring.
 .PP
 To quit 2ping on the client or listener ends, enter ^C, and a list of
 statistics will be displayed.
@@ -171,11 +172,25 @@ Print a synposis and exit.
 .TP
 .B \-4, \-\-ipv4
 Limit binds to IPv4.
+In client mode, this forces resolution of dual\-homed hostnames to the
+IPv4 address.
+(Without \f[I]\-4\f[] or \f[I]\-6\f[], the first result will be used as
+specified by your operating system, usually the AAAA address on
+IPv6\-routable machines, or the A address on IPv4\-only machines.) In
+listener mode, this filters out any non\-IPv4 \f[I]\-I\f[] binds, either
+through hostname resolution or explicit passing.
 .RS
 .RE
 .TP
 .B \-6, \-\-ipv6
 Limit binds to IPv6.
+In client mode, this forces resolution of dual\-homed hostnames to the
+IPv6 address.
+(Without \f[I]\-4\f[] or \f[I]\-6\f[], the first result will be used as
+specified by your operating system, usually the AAAA address on
+IPv6\-routable machines, or the A address on IPv4\-only machines.) In
+listener mode, this filters out any non\-IPv6 \f[I]\-I\f[] binds, either
+through hostname resolution or explicit passing.
 .RS
 .RE
 .TP
