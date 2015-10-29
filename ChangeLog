@@ -1,0 +1,123 @@
+2ping 3.0.1 (2015-10-29)
+  * Fix peer_address on error when MSG_ERRQUEUE is not set
+  * Documentation update
+
+2ping 3.0.0 (2015-10-25)
+  * Total rewrite from Perl to Python.
+  * Multiple hostnames/addresses may be specified in client mode, and
+    will be pinged in parallel.
+  * Improved IPv6 support:
+    * In most cases, specifying -4 or -6 is unnecessary. You should be
+      able to specify IPv4 and/or IPv6 addresses and it will "just work".
+    * IPv6 addresses may be specified without needing to add -6.
+    * If a hostname is given in client mode and the hostname provides
+      both AAAA and A records, the AAAA record will be chosen. This can
+      be forced to one or another with -4 or -6.
+    * If a hostname is given in listener mode with -I, it will be
+      resolved to addresses to bind as. If the hostname provides both
+      AAAA and A records, they will both be bound. Again, -4 or -6 can
+      be used to restrict the bind.
+    * IPv6 scope IDs (e.g. fe80::213:3bff:fe0e:8c08%eth0) may be used as
+      bind addresses or destinations.
+  * Better Windows compatibility.
+  * ping(8)-compatible superuser restrictions (e.g. flood ping) have
+    been removed, as 2ping is a scripted program using unprivileged
+    sockets, and restrictions would be trivial to bypass. Also, the
+    concept of a "superuser" is rather muddied these days.
+  * Better timing support, preferring high-resolution monotonic clocks
+    whenever possible instead of gettimeofday(). On Windows and OS X,
+    monotonic clocks should always be available. On other Unix
+    platforms, monotonic clocks should be available when using Python 2.7
+  * Long option names for ping(8)-compatible options (e.g. adaptive mode
+    can be called as --adaptive in addition to -A). See 2ping --help for
+    a full option list.
+
+2ping 2.1.1 (2014-04-15)
+  * Switch to Switch to ExtUtils::MakeMaker build system
+
+2ping 2.0 (2012-04-22)
+  * Updated to support 2ping protocol 2.0
+    * Protocol 1.0 and 2.0 are backwards and forwards compatible with
+      each other
+    * Added support for extended segments
+    * Added extended segment support for program version and notice
+      text
+    * Changed default minimum packet size from 64 to 128 bytes
+  * Added peer reply packet size matching support, turned on by default
+  * Added extra error output for socket errors (such as hostname not
+    found)
+  * Added extra version support for downstream distributions
+  * Removed generation of 2ping6 symlinks at "make all" time (symlinks
+    are still generated during "make install" in the destination tree
+
+2ping 1.2.3 (2012-01-01)
+  * Fixed ewma report (was always showing the last rtt)
+  * Fixed the various brown paper bag stuff I did in 1.2.1 and 1.2.2
+    while I rediscovered the magical journey that is git
+
+2ping 1.2 (2011-12-24)
+  * Added exponentially-weighted moving average (ewma) and moving
+    standard drviation (mdev) statistics to the summary display
+
+2ping 1.1 (2011-04-05)
+  * Host processing delays sent by the peer are no longer considered
+    when calculating RTT
+  * Changed ID expiration (for which no courtesty was received) time
+    from 10 minutes to 2 minutes
+  * Manpage fix: correct UDP port number listed
+  * Added an RPM spec file
+
+2ping 1.0 (2010-10-20)
+  * Protocol now "finished", 2ping is now "stable"!
+  * Removed the sample initscript
+  * Small Makefile and documentation changes
+
+2ping 0.9.1 (2010-10-09)
+  * Version bumped to 0.9.1 to signify a stable standardization is close
+  * Changed the default UDP port from 58277 to 15998 (IANA-registered
+    port)
+  * Host processing latency is now subtracted where possible (protocol
+    extension, backwards compatible)
+  * Minor code cleanup
+  * 0.9.0 (unreleased) was a Brown Paper Bag commit; typo in ChangeLog
+    fixed
+
+2ping 0.0.3 (2010-10-03)
+
+  * Large cleanup and documentation push -- code is now "acceptable"
+  * Fixed calculation of opcode data area lengths on some opcodes;
+    implementation now incompatible with 0.0.2
+  * Added more checks against malformed packets; 2ping no longer produces
+    produces Perl warnings when fuzzing
+  * Added a preload (-l) option, mimicking ping's -l functionality
+  * Added a 2ping6 symlink; 2ping will now assume -6 if called as
+    2ping6
+  * Added a message authentication code (MAC) option with a pre-shared
+    key (--auth=key), allowing for message authentication and
+    verification while in transit
+  * Added a timed interval of brief statistics output (--stats=int)
+  * STDOUT buffering is disabled in all modes now
+  * Added compatibility down to Perl 5.6.0
+  * Cleaned up distribution tarball, added a Makefile
+  * Changed man section from 1 to 8
+
+2ping 0.0.2 (2010-09-07)
+
+  * Fixed potential endianness issues
+  * Added packet checksum field, in a fixed position near the
+    beginning of the packet (PROTOCOL NOW INCOMPATIBLE WITH 0.0.1
+    RELEASE)
+  * Added state table cleanup notification between peers, which will
+    keep memory usage down in longer flood ping situations (protocol
+    opcode added)
+  * Added support for multiple binds in listen mode (specify -I IP
+    multiple times)
+  * Added support for multiple peers in client mode (specify multiple IP
+    arguments)
+  * Added additional packet error checks
+  * Misc code cleanup and documentation (not yet to my satisfaction, but
+    it's a start)
+
+2ping 0.0.1 (2010-08-29)
+
+  * Initial release
