@@ -848,6 +848,12 @@ class TwoPing():
                     self.print_out('Exception: %s' % str(e))
                     if self.args.debug:
                         raise
+                if (
+                    self.args.count and
+                    (sock_class.pings_transmitted >= self.args.count) and
+                    (sock_class.pings_transmitted == sock_class.pings_received)
+                ):
+                    sock_class.is_shutdown = True
 
             all_shutdown = True
             for sock_class in self.sock_classes:
