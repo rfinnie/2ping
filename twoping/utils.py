@@ -19,6 +19,7 @@
 # 02110-1301, USA.
 
 from __future__ import print_function, division
+import platform
 
 
 def twoping_checksum(d):
@@ -62,4 +63,16 @@ def bytearray_to_int(b):
     out = 0
     for x in b:
         out = (out << 8) + x
+    return out
+
+
+def platform_info():
+    out = platform.system()
+    try:
+        linux_distribution = platform.linux_distribution()
+        if linux_distribution[0]:
+            out += ' (%s)' % linux_distribution[0]
+    except:
+        pass
+    out += ' %s' % platform.machine()
     return out

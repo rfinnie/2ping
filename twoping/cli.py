@@ -30,7 +30,7 @@ from . import __version__
 from . import packets
 from . import monotonic_clock
 from .args import parse_args
-from .utils import lazy_div, bytearray_to_int
+from .utils import lazy_div, bytearray_to_int, platform_info
 
 try:
     import dns.resolver
@@ -38,6 +38,7 @@ try:
 except ImportError:
     has_dns = False
 
+version_string = '2ping %s - %s' % (__version__, platform_info())
 clock = monotonic_clock.clock
 
 
@@ -719,7 +720,7 @@ class TwoPing():
             packet_out.opcodes[packets.OpcodeExtended.id] = packets.OpcodeExtended()
         if not self.args.no_send_version:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id] = packets.ExtendedVersion()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id].text = '2ping %s' % __version__
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id].text = version_string
         if self.args.notice:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id] = packets.ExtendedNotice()
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text = self.args.notice
