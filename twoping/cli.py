@@ -72,8 +72,6 @@ class SocketClass():
         self.ping_positions = {}
         # Used during client mode for the host tuple to send UDP packets to.
         self.client_host = None
-        # String representation of hostname/IP used to resolve client_host
-        self.client_hostname = None
 
         # Statistics
         self.pings_transmitted = 0
@@ -530,7 +528,14 @@ class TwoPing():
 
     def setup_client_host(self, hostname, port):
         host_info = None
-        for l in socket.getaddrinfo(hostname, port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+        for l in socket.getaddrinfo(
+                hostname,
+                port,
+                socket.AF_UNSPEC,
+                socket.SOCK_DGRAM,
+                socket.IPPROTO_UDP,
+                socket.AI_CANONNAME,
+            ):
             if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
                 host_info = l
                 break
@@ -558,11 +563,10 @@ class TwoPing():
         sock = self.new_socket(bind_info[0], bind_info[1], bind_info[4])
         sock_class = SocketClass(sock)
         sock_class.client_host = host_info
-        sock_class.client_hostname = hostname.rstrip('.')
         self.sock_classes.append(sock_class)
         self.print_out(
             '2PING %s (%s): %d to %d bytes of data.' % (
-                sock_class.client_hostname, host_info[4][0], self.args.min_packet_size, self.args.max_packet_size
+                host_info[3], host_info[4][0], self.args.min_packet_size, self.args.max_packet_size
             )
         )
 
@@ -646,7 +650,7 @@ class TwoPing():
         if self.args.listen:
             hostname = 'Listener'
         else:
-            hostname = sock_class.client_hostname
+            hostname = sock_class.client_host[3]
         if short:
             self.print_out(
                 '\x0d%s: %d/%d pings, %d%% loss' % (
