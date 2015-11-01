@@ -794,11 +794,7 @@ class TwoPing():
                                 self.send_new_ping(sock_class, sock_class.client_host[4])
                         else:
                             self.send_new_ping(sock_class, sock_class.client_host[4])
-                        if self.args.adaptive and sock_class.rtt_ewma:
-                            target = sock_class.rtt_ewma / 8.0 / 1000.0
-                            sock_class.next_send = now + target
-                        else:
-                            sock_class.next_send = now + self.args.interval
+                        sock_class.next_send = now + self.args.interval
 
             if self.args.flood:
                 next_send = now + 0.01
@@ -848,6 +844,10 @@ class TwoPing():
                     self.print_out('Exception: %s' % str(e))
                     if self.args.debug:
                         raise
+
+                if self.args.adaptive and sock_class.rtt_ewma:
+                    target = sock_class.rtt_ewma / 8.0 / 1000.0
+                    sock_class.next_send = now + target
                 if (
                     self.args.count and
                     (sock_class.pings_transmitted >= self.args.count) and
