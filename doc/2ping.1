@@ -306,6 +306,15 @@ The same line can be printed on demand by sending SIGQUIT to the 2ping
 process.
 .RS
 .RE
+.TP
+.B \-\-srv
+In client mode, causes hostnames to be looked up via DNS SRV records.
+If the SRV query returns multiple record targets, they will all be
+pinged in parallel; priority and weight are not considered.
+The record\[aq]s port will be used instead of \f[I]\-\-port\f[].
+This functionality requires the dnspython module to be installed.
+.RS
+.RE
 .SH BUGS
 .PP
 None known, many assumed.

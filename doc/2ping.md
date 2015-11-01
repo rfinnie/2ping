@@ -176,6 +176,12 @@ To get a short inline display of statistics without quitting, send the process a
 :   Print a line of brief current statistics every *interval* seconds.
     The same line can be printed on demand by sending SIGQUIT to the 2ping process.
 
+--srv
+:   In client mode, causes hostnames to be looked up via DNS SRV records.
+    If the SRV query returns multiple record targets, they will all be pinged in parallel; priority and weight are not considered.
+    The record's port will be used instead of *--port*.
+    This functionality requires the dnspython module to be installed.
+
 # BUGS
 
 None known, many assumed.
