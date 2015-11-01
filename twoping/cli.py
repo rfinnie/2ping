@@ -536,7 +536,7 @@ class TwoPing():
                 socket.SOCK_DGRAM,
                 socket.IPPROTO_UDP,
                 socket.AI_CANONNAME,
-            ):
+        ):
             if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
                 host_info = l
                 break
