@@ -32,6 +32,11 @@ from . import monotonic_clock
 from .args import parse_args
 from .utils import lazy_div, bytearray_to_int
 
+try:
+    import dns.resolver
+    has_dns = True
+except ImportError:
+    has_dns = False
 
 clock = monotonic_clock.clock
 
@@ -490,9 +495,29 @@ class TwoPing():
                 ))
 
     def setup_client(self):
-        for hostname in self.args.host:
+        if self.args.srv:
+            if not has_dns:
+                raise socket.error('DNS SRV lookups not available; please install dnspython')
+            hosts = []
+            for lookup in self.args.host:
+                lookup_hosts_found = 0
+                self.print_debug('SRV lookup: %s' % lookup)
+                for rdata in dns.resolver.query('_2ping._udp.%s' % lookup, 'srv'):
+                    self.print_debug('SRV result for %s: %s' % (
+                        lookup,
+                        repr(rdata),
+                    ))
+                    if (str(rdata.target), rdata.port) in hosts:
+                        continue
+                    hosts.append((str(rdata.target), rdata.port))
+                    lookup_hosts_found += 1
+                if lookup_hosts_found == 0:
+                    raise socket.error('%s: No SRV results' % lookup)
+        else:
+            hosts = [(x, self.args.port) for x in self.args.host]
+        for (hostname, port) in hosts:
             try:
-                self.setup_client_host(hostname)
+                self.setup_client_host(hostname, port)
             except socket.error as e:
                 eargs = list(e.args)
                 if len(eargs) == 1:
@@ -501,9 +526,9 @@ class TwoPing():
                     eargs[1] = '%s: %s' % (hostname, eargs[1])
                 raise socket.error(*eargs)
 
-    def setup_client_host(self, hostname):
+    def setup_client_host(self, hostname, port):
         host_info = None
-        for l in socket.getaddrinfo(hostname, self.args.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+        for l in socket.getaddrinfo(hostname, port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
             if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
                 host_info = l
                 break

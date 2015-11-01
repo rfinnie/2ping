@@ -162,6 +162,10 @@ def parse_args():
         '--stats', type=float,
         help='print recurring statistics', metavar='SECONDS',
     )
+    parser.add_argument(
+        '--srv', action='store_true',
+        help='lookup SRV records in client mode',
+    )
 
     # ping-compatible ignored options
     for opt in 'b|B|d|L|n|R|r|U'.split('|'):
