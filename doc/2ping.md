@@ -168,7 +168,7 @@ To get a short inline display of statistics without quitting, send the process a
     A single number without colon separation means use the same percentage for both outbound and inbound.
 
 --port=*port*
-:   Use UDP port *port*.
+:   Use UDP port *port*, either a numeric port number of a service name string.
     With *--listen*, this is the port to bind as, otherwise this is the port to send to.
     Default is UDP port 15998.
 

@@ -155,7 +155,7 @@ def parse_args():
         help='percentage simulated packet loss', metavar='OUT:IN',
     )
     parser.add_argument(
-        '--port', type=int, default=15998,
+        '--port', type=str, default='15998',
         help='port to connect / bind to',
     )
     parser.add_argument(

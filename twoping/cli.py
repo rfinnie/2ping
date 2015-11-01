@@ -694,14 +694,15 @@ class TwoPing():
         if hasattr(signal, 'SIGQUIT'):
             signal.signal(signal.SIGQUIT, self.sigquit_handler)
 
-        if self.args.listen:
-            self.setup_listener()
-        else:
-            try:
+        try:
+            if self.args.listen:
+                self.setup_listener()
+            else:
                 self.setup_client()
-            except socket.error as e:
-                self.print_out(str(e))
-                return 1
+        except (socket.error, socket.gaierror) as e:
+            self.print_out(str(e))
+            return 1
+
         try:
             self.loop()
         except KeyboardInterrupt:
