@@ -125,6 +125,12 @@ class TwoPing():
         if self.args.stats:
             self.next_stats = now + self.args.stats
 
+        self.old_age_interval = 60.0
+        # On Windows, KeyboardInterrupt during select() will not be trapped until a socket event or timeout, so we should set
+        # the timeout to a short value.
+        if sys.platform.startswith(('win32', 'cygwin')):
+            self.old_age_interval = 1.0
+
         # Test for IPv6 functionality.
         self.has_ipv6 = True
         if not socket.has_ipv6:
@@ -808,7 +814,7 @@ class TwoPing():
                     if next_send < sock_class.next_send:
                         sock_class.next_send = next_send
 
-            next_wakeup = now + 60.0
+            next_wakeup = now + self.old_age_interval
             next_wakeup_reason = 'old age'
             for sock_class in self.sock_classes:
                 if (not self.args.listen) and (sock_class.next_send < next_wakeup):
