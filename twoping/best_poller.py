@@ -27,11 +27,13 @@ class EpollPoller():
 
     def __init__(self):
         self.poller = select.epoll()
-        self.f_list = []
+        self.f_dict = {}
 
     def register(self, f):
-        self.poller.register(f.fileno(), select.EPOLLIN)
-        self.f_list.append((f, f.fileno()))
+        fileno = f.fileno()
+        if fileno not in self.f_dict:
+            self.poller.register(fileno, select.EPOLLIN)
+        self.f_dict[fileno] = f
 
     def close(self):
         return self.poller.close()
@@ -45,11 +47,8 @@ class EpollPoller():
             return []
         res = []
         for i in poll_res:
-            for f in self.f_list:
-                if f[1] != i[0]:
-                    continue
-                res.append(f[0])
-                break
+            if i[0] in self.f_dict:
+                res.append(self.f_dict[i[0]])
         return res
 
 
@@ -59,15 +58,17 @@ class KqueuePoller():
     def __init__(self):
         self.poller = select.kqueue()
         self.kevents = []
-        self.f_list = []
+        self.f_dict = {}
 
     def register(self, f):
-        self.kevents.append(select.kevent(
-            f.fileno(),
-            filter=select.KQ_FILTER_READ,
-            flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
-        ))
-        self.f_list.append((f, f.fileno()))
+        fileno = f.fileno()
+        if fileno not in self.f_dict:
+            self.kevents.append(select.kevent(
+                fileno,
+                filter=select.KQ_FILTER_READ,
+                flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
+            ))
+        self.f_dict[fileno] = f
 
     def close(self):
         return self.poller.close()
@@ -81,14 +82,8 @@ class KqueuePoller():
             return []
         res = []
         for i in poll_res:
-            if type(i.ident) in (int, long):
-                for f in self.f_list:
-                    if f[1] != i.ident:
-                        continue
-                    res.append(f[0])
-                    break
-            else:
-                res.append(i.ident)
+            if i.ident in self.f_dict:
+                res.append(self.f_dict[i.ident])
         return res
 
 
@@ -97,11 +92,13 @@ class PollPoller():
 
     def __init__(self):
         self.poller = select.poll()
-        self.f_list = []
+        self.f_dict = {}
 
     def register(self, f):
-        self.poller.register(f.fileno(), select.POLLIN)
-        self.f_list.append((f, f.fileno()))
+        fileno = f.fileno()
+        if fileno not in self.f_dict:
+            self.poller.register(fileno, select.POLLIN)
+        self.f_dict[fileno] = f
 
     def close(self):
         return self.poller.close()
@@ -115,11 +112,8 @@ class PollPoller():
             return []
         res = []
         for i in poll_res:
-            for f in self.f_list:
-                if f[1] != i[0]:
-                    continue
-                res.append(f[0])
-                break
+            if i[0] in self.f_dict:
+                res.append(self.f_dict[i[0]])
         return res
 
 
@@ -127,10 +121,10 @@ class SelectPoller():
     poller_type = 'select'
 
     def __init__(self):
-        self.f_list = []
+        self.f_dict = {}
 
     def register(self, f):
-        self.f_list.append(f)
+        self.f_dict[f.fileno()] = f
 
     def close(self):
         pass
@@ -138,7 +132,7 @@ class SelectPoller():
     def poll(self, timeout):
         try:
             return select.select(
-                self.f_list,
+                self.f_dict.values(),
                 [],
                 [],
                 timeout
