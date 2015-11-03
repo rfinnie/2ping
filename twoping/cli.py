@@ -21,7 +21,6 @@
 from __future__ import print_function, division
 import random
 import socket
-import select
 import math
 import signal
 import sys
@@ -29,6 +28,7 @@ import errno
 from . import __version__
 from . import packets
 from . import monotonic_clock
+from . import best_poller
 from .args import parse_args
 from .utils import lazy_div, bytearray_to_int, platform_info
 
@@ -104,6 +104,7 @@ class TwoPing():
         self.time_start = now
 
         self.sock_classes = []
+        self.poller = best_poller.best_poller()
 
         self.pings_transmitted = 0
         self.pings_received = 0
@@ -494,6 +495,7 @@ class TwoPing():
                 sock = self.new_socket(l[0], l[1], l[4])
                 sock_class = SocketClass(sock)
                 self.sock_classes.append(sock_class)
+                self.poller.register(sock_class)
                 bound_addresses.append(l)
                 self.print_out('2PING listener (%s): %d to %d bytes of data.' % (
                     l[4][0],
@@ -571,6 +573,7 @@ class TwoPing():
         sock_class = SocketClass(sock)
         sock_class.client_host = host_info
         self.sock_classes.append(sock_class)
+        self.poller.register(sock_class)
         self.print_out(
             '2PING %s (%s): %d to %d bytes of data.' % (
                 host_info[3], host_info[4][0], self.args.min_packet_size, self.args.max_packet_size
@@ -702,6 +705,7 @@ class TwoPing():
 
     def run(self):
         self.print_debug('Clock: %s, value: %f' % (monotonic_clock.get_clock_info('clock'), clock()))
+        self.print_debug('Poller: %s' % self.poller.poller_type)
         if hasattr(signal, 'SIGQUIT'):
             signal.signal(signal.SIGQUIT, self.sigquit_handler)
 
@@ -842,14 +846,8 @@ class TwoPing():
                 next_wakeup = now
                 next_wakeup_reason = 'time travel'
             self.print_debug('Next wakeup: %s (%s)' % ((next_wakeup - now), next_wakeup_reason))
-            try:
-                select_res = select.select(self.sock_classes, [], [], (next_wakeup - now))
-            except select.error as e:
-                # EINTR: Interrupted system call (from signals)
-                if e.args[0] not in (errno.EINTR,):
-                    raise
-                select_res = ([], [], [])
-            for sock_class in select_res[0]:
+
+            for sock_class in self.poller.poll(next_wakeup - now):
                 try:
                     self.process_incoming_packet(sock_class)
                 except Exception as e:
