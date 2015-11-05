@@ -181,14 +181,14 @@ class TwoPing():
             if self.args.quiet:
                 pass
             elif self.args.flood:
-                self.print_out('\x08E', end='', flush=True)
+                self.print_out('E', end='', flush=True)
             else:
                 self.print_out('%s: %s' % (error_address[0], error_string))
         except socket.error:
             if self.args.quiet:
                 pass
             elif self.args.flood:
-                self.print_out('\x08E', end='', flush=True)
+                self.print_out('E', end='', flush=True)
             else:
                 if peer_address:
                     self.print_out('%s: %s' % (peer_address[0], error_string))
@@ -272,14 +272,6 @@ class TwoPing():
                 )
                 return
 
-        # Check if any invesitgations results have come back.
-        self.check_investigations(sock_class, peer_tuple, packet_in)
-        if packets.OpcodeCourtesyExpiration.id in packet_in.opcodes:
-            for message_id in packet_in.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids:
-                message_id_int = bytearray_to_int(message_id)
-                if message_id_int in sock_class.seen_messages[peer_tuple]:
-                    del(sock_class.seen_messages[peer_tuple][message_id_int])
-
         # If this is in reply to one of our sent packets, it's a ping reply, so handle it specially.
         if packets.OpcodeInReplyTo.id in packet_in.opcodes:
             replied_message_id = packet_in.opcodes[packets.OpcodeInReplyTo.id].message_id
@@ -314,6 +306,16 @@ class TwoPing():
                         notice = str(packet_in.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text)
                         self.print_out('  Peer notice: %s' % notice)
             sock_class.courtesy_messages[peer_tuple][replied_message_id_int] = (time_begin, replied_message_id)
+
+        # Check if any invesitgations results have come back.
+        self.check_investigations(sock_class, peer_tuple, packet_in)
+
+        # Process courtesy expirations
+        if packets.OpcodeCourtesyExpiration.id in packet_in.opcodes:
+            for message_id in packet_in.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids:
+                message_id_int = bytearray_to_int(message_id)
+                if message_id_int in sock_class.seen_messages[peer_tuple]:
+                    del(sock_class.seen_messages[peer_tuple][message_id_int])
 
         # If the peer requested a reply, prepare one.
         if packets.OpcodeReplyRequested.id in packet_in.opcodes:
@@ -444,7 +446,7 @@ class TwoPing():
                 if self.args.quiet:
                     pass
                 elif self.args.flood:
-                    self.print_out('\x08<', end='', flush=True)
+                    self.print_out('<', end='', flush=True)
                 else:
                     (_, _, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
                     self.print_out('Lost inbound packet from %s: ping_seq=%d' % (peer_tuple[1][0], ping_seq))
@@ -460,7 +462,7 @@ class TwoPing():
                 if self.args.quiet:
                     pass
                 elif self.args.flood:
-                    self.print_out('\x08>', end='', flush=True)
+                    self.print_out('>', end='', flush=True)
                 else:
                     (_, _, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
                     self.print_out('Lost outbound packet to %s: ping_seq=%d' % (peer_tuple[1][0], ping_seq))
