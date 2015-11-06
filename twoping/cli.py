@@ -633,6 +633,33 @@ class TwoPing():
     def sigquit_handler(self, signum, frame):
         self.print_stats(short=True)
 
+    def stats_time(self, seconds):
+        conversion = (
+            (1000, 'ms'),
+            (60, 's'),
+            (60, 'm'),
+            (24, 'h'),
+            (365, 'd'),
+            (None, 'y'),
+        )
+        out = ''
+        rest = int(seconds * 1000)
+        for (div, suffix) in conversion:
+            if div is None:
+                if(out):
+                    out = ' ' + out
+                out = '%d%s%s' % (rest, suffix, out)
+                break
+            p = rest % div
+            rest = int(rest / div)
+            if p > 0:
+                if(out):
+                    out = ' ' + out
+                out = '%d%s%s' % (p, suffix, out)
+            if rest == 0:
+                break
+        return out
+
     def print_stats(self, short=False):
         time_end = clock()
         if self.args.listen:
@@ -680,11 +707,11 @@ class TwoPing():
         else:
             self.print_out('')
             self.print_out('--- %s 2ping statistics ---' % hostname)
-            self.print_out('%d pings transmitted, %d received, %d%% ping loss, time %dms' % (
+            self.print_out('%d pings transmitted, %d received, %d%% ping loss, time %s' % (
                 stats_class.pings_transmitted,
                 stats_class.pings_received,
                 lost_pct,
-                (time_end - time_start) * 1000,
+                self.stats_time(time_end - time_start),
             ))
             self.print_out('%d outbound ping losses (%d%%), %d inbound (%d%%), %d undetermined (%d%%)' % (
                 stats_class.lost_outbound,
