@@ -21,7 +21,7 @@ The ends will begin pinging each other and displaying network statistics.
 If packet loss occurs, 2ping will wait a few seconds (default 10, configurable with *--inquire-wait*) before comparing notes between the two endpoints to determine which direction the packet loss is occurring.
 
 To quit 2ping on the client or listener ends, enter \^C, and a list of statistics will be displayed.
-To get a short inline display of statistics without quitting, send the process a QUIT signal (yes, that's the opposite of what you would think, but it's in line with the normal ping utility).
+To get a short inline display of statistics without quitting, enter \^\\ or send the process a QUIT signal.
 
 # OPTIONS
 
@@ -38,10 +38,6 @@ To get a short inline display of statistics without quitting, send the process a
 
 --count=*count*, -c *count*
 :   Stop after sending *count* ping requests.
-
-    `2ping`-specific notes: This option behaves slightly differently from `ping`.
-    If both *-c* and *-w* are specified, satisfaction of *-c* will cause an exit first.
-    Also, internally, `2ping` exits just before sending *count*+1 pings, to give time for the ping to complete.
 
 --flood, -f
 :   Flood ping.
@@ -72,7 +68,7 @@ To get a short inline display of statistics without quitting, send the process a
 --pattern=*hex_bytes*, -p *hex_bytes*
 :   You may specify up to 16 "pad" bytes to fill out the packets you send.
     This is useful for diagnosing data-dependent problems in a network.
-    For example, *-p ff* will cause the sent packet pad area to be filled with all ones.
+    For example, *--pattern=ff* will cause the sent packet pad area to be filled with all ones.
 
     `2ping`-specific notes: This pads the portion of the packet that does not contain the active payload data.
     If the active payload data is larger than the minimum packet size (*--min-packet-size*), no padding will be sent.
@@ -82,7 +78,7 @@ To get a short inline display of statistics without quitting, send the process a
     Nothing is displayed except the summary lines at startup time and when finished.
 
 --packetsize-compat=*bytes*, -s *bytes*
-:   `ping` compatibility, this will set *--min-packet-size* to this plus 8 bytes.
+:   `ping` compatibility; this will set *--min-packet-size* to this plus 8 bytes.
 
 --verbose, -v
 :   Verbose output.
@@ -95,25 +91,22 @@ To get a short inline display of statistics without quitting, send the process a
 :   Specify a timeout, in seconds, before `2ping` exits regardless of how many pings have been sent or received.
     Due to blocking, this may occur up to one second after the deadline specified.
 
-    `2ping`-specific notes: This option behaves slightly differently from `ping`.
-    If both *-c* and *-w* are specified, satisfaction of *-c* will cause an exit first.
-
 `2ping`-specific options:
 
--h, --help
+--help, -h
 :   Print a synposis and exit.
 
--4, --ipv4
+--ipv4, -4
 :   Limit binds to IPv4.
     In client mode, this forces resolution of dual-homed hostnames to the IPv4 address.
-    (Without *-4* or *-6*, the first result will be used as specified by your operating system, usually the AAAA address on IPv6-routable machines, or the A address on IPv4-only machines.)
-    In listener mode, this filters out any non-IPv4 *-I* binds, either through hostname resolution or explicit passing.
+    (Without *--ipv4* or *--ipv6*, the first result will be used as specified by your operating system, usually the AAAA address on IPv6-routable machines, or the A address on IPv4-only machines.)
+    In listener mode, this filters out any non-IPv4 *--interface-address* binds, either through hostname resolution or explicit passing.
 
--6, --ipv6
+--ipv6, -6
 :   Limit binds to IPv6.
     In client mode, this forces resolution of dual-homed hostnames to the IPv6 address.
     (Without *-4* or *-6*, the first result will be used as specified by your operating system, usually the AAAA address on IPv6-routable machines, or the A address on IPv4-only machines.)
-    In listener mode, this filters out any non-IPv6 *-I* binds, either through hostname resolution or explicit passing.
+    In listener mode, this filters out any non-IPv6 *--interface-address* binds, either through hostname resolution or explicit passing.
 
 --auth=*key*
 :   Set a shared key, send cryptographic hashes with each packet, and require cryptographic hashes from peer packets signed with the same shared key.
@@ -159,7 +152,7 @@ To get a short inline display of statistics without quitting, send the process a
 :   Do not send the current running version of 2ping with each packet.
 
 --notice=*text*
-:   Arbitrary notice text to send with each packet.
+:   Send arbitrary notice *text* with each packet.
     If the remote peer supports it, this may be displayed to the user.
 
 --packet-loss=*out:in*
@@ -172,15 +165,15 @@ To get a short inline display of statistics without quitting, send the process a
     With *--listen*, this is the port to bind as, otherwise this is the port to send to.
     Default is UDP port 15998.
 
---stats=*interval*
-:   Print a line of brief current statistics every *interval* seconds.
-    The same line can be printed on demand by sending SIGQUIT to the 2ping process.
-
 --srv
 :   In client mode, causes hostnames to be looked up via DNS SRV records.
     If the SRV query returns multiple record targets, they will all be pinged in parallel; priority and weight are not considered.
     The record's port will be used instead of *--port*.
     This functionality requires the dnspython module to be installed.
+
+--stats=*interval*
+:   Print a line of brief current statistics every *interval* seconds.
+    The same line can be printed on demand by entering \^\\ or sending the QUIT signal to the 2ping process.
 
 # BUGS
 

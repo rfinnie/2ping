@@ -29,9 +29,8 @@ is occurring.
 .PP
 To quit 2ping on the client or listener ends, enter ^C, and a list of
 statistics will be displayed.
-To get a short inline display of statistics without quitting, send the
-process a QUIT signal (yes, that\[aq]s the opposite of what you would
-think, but it\[aq]s in line with the normal ping utility).
+To get a short inline display of statistics without quitting, enter ^\\
+or send the process a QUIT signal.
 .SH OPTIONS
 .PP
 \f[C]ping\f[]\-compatible options (long option names are
@@ -56,13 +55,6 @@ mode.
 .B \-\-count=\f[I]count\f[], \-c \f[I]count\f[]
 Stop after sending \f[I]count\f[] ping requests.
 .RS
-.PP
-\f[C]2ping\f[]\-specific notes: This option behaves slightly differently
-from \f[C]ping\f[].
-If both \f[I]\-c\f[] and \f[I]\-w\f[] are specified, satisfaction of
-\f[I]\-c\f[] will cause an exit first.
-Also, internally, \f[C]2ping\f[] exits just before sending
-\f[I]count\f[]+1 pings, to give time for the ping to complete.
 .RE
 .TP
 .B \-\-flood, \-f
@@ -115,8 +107,8 @@ reply.
 .B \-\-pattern=\f[I]hex_bytes\f[], \-p \f[I]hex_bytes\f[]
 You may specify up to 16 "pad" bytes to fill out the packets you send.
 This is useful for diagnosing data\-dependent problems in a network.
-For example, \f[I]\-p ff\f[] will cause the sent packet pad area to be
-filled with all ones.
+For example, \f[I]\-\-pattern=ff\f[] will cause the sent packet pad area
+to be filled with all ones.
 .RS
 .PP
 \f[C]2ping\f[]\-specific notes: This pads the portion of the packet that
@@ -133,7 +125,7 @@ finished.
 .RE
 .TP
 .B \-\-packetsize\-compat=\f[I]bytes\f[], \-s \f[I]bytes\f[]
-\f[C]ping\f[] compatibility, this will set
+\f[C]ping\f[] compatibility; this will set
 \f[I]\-\-min\-packet\-size\f[] to this plus 8 bytes.
 .RS
 .RE
@@ -156,41 +148,38 @@ how many pings have been sent or received.
 Due to blocking, this may occur up to one second after the deadline
 specified.
 .RS
-.PP
-\f[C]2ping\f[]\-specific notes: This option behaves slightly differently
-from \f[C]ping\f[].
-If both \f[I]\-c\f[] and \f[I]\-w\f[] are specified, satisfaction of
-\f[I]\-c\f[] will cause an exit first.
 .RE
 .PP
 \f[C]2ping\f[]\-specific options:
 .TP
-.B \-h, \-\-help
+.B \-\-help, \-h
 Print a synposis and exit.
 .RS
 .RE
 .TP
-.B \-4, \-\-ipv4
+.B \-\-ipv4, \-4
 Limit binds to IPv4.
 In client mode, this forces resolution of dual\-homed hostnames to the
 IPv4 address.
-(Without \f[I]\-4\f[] or \f[I]\-6\f[], the first result will be used as
-specified by your operating system, usually the AAAA address on
-IPv6\-routable machines, or the A address on IPv4\-only machines.) In
-listener mode, this filters out any non\-IPv4 \f[I]\-I\f[] binds, either
-through hostname resolution or explicit passing.
+(Without \f[I]\-\-ipv4\f[] or \f[I]\-\-ipv6\f[], the first result will
+be used as specified by your operating system, usually the AAAA address
+on IPv6\-routable machines, or the A address on IPv4\-only machines.) In
+listener mode, this filters out any non\-IPv4
+\f[I]\-\-interface\-address\f[] binds, either through hostname
+resolution or explicit passing.
 .RS
 .RE
 .TP
-.B \-6, \-\-ipv6
+.B \-\-ipv6, \-6
 Limit binds to IPv6.
 In client mode, this forces resolution of dual\-homed hostnames to the
 IPv6 address.
 (Without \f[I]\-4\f[] or \f[I]\-6\f[], the first result will be used as
 specified by your operating system, usually the AAAA address on
 IPv6\-routable machines, or the A address on IPv4\-only machines.) In
-listener mode, this filters out any non\-IPv6 \f[I]\-I\f[] binds, either
-through hostname resolution or explicit passing.
+listener mode, this filters out any non\-IPv6
+\f[I]\-\-interface\-address\f[] binds, either through hostname
+resolution or explicit passing.
 .RS
 .RE
 .TP
@@ -277,7 +266,7 @@ Do not send the current running version of 2ping with each packet.
 .RE
 .TP
 .B \-\-notice=\f[I]text\f[]
-Arbitrary notice text to send with each packet.
+Send arbitrary notice \f[I]text\f[] with each packet.
 If the remote peer supports it, this may be displayed to the user.
 .RS
 .RE
@@ -300,20 +289,20 @@ Default is UDP port 15998.
 .RS
 .RE
 .TP
-.B \-\-stats=\f[I]interval\f[]
-Print a line of brief current statistics every \f[I]interval\f[]
-seconds.
-The same line can be printed on demand by sending SIGQUIT to the 2ping
-process.
-.RS
-.RE
-.TP
 .B \-\-srv
 In client mode, causes hostnames to be looked up via DNS SRV records.
 If the SRV query returns multiple record targets, they will all be
 pinged in parallel; priority and weight are not considered.
 The record\[aq]s port will be used instead of \f[I]\-\-port\f[].
 This functionality requires the dnspython module to be installed.
+.RS
+.RE
+.TP
+.B \-\-stats=\f[I]interval\f[]
+Print a line of brief current statistics every \f[I]interval\f[]
+seconds.
+The same line can be printed on demand by entering ^\\ or sending the
+QUIT signal to the 2ping process.
 .RS
 .RE
 .SH BUGS
