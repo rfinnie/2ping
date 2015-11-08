@@ -30,7 +30,8 @@ from . import packets
 from . import monotonic_clock
 from . import best_poller
 from .args import parse_args
-from .utils import lazy_div, bytearray_to_int, platform_info
+from .utils import _, _pl, lazy_div, bytearray_to_int, platform_info
+
 
 try:
     import dns.resolver
@@ -240,14 +241,16 @@ class TwoPing():
             if packets.OpcodeHMAC.id not in packet_in.opcodes:
                 self.errors_received += 1
                 sock_class.errors_received += 1
-                self.print_out('Auth required but not provided by %s' % peer_address[0])
+                self.print_out(_('Auth required but not provided by {address}').format(peer_address[0]))
                 return
             if packet_in.opcodes[packets.OpcodeHMAC.id].digest_index != self.args.auth_digest_index:
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
-                    'Auth digest type mismatch from %s (expected %d, got %d)' % (
-                        peer_address[0], self.args.auth_digest_index, packet_in.opcodes[packets.OpcodeHMAC.id].digest_index
+                    _('Auth digest type mismatch from {address} (expected {expected}, got {got})').format(
+                        address=peer_address[0],
+                        expected=self.args.auth_digest_index,
+                        got=packet_in.opcodes[packets.OpcodeHMAC.id].digest_index,
                     )
                 )
                 return
@@ -264,10 +267,10 @@ class TwoPing():
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
-                    'Auth hash failed from %s (expected %s, got %s)' % (
-                        peer_address[0],
-                        ''.join('{:02x}'.format(x) for x in test_hash_calculated),
-                        ''.join('{:02x}'.format(x) for x in test_hash)
+                    _('Auth hash failed from {address} (expected {expected}, got {got})').format(
+                        address=peer_address[0],
+                        expected=''.join('{:02x}'.format(x) for x in test_hash_calculated),
+                        got=''.join('{:02x}'.format(x) for x in test_hash),
                     )
                 )
                 return
@@ -277,7 +280,7 @@ class TwoPing():
             replied_message_id = packet_in.opcodes[packets.OpcodeInReplyTo.id].message_id
             replied_message_id_int = bytearray_to_int(replied_message_id)
             if replied_message_id_int in sock_class.sent_messages[peer_tuple]:
-                (sent_time, _, ping_position) = sock_class.sent_messages[peer_tuple][replied_message_id_int]
+                (sent_time, _unused, ping_position) = sock_class.sent_messages[peer_tuple][replied_message_id_int]
                 del(sock_class.sent_messages[peer_tuple][replied_message_id_int])
                 calculated_rtt = (time_begin - sent_time) * 1000
                 self.pings_received += 1
@@ -288,23 +291,33 @@ class TwoPing():
                 elif self.args.flood:
                     self.print_out('\x08', end='', flush=True)
                 else:
-                    str_peertime = ''
-                    if packets.OpcodeRTTEnclosed.id in packet_in.opcodes:
-                        str_peertime = ' peertime=%0.03f ms' % (packet_in.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us / 1000.0)
-                    str_audible = ''
                     if self.args.audible:
-                        str_audible = '\x07'
-                    self.print_out(
-                        '%d bytes from %s: ping_seq=%d time=%0.03f ms%s%s' % (
-                            len(data), peer_tuple[1][0], ping_position, calculated_rtt, str_peertime, str_audible
+                        self.print_out('\x07', end='', flush=True)
+                    if packets.OpcodeRTTEnclosed.id in packet_in.opcodes:
+                        self.print_out(
+                            _('{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms peertime={peerms:0.03f} ms').format(
+                                bytes=len(data),
+                                address=peer_tuple[1][0],
+                                seq=ping_position,
+                                ms=calculated_rtt,
+                                peerms=(packet_in.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us / 1000.0),
+                            )
                         )
-                    )
+                    else:
+                        self.print_out(
+                            _('{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms').format(
+                                bytes=len(data),
+                                address=peer_tuple[1][0],
+                                seq=ping_position,
+                                ms=calculated_rtt,
+                            )
+                        )
                     if (
                         (packets.OpcodeExtended.id in packet_in.opcodes) and
                         (packets.ExtendedNotice.id in packet_in.opcodes[packets.OpcodeExtended.id].segments)
                     ):
                         notice = str(packet_in.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text)
-                        self.print_out('  Peer notice: %s' % notice)
+                        self.print_out('  ' + _('Peer notice: {notice}').format(notice=notice))
             sock_class.courtesy_messages[peer_tuple][replied_message_id_int] = (time_begin, replied_message_id)
 
         # Check if any invesitgations results have come back.
@@ -427,7 +440,7 @@ class TwoPing():
             iobj = None
         now = clock()
         for message_id_str in sock_class.sent_messages[peer_tuple]:
-            (sent_time, message_id, _) = sock_class.sent_messages[peer_tuple][message_id_str]
+            (sent_time, message_id, _unused) = sock_class.sent_messages[peer_tuple][message_id_str]
             if now >= (sent_time + self.args.inquire_wait):
                 if iobj is None:
                     iobj = packets.OpcodeInvestigate()
@@ -448,8 +461,11 @@ class TwoPing():
                 elif self.args.flood:
                     self.print_out('<', end='', flush=True)
                 else:
-                    (_, _, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
-                    self.print_out('Lost inbound packet from %s: ping_seq=%d' % (peer_tuple[1][0], ping_seq))
+                    (_unused, _unused, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
+                    self.print_out(_('Lost inbound packet from {address}: ping_seq={seq}').format(
+                        address=peer_tuple[1][0],
+                        seq=ping_seq,
+                    ))
                 del(sock_class.sent_messages[peer_tuple][message_id_int])
                 self.lost_inbound += 1
                 sock_class.lost_inbound += 1
@@ -464,8 +480,11 @@ class TwoPing():
                 elif self.args.flood:
                     self.print_out('>', end='', flush=True)
                 else:
-                    (_, _, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
-                    self.print_out('Lost outbound packet to %s: ping_seq=%d' % (peer_tuple[1][0], ping_seq))
+                    (_unused, _unused, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
+                    self.print_out(_('Lost outbound packet to {address}: ping_seq={seq}').format(
+                        address=peer_tuple[1][0],
+                        seq=ping_seq,
+                    ))
                 del(sock_class.sent_messages[peer_tuple][message_id_int])
                 self.lost_outbound += 1
                 sock_class.lost_outbound += 1
@@ -499,10 +518,10 @@ class TwoPing():
                 self.sock_classes.append(sock_class)
                 self.poller.register(sock_class)
                 bound_addresses.append(l)
-                self.print_out('2PING listener (%s): %d to %d bytes of data.' % (
-                    l[4][0],
-                    self.args.min_packet_size,
-                    self.args.max_packet_size,
+                self.print_out(_('2PING listener ({address}): {min} to {max} bytes of data.').format(
+                    address=l[4][0],
+                    min=self.args.min_packet_size,
+                    max=self.args.max_packet_size,
                 ))
 
     def setup_client(self):
@@ -570,15 +589,18 @@ class TwoPing():
             bind_info = l
             break
         if bind_info is None:
-            raise socket.error('Cannot find suitable bind for %s' % host_info[4])
+            raise socket.error(_('Cannot find suitable bind for {address}').format(address=host_info[4]))
         sock = self.new_socket(bind_info[0], bind_info[1], bind_info[4])
         sock_class = SocketClass(sock)
         sock_class.client_host = host_info
         self.sock_classes.append(sock_class)
         self.poller.register(sock_class)
         self.print_out(
-            '2PING %s (%s): %d to %d bytes of data.' % (
-                host_info[3], host_info[4][0], self.args.min_packet_size, self.args.max_packet_size
+            _('2PING {hostname} ({address}): {min} to {max} bytes of data.').format(
+                hostname=host_info[3],
+                address=host_info[4][0],
+                min=self.args.min_packet_size,
+                max=self.args.max_packet_size,
             )
         )
 
@@ -687,49 +709,75 @@ class TwoPing():
             (lazy_div(stats_class.rtt_total, stats_class.rtt_count) ** 2)
         )
         if self.args.listen:
-            hostname = 'Listener'
+            hostname = _('Listener')
         else:
             hostname = sock_class.client_host[3]
         if short:
-            self.print_out(
-                '\x0d%s: %d/%d pings, %d%% loss' % (
-                    hostname,
-                    stats_class.pings_transmitted, stats_class.pings_received, lost_pct,
-                ) +
-                ' (%d/%d/%d out/in/undet),' % (
-                    stats_class.lost_outbound, stats_class.lost_inbound, lost_undetermined,
-                ) +
-                ' min/avg/ewma/max/mdev = %0.03f/%0.03f/%0.03f/%0.03f/%0.03f ms' % (
-                    stats_class.rtt_min, rtt_avg, rtt_ewma, stats_class.rtt_max, rtt_mdev,
-                ),
-                file=sys.stderr,
-            )
+            self.print_out('\x0d', end='', flush=True, file=sys.stderr)
+            self.print_out(_pl(
+                '{hostname}: {transmitted}/{received} ping, {loss}% loss ' +
+                '({outbound}/{inbound}/{undetermined} out/in/undet), min/avg/ewma/max/mdev = ' +
+                '{min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms',
+                '{hostname}: {transmitted}/{received} pings, {loss}% loss ' +
+                '({outbound}/{inbound}/{undetermined} out/in/undet), min/avg/ewma/max/mdev = ' +
+                '{min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms',
+                stats_class.pings_received
+            ).format(
+                hostname=hostname,
+                transmitted=stats_class.pings_transmitted,
+                received=stats_class.pings_received,
+                loss=int(lost_pct),
+                outbound=stats_class.lost_outbound,
+                inbound=stats_class.lost_inbound,
+                undetermined=lost_undetermined,
+                min=stats_class.rtt_min,
+                avg=rtt_avg,
+                ewma=rtt_ewma,
+                max=stats_class.rtt_max,
+                mdev=rtt_mdev,
+            ), file=sys.stderr)
         else:
             self.print_out('')
-            self.print_out('--- %s 2ping statistics ---' % hostname)
-            self.print_out('%d pings transmitted, %d received, %d%% ping loss, time %s' % (
-                stats_class.pings_transmitted,
-                stats_class.pings_received,
-                lost_pct,
-                self.stats_time(time_end - time_start),
+            self.print_out('--- %s ---' % _('{hostname} 2ping statistics').format(hostname=hostname))
+            self.print_out(_pl(
+                '{transmitted} ping transmitted, {received} received, {loss}% ping loss, time {time}',
+                '{transmitted} pings transmitted, {received} received, {loss}% ping loss, time {time}',
+                stats_class.pings_transmitted
+            ).format(
+                transmitted=stats_class.pings_transmitted,
+                received=stats_class.pings_received,
+                loss=int(lost_pct),
+                time=self.stats_time(time_end - time_start),
             ))
-            self.print_out('%d outbound ping losses (%d%%), %d inbound (%d%%), %d undetermined (%d%%)' % (
-                stats_class.lost_outbound,
-                outbound_pct,
-                stats_class.lost_inbound,
-                inbound_pct,
-                lost_undetermined,
-                undetermined_pct,
+            self.print_out(_pl(
+                '{outbound} outbound ping loss ({outboundpct}%), {inbound} inbound ({inboundpct}%), ' +
+                '{undetermined} undetermined ({undeterminedpct}%)',
+                '{outbound} outbound ping losses ({outboundpct}%), {inbound} inbound ({inboundpct}%), ' +
+                '{undetermined} undetermined ({undeterminedpct}%)',
+                stats_class.lost_outbound
+            ).format(
+                outbound=stats_class.lost_outbound,
+                outboundpct=int(outbound_pct),
+                inbound=stats_class.lost_inbound,
+                inboundpct=int(inbound_pct),
+                undetermined=lost_undetermined,
+                undeterminedpct=int(undetermined_pct),
             ))
-            self.print_out('rtt min/avg/ewma/max/mdev = %0.03f/%0.03f/%0.03f/%0.03f/%0.03f ms' % (
-                stats_class.rtt_min,
-                rtt_avg,
-                rtt_ewma,
-                stats_class.rtt_max,
-                rtt_mdev,
+            self.print_out(_('rtt min/avg/ewma/max/mdev = {min:0.03f}/{avg:0.03f}/' +
+                             '{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms').format(
+                min=stats_class.rtt_min,
+                avg=rtt_avg,
+                ewma=rtt_ewma,
+                max=stats_class.rtt_max,
+                mdev=rtt_mdev,
             ))
-            self.print_out('%d raw packets transmitted, %d received' % (
-                stats_class.packets_transmitted, stats_class.packets_received
+            self.print_out(_pl(
+                '{transmitted} raw packet transmitted, {received} received',
+                '{transmitted} raw packets transmitted, {received} received',
+                stats_class.packets_transmitted
+            ).format(
+                transmitted=stats_class.packets_transmitted,
+                received=stats_class.packets_received,
             ))
 
     def run(self):
@@ -880,7 +928,7 @@ class TwoPing():
                 try:
                     self.process_incoming_packet(sock_class)
                 except Exception as e:
-                    self.print_out('Exception: %s' % str(e))
+                    self.print_out(_('Exception: {error}').format(error=str(e)))
                     if self.args.debug:
                         raise
 

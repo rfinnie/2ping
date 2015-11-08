@@ -20,6 +20,11 @@
 
 from __future__ import print_function, division
 import platform
+import gettext
+
+
+_ = gettext.translation('2ping', fallback=True).ugettext
+_pl = gettext.translation('2ping', fallback=True).ungettext
 
 
 def twoping_checksum(d):
