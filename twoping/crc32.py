@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+from __future__ import print_function
 import binascii
 import copy
 
@@ -66,17 +67,21 @@ if __name__ == '__main__':
     import sys
     files = sys.argv[1:]
     if len(files) == 0:
+        if hasattr(sys.stdin, 'buffer'):
+            stdin = sys.stdin.buffer
+        else:
+            stdin = sys.stdin
         c = new()
-        for line in sys.stdin.readlines():
-            c.update(line)
-        print c.hexdigest()
+        for buf in stdin.readlines():
+            c.update(buf)
+        print(c.hexdigest())
     else:
         for file in files:
-            with open(file) as f:
+            with open(file, 'rb') as f:
                 c = new()
-                for line in f.readlines():
-                    c.update(line)
+                for buf in f.readlines():
+                    c.update(buf)
                 if len(files) > 1:
-                    print '%s\t%s' % (c.hexdigest(), file)
+                    print('%s\t%s' % (c.hexdigest(), file))
                 else:
-                    print c.hexdigest()
+                    print(c.hexdigest())
