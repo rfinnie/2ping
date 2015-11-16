@@ -1,3 +1,25 @@
+2ping 3.1.0 (2015-11-16)
+  * Best available poller for each platform (e.g. epoll on Linux, kqueue
+    on BSD / OS X) is automatically used.
+  * Old age timeout is set to a lower value on Win32 (1 second instead
+    of 60), as KeyboardInterrupt does not interrupt select() on Win32.
+  * Packet loss is now better visible in flood mode.
+  * Adaptive mode now ramps up to EWMA faster.
+  * Adaptive mode RTT predictions are now calculated per destination.
+  * In client mode, statistics are now separated for each destination.
+  * Added optional DNS SRV client support (requires dnspython).  When
+    given --srv, all SRV records for the 2ping UDP service of a host are
+    pinged in parallel.
+  * Investigation results are now sorted by sequence number.
+  * Hostnames are displayed in statistics, if known.
+  * 2ping will exit earlier if safe to do so (e.g. "-c 1" will not wait
+    a full second if the ping is received immediately).
+  * --port can now be given service names (as determined by the system
+    resolver) instead of numeric ports.
+  * System platform (Linux, Mach, etc) is sent in packets along with
+    2ping version.
+  * Statistics use a more human-readable format (m, s, ms, etc).
+
 2ping 3.0.1 (2015-10-29)
   * Fix peer_address on error when MSG_ERRQUEUE is not set
   * Documentation update
