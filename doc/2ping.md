@@ -136,6 +136,12 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 :   Set the maximum total payload size to *max* bytes, default 512, absolute minimum 64.
     If the payload is larger than *max* bytes, information will be rearranged and sent in future packets when possible.
 
+--nagios=*wrta*,*wloss%*,*crta*,*closs%*
+:   Produce output suitable for use in a Nagios check.
+    If *--count* is not specified, defaults to 5 pings.
+    A warning condition (exit code 1) will be returned if average RTT exceeds *wrta* or ping loss exceeds *wloss%*.
+    A critical condition (exit code 2) will be returned if average RTT exceeds *crta* or ping loss exceeds *closs%*.
+
 --no-3way
 :   Do not perform 3-way pings.
     Used most often when combined with *--listen*, as the listener is usually the one to determine whether a ping reply should become a 3-way ping.

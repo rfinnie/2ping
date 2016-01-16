@@ -136,6 +136,10 @@ def parse_args():
         help=_('minimum packet size'), metavar='BYTES',
     )
     parser.add_argument(
+        '--nagios', type=str,
+        help=_('nagios-compatible output'), metavar='WRTA,WLOSS%,CRTA,CLOSS%',
+    )
+    parser.add_argument(
         '--no-3way', action='store_true',
         help=_('do not send 3-way pings'),
     )
@@ -187,6 +191,30 @@ def parse_args():
     if (not args.listen) and (not args.host):
         parser.print_help()
         parser.exit()
+    if args.nagios:
+        args.quiet = True
+        if not args.count:
+            args.count = 5
+        nagios_opts = args.nagios.split(',')
+        if len(nagios_opts) != 4:
+            parser.error(_('Invalid limits'))
+        (
+            args.nagios_warn_rta,
+            args.nagios_warn_loss,
+            args.nagios_crit_rta,
+            args.nagios_crit_loss,
+        ) = nagios_opts
+        if args.nagios_warn_loss[-1:] != '%':
+            parser.error(_('Invalid limits'))
+        if args.nagios_crit_loss[-1:] != '%':
+            parser.error(_('Invalid limits'))
+        try:
+            args.nagios_warn_loss = float(args.nagios_warn_loss[:-1])
+            args.nagios_crit_loss = float(args.nagios_crit_loss[:-1])
+            args.nagios_warn_rta = float(args.nagios_warn_rta)
+            args.nagios_crit_rta = float(args.nagios_crit_rta)
+        except ValueError as e:
+            parser.error(e.message)
     if args.packetsize_compat:
         args.min_packet_size = args.packetsize_compat + 8
     if args.max_packet_size < args.min_packet_size:

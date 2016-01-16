@@ -93,6 +93,7 @@ class SocketClass():
         self.next_send = 0
 
         self.is_shutdown = False
+        self.nagios_result = 0
 
     def fileno(self):
         return self.sock.fileno()
@@ -168,6 +169,8 @@ class TwoPing():
 
     def shutdown(self):
         self.print_stats()
+        if self.args.nagios:
+            sys.exit(self.nagios_result)
         sys.exit(0)
 
     def handle_socket_error(self, e, sock_class, peer_address=None):
@@ -608,14 +611,15 @@ class TwoPing():
         sock_class.client_host = host_info
         self.sock_classes.append(sock_class)
         self.poller.register(sock_class)
-        self.print_out(
-            _('2PING {hostname} ({address}): {min} to {max} bytes of data.').format(
-                hostname=host_info[3],
-                address=host_info[4][0],
-                min=self.args.min_packet_size,
-                max=self.args.max_packet_size,
+        if not self.args.nagios:
+            self.print_out(
+                _('2PING {hostname} ({address}): {min} to {max} bytes of data.').format(
+                    hostname=host_info[3],
+                    address=host_info[4][0],
+                    min=self.args.min_packet_size,
+                    max=self.args.max_packet_size,
+                )
             )
-        )
 
     def send_new_ping(self, sock_class, peer_address):
         sock = sock_class.sock
@@ -749,6 +753,33 @@ class TwoPing():
                 max=stats_class.rtt_max,
                 mdev=rtt_mdev,
             ), file=sys.stderr)
+        elif self.args.nagios:
+            if (lost_pct >= self.args.nagios_crit_loss) or (rtt_avg >= self.args.nagios_crit_rta):
+                self.nagios_result = 2
+                nagios_result_text = 'CRITICAL'
+            elif (lost_pct >= self.args.nagios_warn_loss) or (rtt_avg >= self.args.nagios_warn_rta):
+                self.nagios_result = 1
+                nagios_result_text = 'WARNING'
+            else:
+                self.nagios_result = 0
+                nagios_result_text = 'OK'
+            self.print_out(_(
+                '2PING {result} - Packet loss = {loss}%, RTA = {avg:0.03f} ms'
+            ).format(
+                result=nagios_result_text,
+                loss=int(lost_pct),
+                avg=rtt_avg,
+            ) + (
+                '|rta={avg:0.06f}ms;{avgwarn:0.06f};{avgcrit:0.06f};0.000000 ' +
+                'pl={loss}%;{losswarn};{losscrit};0'
+            ).format(
+                avg=rtt_avg,
+                loss=int(lost_pct),
+                avgwarn=self.args.nagios_warn_rta,
+                avgcrit=self.args.nagios_crit_rta,
+                losswarn=int(self.args.nagios_warn_loss),
+                losscrit=int(self.args.nagios_crit_loss),
+            ))
         else:
             self.print_out('')
             self.print_out('--- %s ---' % _('{hostname} 2ping statistics').format(hostname=hostname))

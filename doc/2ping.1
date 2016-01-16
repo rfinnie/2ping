@@ -235,6 +235,16 @@ rearranged and sent in future packets when possible.
 .RS
 .RE
 .TP
+.B \-\-nagios=\f[I]wrta\f[],\f[I]wloss%\f[],\f[I]crta\f[],\f[I]closs%\f[]
+Produce output suitable for use in a Nagios check.
+If \f[I]\-\-count\f[] is not specified, defaults to 5 pings.
+A warning condition (exit code 1) will be returned if average RTT
+exceeds \f[I]wrta\f[] or ping loss exceeds \f[I]wloss%\f[].
+A critical condition (exit code 2) will be returned if average RTT
+exceeds \f[I]crta\f[] or ping loss exceeds \f[I]closs%\f[].
+.RS
+.RE
+.TP
 .B \-\-no\-3way
 Do not perform 3\-way pings.
 Used most often when combined with \f[I]\-\-listen\f[], as the listener
