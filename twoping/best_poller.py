@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+from __future__ import print_function
 import select
 import errno
 
@@ -157,3 +158,22 @@ def best_poller():
     except AttributeError:
         pass
     return SelectPoller()
+
+
+def available_pollers():
+    available = []
+    for poller in [
+        EpollPoller, KqueuePoller, PollPoller, SelectPoller
+    ]:
+        try:
+            available.append(poller())
+        except AttributeError:
+            continue
+    return available
+
+
+if __name__ == '__main__':
+    available = available_pollers()
+    print('Available pollers: %s' % ' '.join([p.poller_type for p in available]))
+    poller = best_poller()
+    print('Best poller: %s' % poller.poller_type)
