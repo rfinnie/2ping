@@ -296,12 +296,16 @@ class OpcodeExtended(Opcode):
             pos += segment_data_length
 
     def dump(self, max_length=None):
-        if max_length < 10:
+        if (max_length is not None) and (max_length < 6):
             return None
         out = bytearray()
         pos = 0
         for segment in self.segments.values():
-            segment_data = segment.dump(max_length=(max_length-pos-10))
+            if max_length is None:
+                segment_max_length = None
+            else:
+                segment_max_length = max_length - pos - 6
+            segment_data = segment.dump(max_length=segment_max_length)
             if segment_data is None:
                 continue
             out += int_to_bytearray(segment.id, 4)
