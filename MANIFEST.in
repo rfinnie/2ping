@@ -6,3 +6,4 @@ include doc/*
 include 2ping
 include 2ping.spec
 include 2ping6
+include tests/*.py
