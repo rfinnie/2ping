@@ -272,8 +272,8 @@ class TwoPing():
                 self.print_out(
                     _('Auth hash failed from {address} (expected {expected}, got {got})').format(
                         address=peer_address[0],
-                        expected=''.join('{:02x}'.format(x) for x in test_hash_calculated),
-                        got=''.join('{:02x}'.format(x) for x in test_hash),
+                        expected=''.join('{hex:02x}'.format(hex=x) for x in test_hash_calculated),
+                        got=''.join('{hex:02x}'.format(hex=x) for x in test_hash),
                     )
                 )
                 return

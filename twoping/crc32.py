@@ -38,7 +38,7 @@ class CRC32():
         return copy.copy(self)
 
     def update(self, buf):
-        self._crc = binascii.crc32(buf, self._crc)
+        self._crc = binascii.crc32(bytes(buf), self._crc)
 
     def clear(self):
         self._crc = 0
@@ -56,7 +56,7 @@ class CRC32():
         return out
 
     def hexdigest(self):
-        return ''.join('{:02x}'.format(x) for x in self.digest())
+        return ''.join('{hex:02x}'.format(hex=x) for x in self.digest())
 
 
 def new(buf=None):
