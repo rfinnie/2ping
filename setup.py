@@ -43,4 +43,5 @@ setup(
             '2ping6 = twoping.cli:main',
         ],
     },
+    test_suite='tests',
 )
