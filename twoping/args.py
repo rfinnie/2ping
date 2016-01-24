@@ -20,13 +20,17 @@
 
 from __future__ import print_function, division
 import sys
+import os
 import argparse
 from . import __version__
 from .utils import _
 
 
-def parse_args():
-    if sys.argv[0].endswith('2ping6'):
+def parse_args(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    if argv[0].endswith('2ping6'):
         ipv6_default = True
     else:
         ipv6_default = False
@@ -34,6 +38,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='2ping (%s)' % __version__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        prog=os.path.basename(argv[0]),
     )
     parser.add_argument(
         '--version', '-V', action='version',
@@ -186,7 +191,7 @@ def parse_args():
             help=argparse.SUPPRESS,
         )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv[1:])
 
     if (not args.listen) and (not args.host):
         parser.print_help()
