@@ -20,7 +20,7 @@ class TestMonotonicClock(unittest.TestCase):
         self.assertTrue(time2 > time1)
 
     def test_known_clock(self):
-        self.assertIsInstance(
+        self.assertTrue(isinstance(
             self.clock.im_self,
             (
                 monotonic_clock.LinuxMonotonicCounter,
@@ -30,7 +30,7 @@ class TestMonotonicClock(unittest.TestCase):
                 monotonic_clock.Win32MonotonicCounter,
                 monotonic_clock.SystemCounter,
             )
-        )
+        ))
 
 
 if __name__ == '__main__':

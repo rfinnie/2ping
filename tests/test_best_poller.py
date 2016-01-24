@@ -40,7 +40,7 @@ class TestBestPoller(unittest.TestCase):
         self.assertTrue(len(best_poller.available_pollers()) > 0)
 
     def test_known_poller(self):
-        self.assertIsInstance(
+        self.assertTrue(isinstance(
             best_poller.best_poller(),
             (
                 best_poller.EpollPoller,
@@ -48,7 +48,7 @@ class TestBestPoller(unittest.TestCase):
                 best_poller.PollPoller,
                 best_poller.SelectPoller,
             )
-        )
+        ))
 
 
 if __name__ == '__main__':
