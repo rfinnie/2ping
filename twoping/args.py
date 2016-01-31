@@ -169,6 +169,14 @@ def parse_args(argv=None):
         help=_('port to connect / bind to'),
     )
     parser.add_argument(
+        '--send-monotonic-clock', action='store_true',
+        help=_('send monotonic clock to peers'),
+    )
+    parser.add_argument(
+        '--send-time', action='store_true',
+        help=_('send wall clock time to peers'),
+    )
+    parser.add_argument(
         '--stats', type=float,
         help=_('print recurring statistics'), metavar='SECONDS',
     )

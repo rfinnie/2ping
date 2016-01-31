@@ -105,6 +105,32 @@ class TestPacketsOpcodes(unittest.TestCase):
         self.assertEqual(opcode.id, 0xa837b44e)
         self.assertEqual(opcode.dump(), data)
 
+    def test_extended_wallclock_load(self):
+        opcode = packets.ExtendedWallClock()
+        opcode.load(bytearray(b'\x00\x03\x63\x73\xe7\x7a\xc2\x20'))
+        self.assertEqual(opcode.id, 0x64f69319)
+        self.assertEqual(opcode.time_us, int(953774386.102816 * 1000000))
+
+    def test_extended_wallclock_dump(self):
+        opcode = packets.ExtendedWallClock()
+        opcode.time_us = int(1454187789.993266 * 1000000)
+        self.assertEqual(opcode.id, 0x64f69319)
+        self.assertEqual(opcode.dump(), bytearray(b'\x00\x05\x2a\x93\x7a\xa8\xc5\x32'))
+
+    def test_extended_monotonicclock_load(self):
+        opcode = packets.ExtendedMonotonicClock()
+        opcode.load(bytearray(b'\x7d\x67\x00\x03\x63\x73\xe7\x7a\xc2\x20'))
+        self.assertEqual(opcode.id, 0x771d8dfb)
+        self.assertEqual(opcode.generation, 32103)
+        self.assertEqual(opcode.time_us, int(953774386.102816 * 1000000))
+
+    def test_extended_monotonicclock_dump(self):
+        opcode = packets.ExtendedMonotonicClock()
+        opcode.generation = 9311
+        opcode.time_us = int(1454187789.993266 * 1000000)
+        self.assertEqual(opcode.id, 0x771d8dfb)
+        self.assertEqual(opcode.dump(), bytearray(b'\x24\x5f\x00\x05\x2a\x93\x7a\xa8\xc5\x32'))
+
 
 class TestPacketsReference(unittest.TestCase):
     ''' Test protocol reference packets

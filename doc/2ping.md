@@ -171,6 +171,15 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
     With *--listen*, this is the port to bind as, otherwise this is the port to send to.
     Default is UDP port 15998.
 
+--send-monotonic-clock
+:   Send a monotonic clock value with each packet.
+    Peer time (if sent by the peer) can be viewed with *--verbose*.
+    Only supported if the system is capable of generating a monotonic clock.
+
+--send-time
+:   Send the host time (wall clock) with each packet.
+    Peer time (if sent by the peer) can be viewed with *--verbose*.
+
 --srv
 :   In client mode, causes hostnames to be looked up via DNS SRV records.
     If the SRV query returns multiple record targets, they will all be pinged in parallel; priority and weight are not considered.

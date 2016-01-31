@@ -21,6 +21,7 @@
 from __future__ import print_function, division
 import random
 import hmac
+import time
 from . import crc32
 from .utils import twoping_checksum, int_to_bytearray, bytearray_to_int
 import hashlib
@@ -74,6 +75,44 @@ class ExtendedNotice(ExtendedText):
 
     def __repr__(self):
         return '<Notice: %s>' % str(self.text)
+
+
+class ExtendedWallClock(Extended):
+    id = 0x64f69319
+
+    def __init__(self):
+        self.time_us = 0
+
+    def __repr__(self):
+        return '<Wall Clock: %s>' % time.strftime('%c', time.gmtime(self.time_us / 1000000.0))
+
+    def load(self, data):
+        self.time_us = bytearray_to_int(data[0:8])
+
+    def dump(self, max_length=None):
+        if (max_length is not None) and (max_length < 8):
+            return None
+        return int_to_bytearray(self.time_us, 8)
+
+
+class ExtendedMonotonicClock(Extended):
+    id = 0x771d8dfb
+
+    def __init__(self):
+        self.generation = 0
+        self.time_us = 0
+
+    def __repr__(self):
+        return '<Monotonic Clock: %0.9f, gen %d>' % ((self.time_us / 1000000.0), self.generation)
+
+    def load(self, data):
+        self.generation = bytearray_to_int(data[0:2])
+        self.time_us = bytearray_to_int(data[2:10])
+
+    def dump(self, max_length=None):
+        if (max_length is not None) and (max_length < 10):
+            return None
+        return int_to_bytearray(self.generation, 2) + int_to_bytearray(self.time_us, 8)
 
 
 class Opcode():
@@ -275,6 +314,8 @@ class OpcodeExtended(Opcode):
         known_segments = (
             ExtendedVersion,
             ExtendedNotice,
+            ExtendedMonotonicClock,
+            ExtendedWallClock,
         )
 
         while pos < len(data):

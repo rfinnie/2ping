@@ -1,7 +1,7 @@
 # 2ping protocol
 
-* Line protocol version: 3.0
-* Document version: 20151025
+* Line protocol version: 3.0+ DRAFT
+* Document version: 20160131
 
 ## Introduction
 
@@ -335,6 +335,27 @@ An example could be "Network Tools 3.0-1distro2 (x86_64-linux)".
 As the 2ping protocol is designed to be backwards and forwards compatible, this field must not be used by an implementation to determine functionality.
 It is recommended that this field be sent with every packet, but received segments should not be displayed to the user unless in a verbose/debug/etc mode.
 
+### 0x64f69319 - Wall clock
+
+| Field | Length |
+| ----- | ------ |
+| Time in microseconds | 8 octets, required |
+
+Host time (wall clock) of the sender, in microseconds since 1970-01-01 00:00:00 UTC (Unix epoch).
+
+### 0x771d8dfb - Monotonic clock
+
+| Field | Length |
+| ----- | ------ |
+| Generation ID | 2 octets, required |
+| Time in microseconds | 8 octets, required |
+
+Monotonic clock time, in microseconds since an epoch.
+The epoch is arbitrary; to avoid leaking the uptime of the host system/process, the epoch may be zeroed to a random offset, and the generation ID must be set to a random value at the same time as the epoch offset.
+A peer may compare two successive values by making sure the generation IDs match and the later time is greater than the earlier time.
+
+This segment must only be sent if the host is capable of using a monotonic, high-precision clock.
+
 ### 0xa837b44e - Notice text
 
 | Field | Length |
@@ -475,6 +496,11 @@ But if the "server" decides to randomly initiate a ping request of its own, the 
     CLIENT: 32 50 9a 41 00 00 00 00 a0 0b 00 0e 00 06 00 00 00 00 b0 06 00 04 00 00 33 38 00 08 00 01 00 00 00 00 b0 02
 
 ## Changelog
+
+### 3.0+ DRAFT (20160130)
+* Added the following registered extended segments:
+  * 0x64f69319: Wall clock
+  * 0x771d8dfb: Monotonic clock
 
 ### 3.0 (20151025)
 * Changed the checksum method from RFC 768 to a custom method with example pseudocode.

@@ -299,6 +299,19 @@ Default is UDP port 15998.
 .RS
 .RE
 .TP
+.B \-\-send\-monotonic\-clock
+Send a monotonic clock value with each packet.
+Peer time (if sent by the peer) can be viewed with \f[I]\-\-verbose\f[].
+Only supported if the system is capable of generating a monotonic clock.
+.RS
+.RE
+.TP
+.B \-\-send\-time
+Send the host time (wall clock) with each packet.
+Peer time (if sent by the peer) can be viewed with \f[I]\-\-verbose\f[].
+.RS
+.RE
+.TP
 .B \-\-srv
 In client mode, causes hostnames to be looked up via DNS SRV records.
 If the SRV query returns multiple record targets, they will all be

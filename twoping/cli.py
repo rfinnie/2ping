@@ -25,6 +25,7 @@ import math
 import signal
 import sys
 import errno
+import time
 from . import __version__
 from . import packets
 from . import monotonic_clock
@@ -41,6 +42,7 @@ except ImportError:
 
 version_string = '2ping %s - %s' % (__version__, platform_info())
 clock = monotonic_clock.clock
+clock_info = monotonic_clock.get_clock_info('clock')
 
 
 class SocketClass():
@@ -104,6 +106,8 @@ class TwoPing():
         now = clock()
         self.args = args
         self.time_start = now
+        self.fake_time_epoch = random.random() * (2**32)
+        self.fake_time_generation = random.randint(0, 65535)
 
         self.sock_classes = []
         self.poller = best_poller.best_poller()
@@ -147,6 +151,9 @@ class TwoPing():
                     self.has_ipv6 = False
                 else:
                     raise
+
+        if self.args.send_monotonic_clock and (not clock_info.monotonic):
+            self.args.send_monotonic_clock = False
 
     def print_out(self, *args, **kwargs):
         '''Emulate Python 3's complete print() functionality'''
@@ -825,7 +832,7 @@ class TwoPing():
             ))
 
     def run(self):
-        self.print_debug('Clock: %s, value: %f' % (monotonic_clock.get_clock_info('clock'), clock()))
+        self.print_debug('Clock: %s, value: %f' % (clock_info, clock()))
         self.print_debug('Poller: %s' % self.poller.poller_type)
         if hasattr(signal, 'SIGQUIT'):
             signal.signal(signal.SIGQUIT, self.sigquit_handler)
@@ -852,6 +859,13 @@ class TwoPing():
         if not self.args.no_send_version:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id] = packets.ExtendedVersion()
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id].text = version_string
+        if self.args.send_time:
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedWallClock.id] = packets.ExtendedWallClock()
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedWallClock.id].time_us = int(time.time() * 1000000)
+        if self.args.send_monotonic_clock:
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id] = packets.ExtendedMonotonicClock()
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].generation = self.fake_time_generation
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].time_us = int((clock() - self.time_start + self.fake_time_epoch) * 1000000)
         if self.args.notice:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id] = packets.ExtendedNotice()
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text = self.args.notice
