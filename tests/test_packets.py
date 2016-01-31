@@ -131,6 +131,22 @@ class TestPacketsOpcodes(unittest.TestCase):
         self.assertEqual(opcode.id, 0x771d8dfb)
         self.assertEqual(opcode.dump(), bytearray(b'\x24\x5f\x00\x05\x2a\x93\x7a\xa8\xc5\x32'))
 
+    def test_extended_random_load(self):
+        random_data = bytearray(b'\xf1\xfd\xf8\x9c\xe3\x9a\x87\x14')
+        opcode = packets.ExtendedRandom()
+        opcode.load(bytearray(bytearray(b'\x00\x01') + random_data))
+        self.assertEqual(opcode.id, 0x2ff6ad68)
+        self.assertEqual(opcode.is_hwrng, True)
+        self.assertEqual(opcode.random_data, random_data)
+
+    def test_extended_random_dump(self):
+        random_data = bytearray(b'\xbc\xde\xdc\xe5\xa8\x9a\xbd\x14')
+        opcode = packets.ExtendedRandom()
+        opcode.is_hwrng = True
+        opcode.random_data = random_data
+        self.assertEqual(opcode.id, 0x2ff6ad68)
+        self.assertEqual(opcode.dump(), bytearray(b'\x00\x01') + random_data)
+
 
 class TestPacketsReference(unittest.TestCase):
     ''' Test protocol reference packets

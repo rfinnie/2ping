@@ -173,6 +173,10 @@ def parse_args(argv=None):
         help=_('send monotonic clock to peers'),
     )
     parser.add_argument(
+        '--send-random', type=int,
+        help=_('send random data to peers'), metavar='BYTES',
+    )
+    parser.add_argument(
         '--send-time', action='store_true',
         help=_('send wall clock time to peers'),
     )

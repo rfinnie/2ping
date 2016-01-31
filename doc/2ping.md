@@ -176,6 +176,11 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
     Peer time (if sent by the peer) can be viewed with *--verbose*.
     Only supported if the system is capable of generating a monotonic clock.
 
+--send-random=*bytes*
+:   Send random data to the peer, up to *bytes*.
+    The number of bytes will be limited by other factors, up to *--max-packet-size*.
+    If this data is to be used for trusted purposes, it should be combined with *--auth* for HMAC authentication.
+
 --send-time
 :   Send the host time (wall clock) with each packet.
     Peer time (if sent by the peer) can be viewed with *--verbose*.

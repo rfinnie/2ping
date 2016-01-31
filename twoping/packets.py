@@ -115,6 +115,36 @@ class ExtendedMonotonicClock(Extended):
         return int_to_bytearray(self.generation, 2) + int_to_bytearray(self.time_us, 8)
 
 
+class ExtendedRandom(Extended):
+    id = 0x2ff6ad68
+
+    def __init__(self):
+        self.is_hwrng = False
+        self.random_data = bytearray()
+
+    def __repr__(self):
+        return '<Random: %s (%d), HWRNG %s>' % (repr(self.random_data), len(self.random_data), repr(self.is_hwrng))
+
+    def load(self, data):
+        flags = bytearray_to_int(data[0:2])
+        self.is_hwrng = bool(flags & 0x0001)
+        self.random_data = data[2:]
+
+    def dump(self, max_length=None):
+        random_data = self.random_data
+        if len(random_data) == 0:
+            return None
+        if max_length is not None:
+            if max_length < 3:
+                return None
+            if max_length < (len(random_data) - 2):
+                random_data = random_data[0:max_length-2]
+        flags = 0
+        if self.is_hwrng:
+            flags = flags | 0x0001
+        return int_to_bytearray(flags, 2) + random_data
+
+
 class Opcode():
     id = None
 
@@ -316,6 +346,7 @@ class OpcodeExtended(Opcode):
             ExtendedNotice,
             ExtendedMonotonicClock,
             ExtendedWallClock,
+            ExtendedRandom,
         )
 
         while pos < len(data):

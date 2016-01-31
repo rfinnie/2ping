@@ -306,6 +306,15 @@ Only supported if the system is capable of generating a monotonic clock.
 .RS
 .RE
 .TP
+.B \-\-send\-random=\f[I]bytes\f[]
+Send random data to the peer, up to \f[I]bytes\f[].
+The number of bytes will be limited by other factors, up to
+\f[I]\-\-max\-packet\-size\f[].
+If this data is to be used for trusted purposes, it should be combined
+with \f[I]\-\-auth\f[] for HMAC authentication.
+.RS
+.RE
+.TP
 .B \-\-send\-time
 Send the host time (wall clock) with each packet.
 Peer time (if sent by the peer) can be viewed with \f[I]\-\-verbose\f[].

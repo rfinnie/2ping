@@ -866,6 +866,11 @@ class TwoPing():
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id] = packets.ExtendedMonotonicClock()
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].generation = self.fake_time_generation
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].time_us = int((clock() - self.time_start + self.fake_time_epoch) * 1000000)
+        if self.args.send_random:
+            random_data = bytearray([random.randint(0, 255) for x in xrange(self.args.send_random)])
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id] = packets.ExtendedRandom()
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].is_hwrng = False
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].random_data = random_data
         if self.args.notice:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id] = packets.ExtendedNotice()
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text = self.args.notice
