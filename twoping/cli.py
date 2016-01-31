@@ -251,7 +251,7 @@ class TwoPing():
             if packets.OpcodeHMAC.id not in packet_in.opcodes:
                 self.errors_received += 1
                 sock_class.errors_received += 1
-                self.print_out(_('Auth required but not provided by {address}').format(peer_address[0]))
+                self.print_out(_('Auth required but not provided by {address}').format(address=peer_address[0]))
                 return
             if packet_in.opcodes[packets.OpcodeHMAC.id].digest_index != self.args.auth_digest_index:
                 self.errors_received += 1
