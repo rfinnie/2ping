@@ -33,6 +33,12 @@ from . import best_poller
 from .args import parse_args
 from .utils import _, _pl, lazy_div, bytearray_to_int, platform_info
 
+try:
+    random_sys = random.SystemRandom()
+    has_sysrandom = True
+except AttributeError:
+    random_sys = random
+    has_sysrandom = True
 
 try:
     import dns.resolver
@@ -106,8 +112,8 @@ class TwoPing():
         now = clock()
         self.args = args
         self.time_start = now
-        self.fake_time_epoch = random.random() * (2**32)
-        self.fake_time_generation = random.randint(0, 65535)
+        self.fake_time_epoch = random_sys.random() * (2**32)
+        self.fake_time_generation = random_sys.randint(0, 65535)
 
         self.sock_classes = []
         self.poller = best_poller.best_poller()
@@ -867,9 +873,10 @@ class TwoPing():
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].generation = self.fake_time_generation
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].time_us = int((clock() - self.time_start + self.fake_time_epoch) * 1000000)
         if self.args.send_random:
-            random_data = bytearray([random.randint(0, 255) for x in xrange(self.args.send_random)])
+            random_data = bytearray([random_sys.randint(0, 255) for x in xrange(self.args.send_random)])
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id] = packets.ExtendedRandom()
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].is_hwrng = False
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].is_os = has_sysrandom
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].random_data = random_data
         if self.args.notice:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id] = packets.ExtendedNotice()

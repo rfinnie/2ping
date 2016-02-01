@@ -134,9 +134,10 @@ class TestPacketsOpcodes(unittest.TestCase):
     def test_extended_random_load(self):
         random_data = bytearray(b'\xf1\xfd\xf8\x9c\xe3\x9a\x87\x14')
         opcode = packets.ExtendedRandom()
-        opcode.load(bytearray(bytearray(b'\x00\x01') + random_data))
+        opcode.load(bytearray(bytearray(b'\x00\x03') + random_data))
         self.assertEqual(opcode.id, 0x2ff6ad68)
         self.assertEqual(opcode.is_hwrng, True)
+        self.assertEqual(opcode.is_os, True)
         self.assertEqual(opcode.random_data, random_data)
 
     def test_extended_random_dump(self):

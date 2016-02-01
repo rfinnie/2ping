@@ -120,14 +120,21 @@ class ExtendedRandom(Extended):
 
     def __init__(self):
         self.is_hwrng = False
+        self.is_os = False
         self.random_data = bytearray()
 
     def __repr__(self):
-        return '<Random: %s (%d), HWRNG %s>' % (repr(self.random_data), len(self.random_data), repr(self.is_hwrng))
+        return '<Random: %s (%d), HWRNG %s, OS %s>' % (
+            repr(self.random_data),
+            len(self.random_data),
+            repr(self.is_hwrng),
+            repr(self.is_os),
+        )
 
     def load(self, data):
         flags = bytearray_to_int(data[0:2])
         self.is_hwrng = bool(flags & 0x0001)
+        self.is_os = bool(flags & 0x0002)
         self.random_data = data[2:]
 
     def dump(self, max_length=None):
@@ -142,6 +149,8 @@ class ExtendedRandom(Extended):
         flags = 0
         if self.is_hwrng:
             flags = flags | 0x0001
+        if self.is_os:
+            flags = flags | 0x0002
         return int_to_bytearray(flags, 2) + random_data
 
 
