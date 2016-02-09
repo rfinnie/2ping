@@ -117,6 +117,10 @@ def parse_args(argv=None):
         help=_('debug mode'),
     )
     parser.add_argument(
+        '--fuzz', type=float,
+        help=_('incoming fuzz percentage'), metavar='PERCENT',
+    )
+    parser.add_argument(
         '--inquire-wait', type=float, default=10.0,
         help=_('maximum time before loss inquiries'), metavar='SECONDS',
     )

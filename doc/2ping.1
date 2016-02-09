@@ -203,6 +203,14 @@ Print (lots of) debugging information.
 .RS
 .RE
 .TP
+.B \-\-fuzz=\f[I]percent\f[]
+Simulate corruption of incoming packets, with a \f[I]percent\f[]
+probability each bit will be flipped.
+After fuzzing, the packet checksum will be recalculated, and then the
+checksum itself will be fuzzed (but at a lower probability).
+.RS
+.RE
+.TP
 .B \-\-inquire\-wait=\f[I]secs\f[]
 Wait at least \f[I]secs\f[] seconds before inquiring about a lost
 packet.

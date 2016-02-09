@@ -118,6 +118,10 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 --debug
 :   Print (lots of) debugging information.
 
+--fuzz=*percent*
+:   Simulate corruption of incoming packets, with a *percent* probability each bit will be flipped.
+    After fuzzing, the packet checksum will be recalculated, and then the checksum itself will be fuzzed (but at a lower probability).
+
 --inquire-wait=*secs*
 :   Wait at least *secs* seconds before inquiring about a lost packet.
     Default is 10 seconds.

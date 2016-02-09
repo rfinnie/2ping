@@ -31,7 +31,7 @@ from . import packets
 from . import monotonic_clock
 from . import best_poller
 from .args import parse_args
-from .utils import _, _pl, lazy_div, bytearray_to_int, platform_info
+from .utils import _, _pl, lazy_div, int_to_bytearray, bytearray_to_int, platform_info, twoping_checksum
 
 try:
     random_sys = random.SystemRandom()
@@ -227,6 +227,8 @@ class TwoPing():
         # Simulate random packet loss.
         if self.args.packet_loss_in and (random.random() < (self.args.packet_loss_in / 100.0)):
             return
+        # Simulate data corruption
+        data = self.fuzz_packet(data)
 
         # Per-packet options.
         self.packets_received += 1
@@ -633,6 +635,33 @@ class TwoPing():
                     max=self.args.max_packet_size,
                 )
             )
+
+    def fuzz_packet(self, packet):
+        if not self.args.fuzz:
+            return packet
+
+        def fuzz_bytearray(data, pct):
+            for p in range(len(data)):
+                xor_byte = 0
+                for i in range(8):
+                    if random.random() < pct:
+                        xor_byte = xor_byte + (2 ** i)
+                data[p] = data[p] ^ xor_byte
+            return data
+
+        fuzz_fraction = self.args.fuzz / 100.0
+
+        # Fuzz the entire packet
+        packet[4:] = fuzz_bytearray(packet[4:], fuzz_fraction)
+
+        # Fuzz the magic number, at a lower probability
+        packet[0:2] = fuzz_bytearray(packet[0:2], fuzz_fraction / 10.0)
+
+        # Fuzz the recalculated checksum itself, at a lower probability
+        packet[2:4] = bytearray(2)
+        packet[2:4] = fuzz_bytearray(int_to_bytearray(twoping_checksum(packet), 2), fuzz_fraction / 10.0)
+
+        return packet
 
     def send_new_ping(self, sock_class, peer_address):
         sock = sock_class.sock
