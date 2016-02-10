@@ -7,3 +7,5 @@ install:
   - pip install .
 script:
   - python setup.py test
+  - python setup.py check
+  - python setup.py sdist
