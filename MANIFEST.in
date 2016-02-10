@@ -1,5 +1,6 @@
 include README
 include COPYING
+include ChangeLog
 include Makefile
 include *.md
 include doc/*
