@@ -228,7 +228,8 @@ class TwoPing():
         if self.args.packet_loss_in and (random.random() < (self.args.packet_loss_in / 100.0)):
             return
         # Simulate data corruption
-        data = self.fuzz_packet(data)
+        if self.args.fuzz:
+            data = self.fuzz_packet(data)
 
         # Per-packet options.
         self.packets_received += 1
@@ -637,9 +638,6 @@ class TwoPing():
             )
 
     def fuzz_packet(self, packet):
-        if not self.args.fuzz:
-            return packet
-
         def fuzz_bytearray(data, pct):
             for p in range(len(data)):
                 xor_byte = 0
