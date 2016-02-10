@@ -38,7 +38,7 @@ try:
     has_sysrandom = True
 except AttributeError:
     random_sys = random
-    has_sysrandom = True
+    has_sysrandom = False
 
 try:
     import dns.resolver
