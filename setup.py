@@ -2,7 +2,6 @@
 
 import os
 from setuptools import setup
-import twoping
 
 
 def read(filename):
@@ -13,7 +12,7 @@ setup(
     name='2ping',
     description='2ping a bi-directional ping utility',
     long_description=read('README'),
-    version=twoping.__version__,
+    version='3.2.0',
     license='GPLv2+',
     platforms=['Unix'],
     author='Ryan Finnie',

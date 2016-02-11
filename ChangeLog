@@ -1,3 +1,17 @@
+2ping 3.2.0 (2016-02-10)
+  * Added --nagios, for Nagios-compatible output and status codes.
+  * Added unit tests.
+  * Added --send-time, which sends an extended segment containing the
+    current wall time.
+  * Added --send-monotonic-clock, which sends an extended segment
+    containing a monotonically-incrementing counter, on supported platforms.
+  * Added --send-random, which sends an extended segment containing
+    random bytes.
+  * Added -fuzz, which randomly fuzzes incoming packets (developer
+    feature).
+  * Fixed over-cautious handling of length limits when assembling
+    extended segments.
+
 2ping 3.1.0 (2015-11-16)
   * Best available poller for each platform (e.g. epoll on Linux, kqueue
     on BSD / OS X) is automatically used.

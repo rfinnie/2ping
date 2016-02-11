@@ -1,7 +1,7 @@
 # 2ping protocol
 
-* Line protocol version: 3.0+ DRAFT
-* Document version: 20160131
+* Line protocol version: 3.1
+* Document version: 20160210
 
 ## Introduction
 
@@ -512,7 +512,7 @@ But if the "server" decides to randomly initiate a ping request of its own, the 
 
 ## Changelog
 
-### 3.0+ DRAFT (20160130)
+### 3.1 (20160210)
 * Added the following registered extended segments:
   * 0x2ff6ad68: Random data
   * 0x64f69319: Wall clock
