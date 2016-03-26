@@ -335,7 +335,7 @@ class TwoPing():
                         (packets.OpcodeExtended.id in packet_in.opcodes) and
                         (packets.ExtendedNotice.id in packet_in.opcodes[packets.OpcodeExtended.id].segments)
                     ):
-                        notice = str(packet_in.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text)
+                        notice = unicode(str(packet_in.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text), 'UTF-8', 'replace')
                         self.print_out('  ' + _('Peer notice: {notice}').format(notice=notice))
             sock_class.courtesy_messages[peer_tuple][replied_message_id_int] = (time_begin, replied_message_id)
 
