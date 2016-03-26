@@ -12,7 +12,7 @@ setup(
     name='2ping',
     description='2ping a bi-directional ping utility',
     long_description=read('README'),
-    version='3.2.0',
+    version='3.2.1',
     license='GPLv2+',
     platforms=['Unix'],
     author='Ryan Finnie',

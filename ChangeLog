@@ -1,3 +1,8 @@
+2ping 3.2.1 (2016-03-26)
+  * Do not error out when non-ASCII notice text is received (only causes
+    a remote denial of service crash when --debug is specified on the
+    remote peer).
+
 2ping 3.2.0 (2016-02-10)
   * Added --nagios, for Nagios-compatible output and status codes.
   * Added unit tests.
