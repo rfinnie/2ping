@@ -152,6 +152,29 @@ class ExtendedRandom(Extended):
         return int_to_bytearray(flags, 2) + random_data
 
 
+class ExtendedBattery(Extended):
+    id = 0x88a1f7c7
+
+    def __init__(self):
+        self.battery_id = 0
+        self.battery_percent = 0.0
+
+    def __repr__(self):
+        return '<Battery: ID %d, %0.03f%%>' % (
+            self.battery_id,
+            self.battery_percent,
+        )
+
+    def load(self, data):
+        self.battery_id = bytearray_to_int(data[0:2])
+        battery_fraction = bytearray_to_int(data[2:4])
+        self.battery_percent = battery_fraction / 65535.0 * 100.0
+
+    def dump(self, max_length=None):
+        return int_to_bytearray(self.battery_id, 2) + \
+            int_to_bytearray(int(self.battery_percent / 100.0 * 65535), 2)
+
+
 class Opcode():
     id = None
 
@@ -354,6 +377,7 @@ class OpcodeExtended(Opcode):
             ExtendedMonotonicClock,
             ExtendedWallClock,
             ExtendedRandom,
+            ExtendedBattery,
         )
 
         while pos < len(data):

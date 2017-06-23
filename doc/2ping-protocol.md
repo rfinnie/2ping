@@ -371,6 +371,17 @@ A peer may compare two successive values by making sure the generation IDs match
 
 This segment must only be sent if the host is capable of using a monotonic, high-precision clock.
 
+### 0x88a1f7c7 - Battery level
+
+| Field | Length |
+| ----- | ------ |
+| Battery ID | 2 octets, required |
+| Battery level | 2 octets, required |
+
+If the host is a device which includes batteries, this may be used to report their levels.
+Multiple batteries may be reported using different battery IDs.
+The level is indicated as a percentage between 0x0000 (completely empty) and 0xffff (completely full).
+
 ### 0xa837b44e - Notice text
 
 | Field | Length |
