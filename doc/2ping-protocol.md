@@ -1,7 +1,7 @@
 # 2ping protocol
 
-* Line protocol version: 3.1
-* Document version: 20160210
+* Line protocol version: 3.1+dev
+* Document version: 20160210+dev
 
 ## Introduction
 
@@ -309,6 +309,8 @@ Each part is built as so:
 | Extended segment data | Variable, zero or more octets, determined by extended segment data length header above |
 
 Multiple extended segment parts are chained together to form the data area of a 0x8000 opcode.
+The opcode data area must include a maximum of one instance of any individual extended segment.
+
 Parsing this opcode's data area is similar to parsing the opcodes as a whole: read the extended segment ID and determine if it's a known ID.
 If so, parse its contents by reading the extended segment data length and extended segment data.
 If not, read the extended segment data length to determine how far to skip over the extended segment data.
@@ -371,16 +373,21 @@ A peer may compare two successive values by making sure the generation IDs match
 
 This segment must only be sent if the host is capable of using a monotonic, high-precision clock.
 
-### 0x88a1f7c7 - Battery level
+### 0x88a1f7c7 - Battery levels
 
 | Field | Length |
 | ----- | ------ |
-| Battery ID | 2 octets, required |
-| Battery level | 2 octets, required |
+| Number of batteries enclosed | 2 octets, required |
+| Battery ID | 2 octets, optional |
+| Battery level | 2 octets, optional |
+| Battery ID... | 2 octets..., optional |
+| Battery level... | 2 octets..., optional |
 
 If the host is a device which includes batteries, this may be used to report their levels.
 Multiple batteries may be reported using different battery IDs.
 The level is indicated as a percentage between 0x0000 (completely empty) and 0xffff (completely full).
+
+The number of batteries enclosed may legally be zero, but if that is the case, it's better to just not include the 0x88a1f7c7 segment.
 
 ### 0xa837b44e - Notice text
 

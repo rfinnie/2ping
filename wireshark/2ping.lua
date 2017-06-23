@@ -13,6 +13,7 @@ local extended_ids = {
     [0x2ff6ad68] = "Random data",
     [0x64f69319] = "Wall clock",
     [0x771d8dfb] = "Monotonic clock",
+    [0x88a1f7c7] = "Battery levels",
     [0xa837b44e] = "Notice text"
 }
 
@@ -91,6 +92,11 @@ local pf_monotonic = ProtoField.new   ("Monotonic clock", "2ping.monotonic", fty
 local pf_monotonic_generation = ProtoField.new   ("Generation", "2ping.monotonic.generation", ftypes.UINT16)
 local pf_monotonic_time = ProtoField.new   ("Time", "2ping.monotonic.time", ftypes.ABSOLUTE_TIME)
 
+local pf_battery_levels = ProtoField.new   ("Battery levels", "2ping.battery_levels", ftypes.STRING)
+local pf_battery_levels_count = ProtoField.new   ("Battery count", "2ping.battery_levels.count", ftypes.UINT16)
+local pf_battery_levels_id = ProtoField.new   ("Battery ID", "2ping.battery_levels.id", ftypes.UINT16)
+local pf_battery_levels_level = ProtoField.new   ("Battery level", "2ping.battery_levels.level", ftypes.UINT16)
+
 local pf_padding = ProtoField.new   ("Padding", "2ping.padding", ftypes.BYTES)
 
 twoping.fields = {
@@ -150,6 +156,10 @@ twoping.fields = {
     pf_monotonic,
     pf_monotonic_generation,
     pf_monotonic_time,
+    pf_battery_levels,
+    pf_battery_levels_count,
+    pf_battery_levels_id,
+    pf_battery_levels_level,
     pf_padding,
 }
 
@@ -353,6 +363,24 @@ function twoping.dissector(tvbuf,pktinfo,root)
                 extended_segment_tree:add(pf_segment_length, length_range)
                 extended_segment_tree:add(pf_monotonic_generation, segment_data_range:range(0,2))
                 extended_segment_tree:add(pf_monotonic_time, segment_data_range:range(2,8), nstime)
+            elseif extended_id == 0x88a1f7c7 then
+                local num_batteries = segment_data_range:range(0,2):uint()
+                local extended_segment_tree = tree:add(pf_battery_levels, segment_range, "")
+                extended_segment_tree:add(pf_extended_id, id_range)
+                extended_segment_tree:add(pf_segment_length, length_range)
+                extended_segment_tree:add(pf_battery_levels_count, segment_data_range:range(0,2))
+                local local_pos = 2
+                for i=1,num_batteries,1 do
+                    extended_segment_tree:add(pf_battery_levels_id, segment_data_range:range(local_pos,2))
+                    extended_segment_tree:add(pf_battery_levels_level, segment_data_range:range(local_pos+2,2))
+                    local_pos = local_pos + 4
+                end
+                if num_batteries == 1 then
+                    extended_segment_tree:append_text(tostring(segment_data_range:range(4,2):uint()))
+                else
+                    extended_segment_tree:append_text(num_batteries)
+                    extended_segment_tree:append_text(" batteries")
+                end
             else
                 local extended_segment_tree = tree:add(pf_unknown, segment_range, tostring(segment_data_range:bytes()):lower(), nil, segment_data_range:len(), "bytes")
                 extended_segment_tree:add(pf_extended_id, id_range)

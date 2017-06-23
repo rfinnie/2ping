@@ -148,19 +148,21 @@ class TestPacketsOpcodes(unittest.TestCase):
         self.assertEqual(opcode.id, 0x2ff6ad68)
         self.assertEqual(opcode.dump(), bytearray(b'\x00\x01') + random_data)
 
-    def test_extended_battery_load(self):
-        opcode = packets.ExtendedBattery()
-        opcode.load(bytearray(b'\x00\x7b\xcc\xcc'))
+    def test_extended_batteries_load(self):
+        opcode = packets.ExtendedBatteryLevels()
+        opcode.load(bytearray(b'\x00\x02\x00\x00\xff\xff\x00\x01\xce\xa3'))
         self.assertEqual(opcode.id, 0x88a1f7c7)
-        self.assertEqual(opcode.battery_id, 123)
-        self.assertEqual(opcode.battery_percent, 80.0)
+        self.assertEqual(opcode.batteries[0], 65535)
+        self.assertEqual(opcode.batteries[1], 52899)
 
-    def test_extended_battery_dump(self):
-        opcode = packets.ExtendedBattery()
-        opcode.battery_id = 123
-        opcode.battery_percent = 80.0
+    def test_extended_batteries_dump(self):
+        opcode = packets.ExtendedBatteryLevels()
+        opcode.batteries = {
+            0: 65535,
+            1: 52899,
+        }
         self.assertEqual(opcode.id, 0x88a1f7c7)
-        self.assertEqual(opcode.dump(), bytearray(b'\x00\x7b\xcc\xcc'))
+        self.assertEqual(opcode.dump(), bytearray(b'\x00\x02\x00\x00\xff\xff\x00\x01\xce\xa3'))
 
 
 class TestPacketsReference(unittest.TestCase):

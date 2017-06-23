@@ -152,29 +152,44 @@ class ExtendedRandom(Extended):
         return int_to_bytearray(flags, 2) + random_data
 
 
-class ExtendedBattery(Extended):
+class ExtendedBatteryLevels(Extended):
     id = 0x88a1f7c7
 
     def __init__(self):
-        self.battery_id = 0
-        self.battery_percent = 0.0
+        self.batteries = {}
 
     def __repr__(self):
-        return '<Battery: ID %d, %0.03f%%>' % (
-            self.battery_id,
-            self.battery_percent,
+        return '<Batteries (%d): [%s]>' % (
+            len(self.batteries),
+            ', '.join(
+                ['%d: %0.03f%%' % (x, (self.batteries[x] / 65535.0 * 100.0)) for x in sorted(self.batteries)]
+            ),
         )
 
     def load(self, data):
-        self.battery_id = bytearray_to_int(data[0:2])
-        battery_fraction = bytearray_to_int(data[2:4])
-        self.battery_percent = battery_fraction / 65535.0 * 100.0
+        self.batteries = {}
+        pos = 2
+        for i in xrange(bytearray_to_int(data[0:2])):
+            battery_id = bytearray_to_int(data[pos:pos+2])
+            battery_level = bytearray_to_int(data[pos+2:pos+4])
+            self.batteries[battery_id] = battery_level
+            pos += 4
 
     def dump(self, max_length=None):
-        if (max_length is not None) and (max_length < 4):
-            return None
-        return int_to_bytearray(self.battery_id, 2) + \
-            int_to_bytearray(int(self.battery_percent / 100.0 * 65535), 2)
+        if (max_length is not None):
+            if (max_length < 6):
+                return None
+            batteries = {}
+            for i in sorted(self.batteries.keys())[0:int((max_length - 2) / 4)]:
+                batteries[i] = self.batteries[i]
+        else:
+            batteries = self.batteries
+
+        out = int_to_bytearray(len(batteries), 2)
+        for i in batteries:
+            out += int_to_bytearray(i, 2)
+            out += int_to_bytearray(batteries[i], 2)
+        return out
 
 
 class Opcode():
@@ -379,7 +394,7 @@ class OpcodeExtended(Opcode):
             ExtendedMonotonicClock,
             ExtendedWallClock,
             ExtendedRandom,
-            ExtendedBattery,
+            ExtendedBatteryLevels,
         )
 
         while pos < len(data):
