@@ -171,6 +171,8 @@ class ExtendedBattery(Extended):
         self.battery_percent = battery_fraction / 65535.0 * 100.0
 
     def dump(self, max_length=None):
+        if (max_length is not None) and (max_length < 4):
+            return None
         return int_to_bytearray(self.battery_id, 2) + \
             int_to_bytearray(int(self.battery_percent / 100.0 * 65535), 2)
 
