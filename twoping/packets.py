@@ -35,7 +35,7 @@ class Extended():
         if self.id is None:
             return '<Extended: %d bytes>' % len(self.data)
         else:
-            id_hex = ''.join(['%02x' % x for x in int_to_bytearray(self.id, 2)])
+            id_hex = ''.join(['%02x' % x for x in int_to_bytearray(self.id, 4)])
             return '<Extended (0x%s): %d bytes>' % (id_hex, len(self.data))
 
     def load(self, data):
