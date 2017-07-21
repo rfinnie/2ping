@@ -17,10 +17,10 @@ a 2ping client to determine which direction packet loss occurs.
 %autosetup -n 2ping-%{version}
 
 %build
-%py2_build
+%py3_build
 
 %install
-%py2_install
+%py3_install
 install -d -m 0755 $RPM_BUILD_ROOT/usr/share/man/man1
 install -m 0644 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1/2ping.1
 install -m 0644 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1/2ping6.1
