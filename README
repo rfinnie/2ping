@@ -3,7 +3,7 @@
 2PING - A BI-DIRECTIONAL PING UTILITY
 
 
-http://www.finnie.org/software/2ping/
+https://www.finnie.org/software/2ping/
 
 
 About
@@ -16,17 +16,11 @@ occurs.
 
 Installation
 
-Python 2.7 is recommended for 2ping. Python 2.6 is also supported, with
-the following notes:
-
--   The argparse module is also required.
--   Monotonic clock support is not available on Unix platforms, instead
-    falling back to time.time() (which will likely be using
-    gettimeofday()).
+Python 3 version 3.4 (XXX verify) or higher is required for 2ping.
 
 To install:
 
-    sudo python setup.py install
+    sudo python3 setup.py install
 
 
 Usage
@@ -47,7 +41,7 @@ License
 
 2ping - A bi-directional ping utility
 
-Copyright (C) 2015 Ryan Finnie
+Copyright (C) 2010-2017 Ryan Finnie
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the

@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Monotonic clock
-# Copyright (C) 2015 Ryan Finnie
+# Copyright (C) 2010-2017 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -18,7 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-from __future__ import print_function, division
 import sys
 import time
 import ctypes
@@ -92,7 +91,7 @@ class GettimeMonotonicCounter():
                 continue
             self.resolution = res.tv_sec + (res.tv_nsec / 1e09)
             self.clock_id = clock_id
-            self.implementation = 'clock_gettime(%s)' % clock_name
+            self.implementation = 'clock_gettime({})'.format(clock_name)
             self.monotonic = clock_monotonic
             break
         if self.clock_id is None:
@@ -209,8 +208,8 @@ class SimpleNamespace():
             setattr(self, k, v)
 
     def __repr__(self):
-        return 'namespace(%s)' % (', '.join(
-            ['%s=%s' % (k, repr(v)) for (k, v) in self.__dict__.items()]
+        return 'namespace({})'.format(', '.join(
+            ['{}={}'.format(k, repr(v)) for (k, v) in self.__dict__.items()]
         ))
 
 
@@ -248,4 +247,4 @@ def get_clock_info(clock):
 if __name__ == '__main__':
     print(get_clock_info('clock'))
     for _ in range(5):
-        print('%0.050f' % clock())
+        print('{:.50f}'.format(clock()))

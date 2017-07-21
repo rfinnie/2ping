@@ -1,5 +1,5 @@
 # 2ping - A bi-directional ping utility
-# Copyright (C) 2015 Ryan Finnie
+# Copyright (C) 2010-2017 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,7 +16,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-from __future__ import print_function, division
 import sys
 import os
 import argparse
@@ -34,7 +33,7 @@ def parse_args(argv=None):
         ipv6_default = False
 
     parser = argparse.ArgumentParser(
-        description='2ping (%s)' % __version__,
+        description='2ping ({})'.format(__version__),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         prog=os.path.basename(argv[0]),
     )
@@ -194,14 +193,14 @@ def parse_args(argv=None):
     # ping-compatible ignored options
     for opt in 'b|B|d|L|n|R|r|U'.split('|'):
         parser.add_argument(
-            '-%s' % opt, action='store_true',
-            dest='ignored_%s' % opt,
+            '-{}'.format(opt), action='store_true',
+            dest='ignored_{}'.format(opt),
             help=argparse.SUPPRESS,
         )
     for opt in 'F|Q|S|t|T|M|W'.split('|'):
         parser.add_argument(
-            '-%s' % opt, type=str, default=None,
-            dest='ignored_%s' % opt,
+            '-{}'.format(opt), type=str, default=None,
+            dest='ignored_{}'.format(opt),
             help=argparse.SUPPRESS,
         )
 
@@ -260,16 +259,16 @@ def parse_args(argv=None):
             parser.error(_('Pattern must be full bytes'))
         if len(args.pattern) > 32:
             parser.error(_('Pattern must be 16 bytes or less'))
-        args.pattern_bytearray = bytearray()
-        for i in xrange(int(len(args.pattern) / 2)):
+        args.pattern_bytes = b''
+        for i in range(int(len(args.pattern) / 2)):
             a = args.pattern[(i*2):(i*2+2)]
             try:
                 b = int(a, 16)
             except ValueError as e:
                 parser.error(_('Pattern: {error}').format(error=e.message))
-            args.pattern_bytearray += bytearray([b])
+            args.pattern_bytes += bytes([b])
     else:
-        args.pattern_bytearray = bytearray(1)
+        args.pattern_bytes = b'\x00'
 
     hmac_id_map = {
         'hmac-md5': 1,

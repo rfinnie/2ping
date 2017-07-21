@@ -1,6 +1,6 @@
 # 2ping - A bi-directional ping utility
 
-http://www.finnie.org/software/2ping/
+https://www.finnie.org/software/2ping/
 
 ## About
 
@@ -9,15 +9,11 @@ It uses 3-way pings (akin to TCP SYN, SYN/ACK, ACK) and after-the-fact state com
 
 ## Installation
 
-Python 2.7 is recommended for 2ping.
-Python 2.6 is also supported, with the following notes:
-
-  * The argparse module is also required.
-  * Monotonic clock support is not available on Unix platforms, instead falling back to `time.time()` (which will likely be using `gettimeofday()`).
+Python 3 version 3.4 (XXX verify) or higher is required for 2ping.
 
 To install:
 
-    sudo python setup.py install
+    sudo python3 setup.py install
 
 ## Usage
 
@@ -35,7 +31,7 @@ Where "$LISTENER" is the name or IP address of the listener.
 
 2ping - A bi-directional ping utility
 
-Copyright (C) 2015 [Ryan Finnie](http://www.finnie.org/)
+Copyright (C) 2010-2017 [Ryan Finnie](https://www.finnie.org/)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

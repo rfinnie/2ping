@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import unittest
 from twoping import monotonic_clock
@@ -21,7 +21,7 @@ class TestMonotonicClock(unittest.TestCase):
 
     def test_known_clock(self):
         self.assertTrue(isinstance(
-            self.clock.im_self,
+            self.clock.__self__,
             (
                 monotonic_clock.LinuxMonotonicCounter,
                 monotonic_clock.FreeBSDMonotonicCounter,

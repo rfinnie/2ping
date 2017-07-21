@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # 2ping - A bi-directional ping utility
-# Copyright (C) 2015 Ryan Finnie
+# Copyright (C) 2010-2017 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -18,7 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-from __future__ import print_function
 import select
 import errno
 
@@ -174,6 +173,6 @@ def available_pollers():
 
 if __name__ == '__main__':
     available = available_pollers()
-    print('Available pollers: %s' % ' '.join([p.poller_type for p in available]))
+    print('Available pollers: {}'.format(' '.join([p.poller_type for p in available])))
     poller = best_poller()
-    print('Best poller: %s' % poller.poller_type)
+    print('Best poller: {}'.format(poller.poller_type))

@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # 2ping - A bi-directional ping utility
-# Copyright (C) 2015 Ryan Finnie
+# Copyright (C) 2010-2017 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -18,7 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-from __future__ import print_function
 import binascii
 import copy
 
@@ -38,7 +37,7 @@ class CRC32():
         return copy.copy(self)
 
     def update(self, buf):
-        self._crc = binascii.crc32(bytes(buf), self._crc)
+        self._crc = binascii.crc32(buf, self._crc)
 
     def clear(self):
         self._crc = 0
@@ -82,6 +81,6 @@ if __name__ == '__main__':
                 for buf in f.readlines():
                     c.update(buf)
                 if len(files) > 1:
-                    print('%s\t%s' % (c.hexdigest(), file))
+                    print('{}\t{}'.format(c.hexdigest(), file))
                 else:
                     print(c.hexdigest())

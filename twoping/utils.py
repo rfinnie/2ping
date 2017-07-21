@@ -1,5 +1,5 @@
 # 2ping - A bi-directional ping utility
-# Copyright (C) 2015 Ryan Finnie
+# Copyright (C) 2010-2017 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,19 +16,18 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-from __future__ import print_function, division
 import platform
 import gettext
 
 
-_ = gettext.translation('2ping', fallback=True).ugettext
-_pl = gettext.translation('2ping', fallback=True).ungettext
+_ = gettext.translation('2ping', fallback=True).gettext
+_pl = gettext.translation('2ping', fallback=True).ngettext
 
 
 def twoping_checksum(d):
     checksum = 0
 
-    for i in xrange(len(d)):
+    for i in range(len(d)):
         if i & 1:
             checksum += d[i]
         else:
@@ -50,7 +49,7 @@ def lazy_div(n, d):
     return n / d
 
 
-def int_to_bytearray(i, minimum=1):
+def npack(i, minimum=1):
     out = bytearray()
     while i >= 256:
         out.insert(0, i & 0xff)
@@ -59,10 +58,10 @@ def int_to_bytearray(i, minimum=1):
     out_len = len(out)
     if out_len < minimum:
         out = bytearray(minimum - out_len) + out
-    return out
+    return bytes(out)
 
 
-def bytearray_to_int(b):
+def nunpack(b):
     out = 0
     for x in b:
         out = (out << 8) + x
@@ -74,8 +73,8 @@ def platform_info():
     try:
         linux_distribution = platform.linux_distribution()
         if linux_distribution[0]:
-            out += ' (%s)' % linux_distribution[0]
+            out += ' ({})'.format(linux_distribution[0])
     except:
         pass
-    out += ' %s' % platform.machine()
+    out += ' {}'.format(platform.machine())
     return out

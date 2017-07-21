@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 from setuptools import setup
@@ -12,13 +12,13 @@ setup(
     name='2ping',
     description='2ping a bi-directional ping utility',
     long_description=read('README'),
-    version='3.2.1',
+    version='4.0',
     license='GPLv2+',
     platforms=['Unix'],
     author='Ryan Finnie',
     author_email='ryan@finnie.org',
-    url='http://www.finnie.org/software/2ping/',
-    download_url='http://www.finnie.org/software/2ping/',
+    url='https://www.finnie.org/software/2ping/',
+    download_url='https://www.finnie.org/software/2ping/',
     packages=['twoping'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -30,8 +30,7 @@ setup(
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
         'Operating System :: Unix',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3 :: Only',
         'Topic :: Internet',
         'Topic :: System :: Networking',
         'Topic :: Utilities',

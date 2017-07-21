@@ -1,16 +1,16 @@
 all: build
 
 build:
-	python setup.py build
+	python3 setup.py build
 
 test: build
-	python setup.py test
+	python3 setup.py test
 
 install: build
-	python setup.py install
+	python3 setup.py install
 
 clean:
-	python setup.py clean
+	python3 setup.py clean
 	$(RM) -r build MANIFEST
 
 doc: README

@@ -1,5 +1,5 @@
 # 2ping - A bi-directional ping utility
-# Copyright (C) 2015 Ryan Finnie
+# Copyright (C) 2010-2017 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,12 +16,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-from __future__ import print_function, division
 import random
 import hmac
 import time
 from . import crc32
-from .utils import twoping_checksum, int_to_bytearray, bytearray_to_int
+from .utils import twoping_checksum, npack, nunpack
 import hashlib
 
 
@@ -29,14 +28,14 @@ class Extended():
     id = None
 
     def __init__(self):
-        self.data = bytearray()
+        self.data = b''
 
     def __repr__(self):
         if self.id is None:
-            return '<Extended: %d bytes>' % len(self.data)
+            return '<Extended: {} bytes>'.format(len(self.data))
         else:
-            id_hex = ''.join(['%02x' % x for x in int_to_bytearray(self.id, 4)])
-            return '<Extended (0x%s): %d bytes>' % (id_hex, len(self.data))
+            id_hex = ''.join(['{:02x}'.format(x) for x in npack(self.id, 4)])
+            return '<Extended (0x{}): {} bytes>'.format(id_hex, len(self.data))
 
     def load(self, data):
         self.data = data
@@ -47,32 +46,33 @@ class Extended():
 
 class ExtendedText(Extended):
     def __init__(self):
-        self.text = bytearray()
+        self.text = str()
 
     def __repr__(self):
-        return '<Text (Generic): %s>' % str(self.text)
+        return '<Text (Generic): {}>'.format(self.text)
 
     def load(self, data):
-        self.text = data
+        self.text = data.decode('UTF-8')
 
     def dump(self, max_length=None):
-        if (max_length is not None) and (max_length < len(self.text)):
+        text_bytes = self.text.encode('UTF-8')
+        if (max_length is not None) and (max_length < len(text_bytes)):
             return None
-        return self.text
+        return text_bytes
 
 
 class ExtendedVersion(ExtendedText):
     id = 0x3250564e
 
     def __repr__(self):
-        return '<Version: %s>' % str(self.text)
+        return '<Version: {}>'.format(self.text)
 
 
 class ExtendedNotice(ExtendedText):
     id = 0xa837b44e
 
     def __repr__(self):
-        return '<Notice: %s>' % str(self.text)
+        return '<Notice: {}>'.format(self.text)
 
 
 class ExtendedWallClock(Extended):
@@ -82,15 +82,15 @@ class ExtendedWallClock(Extended):
         self.time_us = 0
 
     def __repr__(self):
-        return '<Wall Clock: %s>' % time.strftime('%c', time.gmtime(self.time_us / 1000000.0))
+        return '<Wall Clock: {}>'.format(time.strftime('%c', time.gmtime(self.time_us / 1000000.0)))
 
     def load(self, data):
-        self.time_us = bytearray_to_int(data[0:8])
+        self.time_us = nunpack(data[0:8])
 
     def dump(self, max_length=None):
         if (max_length is not None) and (max_length < 8):
             return None
-        return int_to_bytearray(self.time_us, 8)
+        return npack(self.time_us, 8)
 
 
 class ExtendedMonotonicClock(Extended):
@@ -101,16 +101,16 @@ class ExtendedMonotonicClock(Extended):
         self.time_us = 0
 
     def __repr__(self):
-        return '<Monotonic Clock: %0.9f, gen %d>' % ((self.time_us / 1000000.0), self.generation)
+        return '<Monotonic Clock: {:0.9f}, gen {}>'.format((self.time_us / 1000000.0), self.generation)
 
     def load(self, data):
-        self.generation = bytearray_to_int(data[0:2])
-        self.time_us = bytearray_to_int(data[2:10])
+        self.generation = nunpack(data[0:2])
+        self.time_us = nunpack(data[2:10])
 
     def dump(self, max_length=None):
         if (max_length is not None) and (max_length < 10):
             return None
-        return int_to_bytearray(self.generation, 2) + int_to_bytearray(self.time_us, 8)
+        return npack(self.generation, 2) + npack(self.time_us, 8)
 
 
 class ExtendedRandom(Extended):
@@ -119,10 +119,10 @@ class ExtendedRandom(Extended):
     def __init__(self):
         self.is_hwrng = False
         self.is_os = False
-        self.random_data = bytearray()
+        self.random_data = b''
 
     def __repr__(self):
-        return '<Random: %s (%d), HWRNG %s, OS %s>' % (
+        return '<Random: {} ({}), HWRNG {}, OS {}>'.format(
             repr(self.random_data),
             len(self.random_data),
             repr(self.is_hwrng),
@@ -130,7 +130,7 @@ class ExtendedRandom(Extended):
         )
 
     def load(self, data):
-        flags = bytearray_to_int(data[0:2])
+        flags = nunpack(data[0:2])
         self.is_hwrng = bool(flags & 0x0001)
         self.is_os = bool(flags & 0x0002)
         self.random_data = data[2:]
@@ -149,7 +149,7 @@ class ExtendedRandom(Extended):
             flags = flags | 0x0001
         if self.is_os:
             flags = flags | 0x0002
-        return int_to_bytearray(flags, 2) + random_data
+        return npack(flags, 2) + random_data
 
 
 class ExtendedBatteryLevels(Extended):
@@ -159,19 +159,19 @@ class ExtendedBatteryLevels(Extended):
         self.batteries = {}
 
     def __repr__(self):
-        return '<Batteries (%d): [%s]>' % (
+        return '<Batteries ({}): [{}]>'.format(
             len(self.batteries),
             ', '.join(
-                ['%d: %0.03f%%' % (x, (self.batteries[x] / 65535.0 * 100.0)) for x in sorted(self.batteries)]
+                ['{}: {:0.03f}%'.format(x, (self.batteries[x] / 65535.0 * 100.0)) for x in sorted(self.batteries)]
             ),
         )
 
     def load(self, data):
         self.batteries = {}
         pos = 2
-        for i in xrange(bytearray_to_int(data[0:2])):
-            battery_id = bytearray_to_int(data[pos:pos+2])
-            battery_level = bytearray_to_int(data[pos+2:pos+4])
+        for i in range(nunpack(data[0:2])):
+            battery_id = nunpack(data[pos:pos+2])
+            battery_level = nunpack(data[pos+2:pos+4])
             self.batteries[battery_id] = battery_level
             pos += 4
 
@@ -185,10 +185,10 @@ class ExtendedBatteryLevels(Extended):
         else:
             batteries = self.batteries
 
-        out = int_to_bytearray(len(batteries), 2)
+        out = npack(len(batteries), 2)
         for i in batteries:
-            out += int_to_bytearray(i, 2)
-            out += int_to_bytearray(batteries[i], 2)
+            out += npack(i, 2)
+            out += npack(batteries[i], 2)
         return out
 
 
@@ -196,14 +196,14 @@ class Opcode():
     id = None
 
     def __init__(self):
-        self.data = bytearray()
+        self.data = b''
 
     def __repr__(self):
         if self.id is None:
-            return '<Opcode: %d bytes>' % len(self.data)
+            return '<Opcode: {} bytes>'.format(len(self.data))
         else:
-            id_hex = ''.join(['%02x' % x for x in int_to_bytearray(self.id, 2)])
-            return '<Opcode (0x%s): %d bytes>' % (id_hex, len(self.data))
+            id_hex = ''.join(['{:02x}'.format(x) for x in npack(self.id, 2)])
+            return '<Opcode (0x{}): {} bytes>'.format(id_hex, len(self.data))
 
     def load(self, data):
         self.data = data
@@ -225,18 +225,18 @@ class OpcodeReplyRequested(Opcode):
         pass
 
     def dump(self, max_length=None):
-        return bytearray()
+        return b''
 
 
 class OpcodeInReplyTo(Opcode):
     id = 0x0002
 
     def __init__(self):
-        self.message_id = bytearray()
+        self.message_id = b''
 
     def __repr__(self):
-        message_id_hex = ''.join(['%02x' % x for x in self.message_id])
-        return '<In Reply To: 0x%s>' % message_id_hex
+        message_id_hex = ''.join(['{:02x}'.format(x) for x in self.message_id])
+        return '<In Reply To: 0x{}>'.format(message_id_hex)
 
     def load(self, data):
         self.message_id = data[0:6]
@@ -254,15 +254,15 @@ class OpcodeRTTEnclosed(Opcode):
         self.rtt_us = 0
 
     def __repr__(self):
-        return '<RTT Enclosed: %d us>' % self.rtt_us
+        return '<RTT Enclosed: {} us>'.format(self.rtt_us)
 
     def load(self, data):
-        self.rtt_us = bytearray_to_int(data[0:4])
+        self.rtt_us = nunpack(data[0:4])
 
     def dump(self, max_length=None):
         if (max_length is not None) and (max_length < 4):
             return None
-        return int_to_bytearray(self.rtt_us, 4)
+        return npack(self.rtt_us, 4)
 
 
 class OpcodeMessageIDList(Opcode):
@@ -270,13 +270,13 @@ class OpcodeMessageIDList(Opcode):
         self.message_ids = []
 
     def __repr__(self):
-        ids = ['0x%s' % ''.join(['%02x' % x for x in y]) for y in self.message_ids]
-        return '<ID List (Generic): [%s] (%d)>' % (', '.join(ids), len(self.message_ids))
+        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y]) for y in self.message_ids)]
+        return '<ID List (Generic): [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
 
     def load(self, data):
         self.message_ids = []
         pos = 2
-        for i in xrange(bytearray_to_int(data[0:2])):
+        for i in range(nunpack(data[0:2])):
             self.message_ids.append(data[pos:pos+6])
             pos += 6
 
@@ -288,7 +288,7 @@ class OpcodeMessageIDList(Opcode):
         else:
             output_ids = self.message_ids
 
-        out = int_to_bytearray(len(output_ids), 2)
+        out = npack(len(output_ids), 2)
         for i in output_ids:
             out += i
         return out
@@ -298,41 +298,41 @@ class OpcodeInvestigationSeen(OpcodeMessageIDList):
     id = 0x0008
 
     def __repr__(self):
-        ids = ['0x%s' % ''.join(['%02x' % x for x in y]) for y in self.message_ids]
-        return '<Investigation Seen: [%s] (%d)>' % (', '.join(ids), len(self.message_ids))
+        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
+        return '<Investigation Seen: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
 
 
 class OpcodeInvestigationUnseen(OpcodeMessageIDList):
     id = 0x0010
 
     def __repr__(self):
-        ids = ['0x%s' % ''.join(['%02x' % x for x in y]) for y in self.message_ids]
-        return '<Investigation Unseen: [%s] (%d)>' % (', '.join(ids), len(self.message_ids))
+        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
+        return '<Investigation Unseen: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
 
 
 class OpcodeInvestigate(OpcodeMessageIDList):
     id = 0x0020
 
     def __repr__(self):
-        ids = ['0x%s' % ''.join(['%02x' % x for x in y]) for y in self.message_ids]
-        return '<Investigate: [%s] (%d)>' % (', '.join(ids), len(self.message_ids))
+        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
+        return '<Investigate: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
 
 
 class OpcodeCourtesyExpiration(OpcodeMessageIDList):
     id = 0x0040
 
     def __repr__(self):
-        ids = ['0x%s' % ''.join(['%02x' % x for x in y]) for y in self.message_ids]
-        return '<Courtesy Expiration: [%s] (%d)>' % (', '.join(ids), len(self.message_ids))
+        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
+        return '<Courtesy Expiration: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
 
 
 class OpcodeHMAC(Opcode):
     id = 0x0080
 
     def __init__(self):
-        self.key = bytearray()
+        self.key = b''
         self.digest_index = None
-        self.hash = bytearray()
+        self.hash = b''
 
         self.digest_map = {
             1: (hashlib.md5, 16),
@@ -345,13 +345,13 @@ class OpcodeHMAC(Opcode):
         return '<HMAC>'
 
     def load(self, data):
-        self.digest_index = bytearray_to_int(data[0:2])
+        self.digest_index = nunpack(data[0:2])
         self.hash = data[2:]
 
     def dump(self, max_length=None):
         if self.digest_index is not None:
             (hasher, size) = self.digest_map[self.digest_index]
-            return int_to_bytearray(self.digest_index, 2) + bytearray(size)
+            return npack(self.digest_index, 2) + bytes(size)
         return None
 
 
@@ -362,15 +362,15 @@ class OpcodeHostLatency(Opcode):
         self.delay_us = 0
 
     def __repr__(self):
-        return '<Host Latency: %d us>' % self.delay_us
+        return '<Host Latency: {} us>'.format(self.delay_us)
 
     def load(self, data):
-        self.delay_us = bytearray_to_int(data[0:4])
+        self.delay_us = nunpack(data[0:4])
 
     def dump(self, max_length=None):
         if (max_length is not None) and (max_length < 4):
             return None
-        return int_to_bytearray(self.delay_us, 4)
+        return npack(self.delay_us, 4)
 
 
 class OpcodeExtended(Opcode):
@@ -381,7 +381,7 @@ class OpcodeExtended(Opcode):
         self.segment_data_positions = {}
 
     def __repr__(self):
-        return '<Extended: %s>' % repr(sorted(self.segments.values(), key=lambda x: x.id))
+        return '<Extended: {}>'.format(repr(sorted(self.segments.values(), key=lambda x: x.id)))
 
     def load(self, data):
         self.segments = {}
@@ -398,9 +398,9 @@ class OpcodeExtended(Opcode):
         )
 
         while pos < len(data):
-            flag = bytearray_to_int(data[pos:pos+4])
+            flag = nunpack(data[pos:pos+4])
             pos += 4
-            segment_data_length = bytearray_to_int(data[pos:pos+2])
+            segment_data_length = nunpack(data[pos:pos+2])
             pos += 2
             self.segment_data_positions[flag] = (pos, segment_data_length)
             segment_handler = None
@@ -418,7 +418,7 @@ class OpcodeExtended(Opcode):
     def dump(self, max_length=None):
         if (max_length is not None) and (max_length < 6):
             return None
-        out = bytearray()
+        out = b''
         pos = 0
         for segment in self.segments.values():
             if max_length is None:
@@ -428,9 +428,9 @@ class OpcodeExtended(Opcode):
             segment_data = segment.dump(max_length=segment_max_length)
             if segment_data is None:
                 continue
-            out += int_to_bytearray(segment.id, 4)
+            out += npack(segment.id, 4)
             pos += 4
-            out += int_to_bytearray(len(segment_data), 2)
+            out += npack(len(segment_data), 2)
             pos += 2
             out += segment_data
             pos += len(segment_data)
@@ -441,29 +441,29 @@ class OpcodeExtended(Opcode):
 
 class Packet():
     def __repr__(self):
-        return '<Packet (0x%s): %s>' % (
-            ''.join(['%02x' % x for x in self.message_id]),
+        return '<Packet (0x{}): {}>'.format(
+            ''.join(['{:02x}'.format(x) for x in self.message_id]),
             repr(sorted(self.opcodes.values(), key=lambda x: x.id))
         )
 
     def __init__(self):
-        self.message_id = bytearray()
+        self.message_id = b''
         self.opcodes = {}
         self.min_length = 0
         self.max_length = 1024
-        self.padding_pattern = bytearray(1)
+        self.padding_pattern = b'\x00'
         self.opcode_data_positions = {}
 
     def load(self, data):
         magic_number = data[0:2]
-        if magic_number != bytearray((0x32, 0x50)):
+        if magic_number != b'\x32\x50':
             raise Exception('Invalid magic number')
-        checksum = bytearray_to_int(data[2:4])
+        checksum = nunpack(data[2:4])
         if checksum:
-            if twoping_checksum(data[0:2] + bytearray(2) + data[4:]) != checksum:
+            if twoping_checksum(data[0:2] + b'\x00\x00' + data[4:]) != checksum:
                 raise Exception('Invalid checksum')
         self.message_id = data[4:10]
-        opcode_flags = bytearray_to_int(data[10:12])
+        opcode_flags = nunpack(data[10:12])
         self.opcodes = {}
 
         pos = 12
@@ -479,10 +479,10 @@ class Packet():
             OpcodeHostLatency,
             OpcodeExtended,
         )
-        for flag in (2 ** x for x in xrange(16)):
+        for flag in (2 ** x for x in range(16)):
             if not opcode_flags & flag:
                 continue
-            opcode_data_length = bytearray_to_int(data[pos:pos+2])
+            opcode_data_length = nunpack(data[pos:pos+2])
             pos += 2
             self.opcode_data_positions[flag] = (pos, opcode_data_length)
             opcode_handler = None
@@ -501,7 +501,7 @@ class Packet():
         auth_pos_begin = 0
         auth_pos_end = 0
         if not self.message_id:
-            self.message_id = bytearray([random.randint(0, 255) for x in xrange(6)])
+            self.message_id = bytes([random.randint(0, 255) for x in range(6)])
         opcode_datas = {}
         packet_length = 12
         for flag in (
@@ -527,7 +527,7 @@ class Packet():
             res_len = len(res)
             packet_length += res_len + 2
         opcode_flags = 0
-        opcode_data = bytearray()
+        opcode_data = b''
         packet_length = 12
         for flag in sorted(opcode_datas.keys()):
             res = opcode_datas[flag]
@@ -536,19 +536,19 @@ class Packet():
                 auth_pos_begin = packet_length + 4
                 auth_pos_end = auth_pos_begin + (res_len - 2)
             opcode_flags = opcode_flags | flag
-            opcode_data += int_to_bytearray(res_len, 2)
+            opcode_data += npack(res_len, 2)
             opcode_data += res
             packet_length += res_len + 2
-        out = bytearray((0x32, 0x50)) + bytearray(2) + self.message_id + int_to_bytearray(opcode_flags, 2) + opcode_data
+        out = bytearray(b'\x32\x50\x00\x00' + self.message_id + npack(opcode_flags, 2) + opcode_data)
         if len(out) < self.min_length:
             target_padding = self.min_length - len(out)
             padding = (self.padding_pattern * int(target_padding / len(self.padding_pattern) + 1))[0:target_padding]
             out += padding
         if (OpcodeHMAC.id in self.opcodes) and auth_pos_begin:
             out[auth_pos_begin:auth_pos_end] = self.calculate_hash(self.opcodes[OpcodeHMAC.id], out)
-        out[2:4] = int_to_bytearray(twoping_checksum(out), 2)
-        return out
+        out[2:4] = npack(twoping_checksum(out), 2)
+        return bytes(out)
 
     def calculate_hash(self, opcode, payload):
         (hasher, size) = opcode.digest_map[opcode.digest_index]
-        return bytearray(hmac.new(opcode.key, payload, hasher).digest())
+        return hmac.new(opcode.key, payload, hasher).digest()
