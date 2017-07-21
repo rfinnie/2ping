@@ -337,7 +337,7 @@ class OpcodeHMAC(Opcode):
         self.digest_map = {
             1: (hashlib.md5, 16),
             2: (hashlib.sha1, 20),
-            3: (hashlib.sha1, 30),
+            3: (hashlib.sha256, 32),
             4: (crc32, 4),
         }
 
