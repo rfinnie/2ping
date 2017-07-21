@@ -923,24 +923,24 @@ class TwoPing():
 
     def scheduled_cleanup_sock_class(self, sock_class):
         now = clock()
-        for peer_tuple in sock_class.sent_messages.keys():
-            for message_id_int in sock_class.sent_messages[peer_tuple].keys():
+        for peer_tuple in tuple(sock_class.sent_messages.keys()):
+            for message_id_int in tuple(sock_class.sent_messages[peer_tuple].keys()):
                 if now > (sock_class.sent_messages[peer_tuple][message_id_int][0] + 120.0):
                     del(sock_class.sent_messages[peer_tuple][message_id_int])
                     self.print_debug('Cleanup: Removed sent_messages {} {}'.format(repr(peer_tuple), message_id_int))
             if len(sock_class.sent_messages[peer_tuple]) == 0:
                 del(sock_class.sent_messages[peer_tuple])
                 self.print_debug('Cleanup: Removed sent_messages empty {}'.format(repr(peer_tuple)))
-        for peer_tuple in sock_class.seen_messages.keys():
-            for message_id_int in sock_class.seen_messages[peer_tuple].keys():
+        for peer_tuple in tuple(sock_class.seen_messages.keys()):
+            for message_id_int in tuple(sock_class.seen_messages[peer_tuple].keys()):
                 if now > (sock_class.seen_messages[peer_tuple][message_id_int] + 600.0):
                     del(sock_class.seen_messages[peer_tuple][message_id_int])
                     self.print_debug('Cleanup: Removed seen_messages {} {}'.format(repr(peer_tuple), message_id_int))
             if len(sock_class.seen_messages[peer_tuple]) == 0:
                 del(sock_class.seen_messages[peer_tuple])
                 self.print_debug('Cleanup: Removed seen_messages empty {}'.format(repr(peer_tuple)))
-        for peer_tuple in sock_class.courtesy_messages.keys():
-            for message_id_int in sock_class.courtesy_messages[peer_tuple].keys():
+        for peer_tuple in tuple(sock_class.courtesy_messages.keys()):
+            for message_id_int in tuple(sock_class.courtesy_messages[peer_tuple].keys()):
                 if now > (sock_class.courtesy_messages[peer_tuple][message_id_int][0] + 120.0):
                     del(sock_class.courtesy_messages[peer_tuple][message_id_int])
                     self.print_debug('Cleanup: Removed courtesy_messages {} {}'.format(repr(peer_tuple), message_id_int))
