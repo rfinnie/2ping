@@ -5,7 +5,8 @@ local mac_digests = {
     [1] = "HMAC-MD5",
     [2] = "HMAC-SHA1",
     [3] = "HMAC-SHA256",
-    [4] = "HMAC-CRC32"
+    [4] = "HMAC-CRC32",
+    [5] = "HMAC-SHA512"
 }
 
 local extended_ids = {

@@ -106,7 +106,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         '--auth-digest', type=str, default='hmac-md5',
-        choices=['hmac-md5', 'hmac-sha1', 'hmac-sha256', 'hmac-crc32'],
+        choices=['hmac-md5', 'hmac-sha1', 'hmac-sha256', 'hmac-crc32', 'hmac-sha512'],
         help=_('HMAC authentication digest'), metavar='DIGEST',
     )
     parser.add_argument(
@@ -275,6 +275,7 @@ def parse_args(argv=None):
         'hmac-sha1': 2,
         'hmac-sha256': 3,
         'hmac-crc32': 4,
+        'hmac-sha512': 5,
     }
     args.auth_digest_index = hmac_id_map[args.auth_digest]
 

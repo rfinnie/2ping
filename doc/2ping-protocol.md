@@ -263,6 +263,7 @@ The digest types supported are:
 | 2 | HMAC-SHA1 | 20 octets |
 | 3 | HMAC-SHA256 | 32 octets |
 | 4 | HMAC-CRC32 | 4 octets |
+| 5 | HMAC-SHA512 | 64 octets |
 
 The two peers must use the same key and digest type.
 If a peer is instructed to hash its messages, it must not accept replies that are not hashed with the same digest type and key.
@@ -280,7 +281,7 @@ An implementation is not required to implement all digest types.
 HMAC-CRC32 is included in this specification mostly as a joke, and a programming exercise for the reader.
 Please don't use this (and expect any sort of cryptographic data integrity).
 Endianness is not specified by CRC32; use network byte order (big endian).
-The HMAC specification requires aligning the key to the digest function's block size; CRC32 does not use a block size, so assume a block size of 64 bytes (same as MD5, SHA1 and SHA256).
+The HMAC specification requires aligning the key to the digest function's block size; CRC32 does not use a block size, so assume a block size of 64 bytes (same as MD5, SHA1, SHA256 and SHA512).
 
 ### 0x0100 - Host processing latency
 

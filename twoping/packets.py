@@ -339,6 +339,7 @@ class OpcodeHMAC(Opcode):
             2: (hashlib.sha1, 20),
             3: (hashlib.sha256, 32),
             4: (crc32, 4),
+            5: (hashlib.sha512, 64),
         }
 
     def __repr__(self):

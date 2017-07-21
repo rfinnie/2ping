@@ -113,7 +113,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 
 --auth-digest=*digest*
 :   When *--auth* is used, specify the digest type to compute the cryptographic hash.
-    Valid options are `hmac-md5` (default), `hmac-sha1` and `hmac-sha256`.
+    Valid options are `hmac-md5` (default), `hmac-sha1`, `hmac-sha256` and `hmac-sha512`.
 
 --debug
 :   Print (lots of) debugging information.
