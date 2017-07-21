@@ -335,14 +335,19 @@ class OpcodeHMAC(Opcode):
         self.hash = b''
 
         self.digest_map = {
-            1: (hashlib.md5, 16),
-            2: (hashlib.sha1, 20),
-            3: (hashlib.sha256, 32),
-            4: (crc32, 4),
-            5: (hashlib.sha512, 64),
+            1: (hashlib.md5, 16, 'HMAC-MD5'),
+            2: (hashlib.sha1, 20, 'HMAC-SHA1'),
+            3: (hashlib.sha256, 32, 'HMAC-SHA256'),
+            4: (crc32, 4, 'HMAC-CRC32'),
+            5: (hashlib.sha512, 64, 'HMAC-SHA512'),
         }
 
     def __repr__(self):
+        if self.digest_index is not None:
+            return '<{}: 0x{}>'.format(
+                self.digest_map[self.digest_index][2],
+                ''.join(['{:02x}'.format(x) for x in self.hash]),
+            )
         return '<HMAC>'
 
     def load(self, data):
@@ -351,7 +356,7 @@ class OpcodeHMAC(Opcode):
 
     def dump(self, max_length=None):
         if self.digest_index is not None:
-            (hasher, size) = self.digest_map[self.digest_index]
+            (hasher, size, hasher_name) = self.digest_map[self.digest_index]
             return npack(self.digest_index, 2) + bytes(size)
         return None
 
@@ -551,5 +556,5 @@ class Packet():
         return bytes(out)
 
     def calculate_hash(self, opcode, payload):
-        (hasher, size) = opcode.digest_map[opcode.digest_index]
+        (hasher, size, hasher_name) = opcode.digest_map[opcode.digest_index]
         return hmac.new(opcode.key, payload, hasher).digest()
