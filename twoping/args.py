@@ -211,7 +211,7 @@ def parse_args(argv=None):
         parser.exit()
     if args.nagios:
         args.quiet = True
-        if not args.count:
+        if (not args.count) and (not args.deadline):
             args.count = 5
         nagios_opts = args.nagios.split(',')
         if len(nagios_opts) != 4:
