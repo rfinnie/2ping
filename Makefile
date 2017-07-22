@@ -1,20 +1,23 @@
+PYTHON := python3
+PANDOC := pandoc
+
 all: build
 
 build:
-	python3 setup.py build
+	$(PYTHON) setup.py build
 
 test: build
-	python3 setup.py test
+	$(PYTHON) setup.py test
 
 install: build
-	python3 setup.py install
+	$(PYTHON) setup.py install
 
 clean:
-	python3 setup.py clean
+	$(PYTHON) setup.py clean
 	$(RM) -r build MANIFEST
 
 doc: README
 	$(MAKE) -C doc
 
 README: README.md
-	pandoc -s -t plain -o $@ $<
+	$(PANDOC) -s -t plain -o $@ $<
