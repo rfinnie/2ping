@@ -14,6 +14,7 @@ class TestBestPoller(unittest.TestCase):
             poller.f_dict[s.fileno()],
             s
         )
+        s.close()
 
     def test_register_multiple(self):
         poller = best_poller.best_poller()
@@ -25,6 +26,8 @@ class TestBestPoller(unittest.TestCase):
             (poller.f_dict[s1.fileno()], poller.f_dict[s2.fileno()]),
             (s1, s2)
         )
+        s1.close()
+        s2.close()
 
     def test_register_idempotent(self):
         poller = best_poller.best_poller()
@@ -35,6 +38,7 @@ class TestBestPoller(unittest.TestCase):
             len(poller.f_dict),
             1
         )
+        s.close()
 
     def test_available_pollers(self):
         self.assertTrue(len(best_poller.available_pollers()) > 0)

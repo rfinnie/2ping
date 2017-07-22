@@ -7,8 +7,10 @@ import sys
 import time
 import signal
 import random
+from twoping import monotonic_clock
 
 
+@unittest.skipUnless(hasattr(os, 'fork'), 'CLI tests require os.fork()')
 class TestCLI(unittest.TestCase):
     bind_address = '127.0.0.1'
     port = None
@@ -56,7 +58,7 @@ class TestCLI(unittest.TestCase):
             self.fail(e.output)
 
     def test_notice(self):
-        self.run_listener_client(['--count=1', '--notice=foo ☃'])
+        self.run_listener_client(['--count=1', '--notice=Notice text'])
 
     def test_random(self):
         self.run_listener_client(['--count=1', '--send-random=32'])
@@ -64,14 +66,15 @@ class TestCLI(unittest.TestCase):
     def test_time(self):
         self.run_listener_client(['--count=1', '--send-time'])
 
+    @unittest.skipUnless(monotonic_clock.get_clock_info('clock').monotonic, 'Monotonic clock required')
     def test_monotonic_clock(self):
         self.run_listener_client(['--count=1', '--send-monotonic-clock'])
 
     def test_adaptive(self):
-        self.run_listener_client(['--adaptive', '--deadline=5'])
+        self.run_listener_client(['--adaptive', '--deadline=3'])
 
     def test_flood(self):
-        self.run_listener_client(['--flood', '--deadline=5'])
+        self.run_listener_client(['--flood', '--deadline=3'])
 
     def test_hmac_md5(self):
         self.run_listener_client(
