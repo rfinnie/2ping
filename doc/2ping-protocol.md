@@ -1,7 +1,7 @@
 # 2ping protocol
 
-* Line protocol version: 3.1+dev
-* Document version: 20160210+dev
+* Line protocol version: 3.2
+* Document version: 20170722
 
 ## Introduction
 
@@ -530,6 +530,12 @@ But if the "server" decides to randomly initiate a ping request of its own, the 
     CLIENT: 32 50 9a 41 00 00 00 00 a0 0b 00 0e 00 06 00 00 00 00 b0 06 00 04 00 00 33 38 00 08 00 01 00 00 00 00 b0 02
 
 ## Changelog
+
+### 3.2 (20170722)
+* Added HMAC-SHA512 (index 5) to 0x0080 MAC digest types.
+* Added the following registered extended segments:
+  * 0x88a1f7c7: Battery levels
+* Clarified that only one instance of a specific ExtID may be present in a packet.
 
 ### 3.1 (20160210)
 * Added the following registered extended segments:
