@@ -167,18 +167,7 @@ class TwoPing():
             self.args.send_monotonic_clock = False
 
     def print_out(self, *args, **kwargs):
-        '''Emulate Python 3's complete print() functionality'''
-        if 'sep' not in kwargs:
-            kwargs['sep'] = ' '
-        if 'end' not in kwargs:
-            kwargs['end'] = '\n'
-        if 'file' not in kwargs:
-            kwargs['file'] = sys.stdout
-        if 'flush' not in kwargs:
-            kwargs['flush'] = False
-        kwargs['file'].write(kwargs['sep'].join(args) + kwargs['end'])
-        if kwargs['flush']:
-            kwargs['file'].flush()
+        print(*args, **kwargs)
 
     def print_debug(self, *args, **kwargs):
         if not self.args.debug:
