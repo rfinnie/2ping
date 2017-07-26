@@ -51,6 +51,8 @@ try:
 except ImportError:
     has_netifaces = False
 
+assert(sys.version_info > (3, 4))
+
 version_string = '2ping {} - {}'.format(__version__, platform_info())
 clock = monotonic_clock.clock
 clock_info = monotonic_clock.get_clock_info('clock')
