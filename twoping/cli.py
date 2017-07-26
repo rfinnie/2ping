@@ -45,6 +45,12 @@ try:
 except ImportError:
     has_dns = False
 
+try:
+    import netifaces
+    has_netifaces = True
+except ImportError:
+    has_netifaces = False
+
 version_string = '2ping {} - {}'.format(__version__, platform_info())
 clock = monotonic_clock.clock
 clock_info = monotonic_clock.get_clock_info('clock')
@@ -517,7 +523,18 @@ class TwoPing():
 
     def setup_listener(self):
         bound_addresses = []
-        if self.args.interface_address:
+        if self.args.all_interfaces:
+            if not has_netifaces:
+                raise socket.error('All interface addresses not available; please install netifaces')
+            addrs = set()
+            for iface in netifaces.interfaces():
+                iface_addrs = netifaces.ifaddresses(iface)
+                if (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)) and (netifaces.AF_INET in iface_addrs):
+                    addrs.update([f['addr'] for f in iface_addrs[netifaces.AF_INET] if 'addr' in f])
+                if self.has_ipv6 and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6)) and (netifaces.AF_INET6 in iface_addrs):
+                    addrs.update([f['addr'] for f in iface_addrs[netifaces.AF_INET6] if 'addr' in f])
+            interface_addresses = list(addrs)
+        elif self.args.interface_address:
             interface_addresses = self.args.interface_address
         else:
             interface_addresses = ['0.0.0.0']

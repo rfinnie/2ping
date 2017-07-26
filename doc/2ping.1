@@ -97,8 +97,8 @@ not a device name.
 Note that in listener mode, if the machine has an interface with
 multiple IP addresses and an request comes in via a sub IP, the reply
 still leaves via the interface\[aq]s main IP.
-So this option must be used if you would like to respond via an
-interface\[aq]s sub\-IP.
+So either this option or \f[I]\-\-all\-interfaces\f[] must be used if
+you would like to respond via an interface\[aq]s sub\-IP.
 .RE
 .TP
 .B \-\-preload=\f[I]count\f[], \-l \f[I]count\f[]
@@ -183,6 +183,14 @@ IPv6\-routable machines, or the A address on IPv4\-only machines.) In
 listener mode, this filters out any non\-IPv6
 \f[I]\-\-interface\-address\f[] binds, either through hostname
 resolution or explicit passing.
+.RS
+.RE
+.TP
+.B \-\-all\-interfaces
+In listener mode, listen on all possible interface addresses.
+If used, this will override any addresses given by
+\f[I]\-\-interface\-address\f[].
+This functionality requires the netifaces module to be installed.
 .RS
 .RE
 .TP
