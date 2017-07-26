@@ -3,7 +3,6 @@
 import unittest
 import os
 import subprocess
-import sys
 import time
 import signal
 import random
@@ -33,7 +32,13 @@ class TestCLI(unittest.TestCase):
             port = self.port
         else:
             port = random.randint(49152, 65535)
-        opts = ['2ping', '--listen', '--quiet', '--interface-address={}'.format(self.bind_address), '--port={}'.format(port)]
+        opts = [
+            '2ping',
+            '--listen',
+            '--quiet',
+            '--interface-address={}'.format(self.bind_address),
+            '--port={}'.format(port),
+        ]
         if extra_opts:
             opts += extra_opts
 
@@ -51,7 +56,13 @@ class TestCLI(unittest.TestCase):
         if listener_opts is None:
             listener_opts = []
         (self.child_pid, port) = self.fork_listener(listener_opts)
-        client_base_opts = [self.twoping_binary, self.bind_address, '--port={}'.format(port), '--debug', '--nagios=1000,1%,1000,1%']
+        client_base_opts = [
+            self.twoping_binary,
+            self.bind_address,
+            '--port={}'.format(port),
+            '--debug',
+            '--nagios=1000,1%,1000,1%',
+        ]
         try:
             subprocess.check_output(client_base_opts + client_opts)
         except subprocess.CalledProcessError as e:
@@ -59,6 +70,15 @@ class TestCLI(unittest.TestCase):
 
     def test_notice(self):
         self.run_listener_client(['--count=1', '--notice=Notice text'])
+
+    @unittest.skipUnless(
+        (
+            os.environ.get('LANG') and
+            ('UTF-8' in os.environ.get('LANG'))
+        ), 'UTF-8 environment required'
+    )
+    def test_notice_utf8(self):
+        self.run_listener_client(['--count=1', '--notice=UTF-8 \u2603'])
 
     def test_random(self):
         self.run_listener_client(['--count=1', '--send-random=32'])
