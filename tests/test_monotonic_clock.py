@@ -4,19 +4,18 @@ import unittest
 from twoping import monotonic_clock
 
 
+clock = monotonic_clock.clock
+clock_info = monotonic_clock.get_clock_info('clock')
+
+
 class TestMonotonicClock(unittest.TestCase):
-    def setUp(self):
-        self.clock = monotonic_clock.clock
-        self.clock_info = monotonic_clock.get_clock_info('clock')
-
     def test_clock(self):
-        self.assertEqual(type(self.clock()), float)
+        self.assertEqual(type(clock()), float)
 
+    @unittest.skipUnless(clock_info.monotonic, 'Monotonic clock required')
     def test_monotonic(self):
-        if not self.clock_info.monotonic:
-            return
-        time1 = self.clock()
-        time2 = self.clock()
+        time1 = clock()
+        time2 = clock()
         self.assertTrue(time2 > time1)
 
 
