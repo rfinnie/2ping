@@ -41,7 +41,7 @@ class BuiltinMonotonicCounter():
             return
 
         # All other platforms
-        for mode in ('monotonic', 'perf_counter', 'clock'):
+        for mode in ('perf_counter', 'monotonic', 'clock'):
             try:
                 self.info = time.get_clock_info(mode)
             except ValueError:
