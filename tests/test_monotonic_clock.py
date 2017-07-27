@@ -19,19 +19,6 @@ class TestMonotonicClock(unittest.TestCase):
         time2 = self.clock()
         self.assertTrue(time2 > time1)
 
-    def test_known_clock(self):
-        self.assertTrue(isinstance(
-            self.clock.__self__,
-            (
-                monotonic_clock.LinuxMonotonicCounter,
-                monotonic_clock.FreeBSDMonotonicCounter,
-                monotonic_clock.BSDMonotonicCounter,
-                monotonic_clock.DarwinMonotonicCounter,
-                monotonic_clock.Win32MonotonicCounter,
-                monotonic_clock.SystemCounter,
-            )
-        ))
-
 
 if __name__ == '__main__':
     unittest.main()

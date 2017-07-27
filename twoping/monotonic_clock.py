@@ -30,7 +30,6 @@ class BuiltinMonotonicCounter():
         # Unix + CLOCK_MONOTONIC_RAW
         if hasattr(time, 'clock_gettime') and hasattr(time, 'CLOCK_MONOTONIC_RAW'):
             self.info = time.get_clock_info('monotonic')
-            mode = time.CLOCK_MONOTONIC_RAW
             self.info.implementation = 'clock_gettime(CLOCK_MONOTONIC_RAW)'
 
             def _clock():
