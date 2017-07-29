@@ -136,8 +136,8 @@ class TestPacketsOpcodes(unittest.TestCase):
         opcode = packets.ExtendedRandom()
         opcode.load(b'\x00\x03' + random_data)
         self.assertEqual(opcode.id, 0x2ff6ad68)
-        self.assertEqual(opcode.is_hwrng, True)
-        self.assertEqual(opcode.is_os, True)
+        self.assertTrue(opcode.is_hwrng)
+        self.assertTrue(opcode.is_os)
         self.assertEqual(opcode.random_data, random_data)
 
     def test_extended_random_dump(self):

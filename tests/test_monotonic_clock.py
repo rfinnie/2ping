@@ -16,7 +16,7 @@ class TestMonotonicClock(unittest.TestCase):
     def test_monotonic(self):
         time1 = clock()
         time2 = clock()
-        self.assertTrue(time2 > time1)
+        self.assertGreaterEqual(time2, time1)
 
 
 if __name__ == '__main__':
