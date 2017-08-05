@@ -15,6 +15,12 @@ To install:
 
     sudo python3 setup.py install
 
+Python 3 stdlib is the only requirement for base functionality, but 2ping can utilize the following modules if available:
+
+* [dnspython](https://pypi.python.org/pypi/dnspython) for --srv
+* [netifaces](https://pypi.python.org/pypi/netifaces) for --listen --all-interfaces
+* [pycrypto](https://pypi.python.org/pypi/pycrypto) for --encrypt
+
 ## Usage
 
 Please see the 2ping manpage for invocation options, but in short, start a listener on the far end:

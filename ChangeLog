@@ -1,3 +1,11 @@
+2ping 4.1 (2017-08-06)
+ * Added --encrypt option for shared-secret encrypted packets.
+ * Added --listen --all-interfaces option for automatically binding to
+   all interface IPs (requires Python netifaces module).
+ * Simplified monotonic_clock functionality, relying on Python 3 for
+   most functionality, reducing the possibility of platform bugs.
+ * Minor fixes and unit test suite improvements.
+
 2ping 4.0.1 (2017-07-22)
  * Fixed unit tests causing test failure in certain conditions.
 
