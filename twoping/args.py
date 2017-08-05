@@ -118,6 +118,15 @@ def parse_args(argv=None):
         help=_('debug mode'),
     )
     parser.add_argument(
+        '--encrypt', type=str,
+        help=_('Encryption key'), metavar='KEY',
+    )
+    parser.add_argument(
+        '--encrypt-method', type=str, default='hkdf-aes256-cbc',
+        choices=['hkdf-aes256-cbc'],
+        help=_('Encryption method'), metavar='METHOD',
+    )
+    parser.add_argument(
         '--fuzz', type=float,
         help=_('incoming fuzz percentage'), metavar='PERCENT',
     )
@@ -282,6 +291,17 @@ def parse_args(argv=None):
         'hmac-sha512': 5,
     }
     args.auth_digest_index = hmac_id_map[args.auth_digest]
+
+    if args.encrypt:
+        try:
+            from Crypto.Cipher import AES
+        except ImportError:
+            parser.error(_('Python crypto module required for encryption'))
+
+    encrypt_id_map = {
+        'hkdf-aes256-cbc': 1,
+    }
+    args.encrypt_method_index = encrypt_id_map[args.encrypt_method]
 
     if args.debug:
         args.verbose = True

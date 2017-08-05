@@ -9,6 +9,11 @@ local mac_digests = {
     [5] = "HMAC-SHA512"
 }
 
+local encrypted_methods = {
+    [0] = "Private",
+    [1] = "HKDF-AES256-CBC"
+}
+
 local extended_ids = {
     [0x3250564e] = "Program version",
     [0x2ff6ad68] = "Random data",
@@ -32,6 +37,7 @@ local pf_opcode_flag_investigation_request = ProtoField.bool  ("2ping.opcode_fla
 local pf_opcode_flag_courtesy_expiration = ProtoField.bool  ("2ping.opcode_flags.courtesy_expiration", "Courtesy expiration", 16, nil, 0x0040)
 local pf_opcode_flag_mac = ProtoField.bool  ("2ping.opcode_flags.mac", "Message authentication code", 16, nil, 0x0080)
 local pf_opcode_flag_host_latency = ProtoField.bool  ("2ping.opcode_flags.host_latency", "Host processing latency", 16, nil, 0x0100)
+local pf_opcode_flag_encrypted = ProtoField.bool  ("2ping.opcode_flags.encrypted", "Encrypted packet", 16, nil, 0x0200)
 local pf_opcode_flag_extended = ProtoField.bool  ("2ping.opcode_flags.extended", "Extended segments", 16, nil, 0x8000)
 
 local pf_segment_length = ProtoField.new   ("Length", "2ping.segment.length", ftypes.UINT16)
@@ -66,6 +72,10 @@ local pf_mac_hash = ProtoField.new   ("Hash", "2ping.mac.hash", ftypes.BYTES)
 
 local pf_host_latency = ProtoField.new   ("Host processing latency", "2ping.host_latency", ftypes.UINT32)
 local pf_host_latency_delay = ProtoField.new   ("Delay (μs)", "2ping.host_latency.delay", ftypes.UINT32)
+
+local pf_encrypted = ProtoField.new   ("Encrypted packet", "2ping.encrypted", ftypes.STRING)
+local pf_encrypted_method = ProtoField.uint16   ("2ping.encrypted.method", "Method", base.DEC, encrypted_methods)
+local pf_encrypted_data = ProtoField.new   ("Data", "2ping.encrypted.data", ftypes.BYTES)
 
 local pf_unknown = ProtoField.new   ("Unknown", "2ping.unknown", ftypes.STRING)
 local pf_unknown_data = ProtoField.new   ("Data", "2ping.unknown.data", ftypes.BYTES)
@@ -114,6 +124,7 @@ twoping.fields = {
     pf_opcode_flag_courtesy_expiration,
     pf_opcode_flag_mac,
     pf_opcode_flag_host_latency,
+    pf_opcode_flag_encrypted,
     pf_opcode_flag_extended,
     pf_segment_length,
     pf_reply_requested,
@@ -138,6 +149,9 @@ twoping.fields = {
     pf_mac_hash,
     pf_host_latency,
     pf_host_latency_delay,
+    pf_encrypted,
+    pf_encrypted_method,
+    pf_encrypted_data,
     pf_unknown,
     pf_unknown_data,
     pf_extended,
@@ -173,6 +187,7 @@ local investigation_request_field = Field.new("2ping.opcode_flags.investigation_
 local courtesy_expiration_field = Field.new("2ping.opcode_flags.courtesy_expiration")
 local mac_field = Field.new("2ping.opcode_flags.mac")
 local host_latency_field = Field.new("2ping.opcode_flags.host_latency")
+local encrypted_field = Field.new("2ping.opcode_flags.encrypted")
 local extended_field = Field.new("2ping.opcode_flags.extended")
 
 local function shift_opcode_data(buf)
@@ -293,7 +308,17 @@ function twoping.dissector(tvbuf,pktinfo,root)
         host_latency_tree:add(pf_host_latency_delay, data_range)
     end
 
-    for bitpos=6,1,-1 do
+    flag_tree:add(pf_opcode_flag_encrypted, flagrange)
+    if encrypted_field()() then
+        local opcode_range, data_range, remaining_buf = shift_opcode_data(opcode_remaining)
+        opcode_remaining = remaining_buf
+        local encrypted_tree = tree:add(pf_encrypted, opcode_range, tostring(data_range:range(2):bytes()):lower())
+        encrypted_tree:add(pf_segment_length, opcode_range:range(0,2))
+        encrypted_tree:add(pf_encrypted_method, data_range:range(0,2))
+        encrypted_tree:add(pf_encrypted_data, data_range:range(2))
+    end
+
+    for bitpos=5,1,-1 do
         if flagrange:bitfield(bitpos,1) == 1 then
             local opcode_range, data_range, remaining_buf = shift_opcode_data(opcode_remaining)
             opcode_remaining = remaining_buf

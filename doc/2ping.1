@@ -214,6 +214,20 @@ Print (lots of) debugging information.
 .RS
 .RE
 .TP
+.B \-\-encrypt=\f[I]key\f[]
+Set a shared key, encrypt 2ping packets, and require encrypted packets
+from peers encrypted with the same shared key.
+Requires the PyCrypto module.
+.RS
+.RE
+.TP
+.B \-\-encrypt\-method=\f[I]method\f[]
+When \f[I]\-\-encrypt\f[] is used, specify the method used to encrypt
+packets.
+Valid options are \f[C]hkdf\-aes256\-cbc\f[] (default).
+.RS
+.RE
+.TP
 .B \-\-fuzz=\f[I]percent\f[]
 Simulate corruption of incoming packets, with a \f[I]percent\f[]
 probability each bit will be flipped.

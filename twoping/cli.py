@@ -250,6 +250,30 @@ class TwoPing():
         if self.args.verbose:
             self.print_out('RECV: {}'.format(repr(packet_in)))
 
+        # Decrypt packet if needed.
+        if self.args.encrypt:
+            if packets.OpcodeEncrypted.id not in packet_in.opcodes:
+                self.errors_received += 1
+                sock_class.errors_received += 1
+                self.print_out(_('Encryption required but not provided by {address}').format(address=peer_address[0]))
+                return
+            if packet_in.opcodes[packets.OpcodeEncrypted.id].method_index != self.args.encrypt_method_index:
+                self.errors_received += 1
+                sock_class.errors_received += 1
+                self.print_out(
+                    _('Encryption method mismatch from {address} (expected {expected}, got {got})').format(
+                        address=peer_address[0],
+                        expected=self.args.encrypt_method_index,
+                        got=packet_in.opcodes[packets.OpcodeEncrypted.id].method_index,
+                    )
+                )
+                return
+            data = packet_in.opcodes[packets.OpcodeEncrypted.id].decrypt(self.args.encrypt.encode('UTF-8'))
+            packet_in = packets.Packet()
+            packet_in.load(data)
+            if self.args.verbose:
+                self.print_out('DECR: {}'.format(repr(packet_in)))
+
         # Verify HMAC if required.
         if self.args.auth:
             if packets.OpcodeHMAC.id not in packet_in.opcodes:
@@ -400,8 +424,18 @@ class TwoPing():
             # Dump the packet.
             dump_out = packet_out.dump()
 
+            # If enabled, encrypt the packet and wrap it in a stub packet.
+            if self.args.encrypt:
+                encrypted_packet = packets.Packet()
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = packets.OpcodeEncrypted()
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = self.args.encrypt_method_index
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(dump_out, self.args.encrypt.encode('UTF-8'))
+                sock_out = encrypted_packet.dump()
+            else:
+                sock_out = dump_out
+
             # Send the packet.
-            self.sock_sendto(sock_class, dump_out, peer_address)
+            self.sock_sendto(sock_class, sock_out, peer_address)
             self.packets_transmitted += 1
             sock_class.packets_transmitted += 1
 
@@ -428,7 +462,10 @@ class TwoPing():
                         del(sock_class.courtesy_messages[peer_tuple][courtesy_message_id_int])
 
             if self.args.verbose:
-                self.print_out('SEND: {}'.format(repr(packet_out_examine)))
+                if self.args.encrypt:
+                    self.print_out('SEND (encrypted): {}'.format(repr(packet_out_examine)))
+                else:
+                    self.print_out('SEND: {}'.format(repr(packet_out_examine)))
 
         # If we're in flood mode and this is a ping reply, send a new ping ASAP.
         if self.args.flood and (not self.args.listen) and (packets.OpcodeInReplyTo.id in packet_in.opcodes):
@@ -681,8 +718,19 @@ class TwoPing():
         packet_out.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
         self.start_investigations(sock_class, peer_tuple, packet_out)
         dump_out = packet_out.dump()
+
+        # If enabled, encrypt the packet and wrap it in a stub packet.
+        if self.args.encrypt:
+            encrypted_packet = packets.Packet()
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = packets.OpcodeEncrypted()
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = self.args.encrypt_method_index
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(dump_out, self.args.encrypt.encode('UTF-8'))
+            sock_out = encrypted_packet.dump()
+        else:
+            sock_out = dump_out
+
         now = clock()
-        self.sock_sendto(sock_class, dump_out, peer_address)
+        self.sock_sendto(sock_class, sock_out, peer_address)
         self.packets_transmitted += 1
         sock_class.packets_transmitted += 1
         self.pings_transmitted += 1
@@ -700,7 +748,10 @@ class TwoPing():
         elif self.args.flood:
             self.print_out('.', end='', flush=True)
         if self.args.verbose:
-            self.print_out('SEND: {}'.format(repr(packet_out_examine)))
+            if self.args.encrypt:
+                self.print_out('SEND (encrypted): {}'.format(repr(packet_out_examine)))
+            else:
+                self.print_out('SEND: {}'.format(repr(packet_out_examine)))
 
     def update_rtts(self, sock_class, rtt):
         for c in (self, sock_class):
@@ -922,6 +973,8 @@ class TwoPing():
         packet_out.padding_pattern = self.args.pattern_bytes
         packet_out.min_length = self.args.min_packet_size
         packet_out.max_length = self.args.max_packet_size
+        if self.args.encrypt:
+            packet_out.align_length = 16
         return packet_out
 
     def scheduled_cleanup(self):

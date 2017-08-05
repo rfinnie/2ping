@@ -1,7 +1,7 @@
 # 2ping protocol
 
-* Line protocol version: 3.2
-* Document version: 20170722
+* Line protocol version: 4.0
+* Document version: 20170806
 
 ## Introduction
 
@@ -297,6 +297,47 @@ Up to 2^32-1 microseconds are possible, approximately 71 minutes.
 The delta should be computed from immediately after the original message packet has been received, to as soon as possible before the reply packet has been sent.
 Note that due to optional MAC hash and checksum calculation processing, which must be computed after the rest of the opcode data area, there still could be some host processing latency not accounted for in the reported latency time.
 
+### 0x0200 - Encrypted packet
+
+| Field | Length |
+| ----- | ------ |
+| Method index | 2 octets, required |
+| Encrypted data | Variable, required |
+
+This opcode acts as a container for a shared-secret encrypted 2ping packet.
+A complete valid 2ping packet, from magic number and checksum through optional padding, is encrypted using a known method and contained in this opcode in a stub 2ping packet.
+
+The stub packet, which is what is sent along the the wire, is also a valid 2ping packet, but contains only a single opcode, 0x0200.
+When the encrypted payload in the stub packet is decrypted on the receiving end, the decrypted packet is used in place of the stub packet and is parsed normally.
+The stub packet's message ID is not used and should be pseudo-random.
+Implementations must not re-use the encrypted packet's message ID for the unencrypted stub's message ID.
+
+When one end specifies it is using encryption, it must not accept replies from the other end if the message is not encrypted, the method index does not match, or the encrypted payload does not decrypt to a valid 2ping packet.
+
+As of this protocol revision, a single method is specified, HKDF-AES256-CBC (index 1).
+Implementations may use a locally-reserved method by specifying index 0, as long as both ends have implemented the method.
+
+#### Method index 1 - HKDF-AES256-CBC
+
+* Shared secret
+* HKDF (RFC 5869) key derivation function, extract + expand rounds
+    * Input key material: shared secret, encoded as UTF-8 if needed
+    * Salt: 16 octet (128 bit) per-message pseudo-random value
+    * Output key length: 32 octets (256 bits)
+    * Expand round info value: 0xd889ac93aceba1f398d0c69bc8c6a7aa
+* AES encryption
+    * Cipher mode: AES-CBC
+    * Key: 32 octet (256 bit) output of HKDF extract + expand rounds above
+    * Initialization vector (IV): Same as HKDF salt above
+    * Input: Complete unencrypted 2ping packet
+
+The IV/salt and the result of the AES encryption are concatenated to form the encrypted data field.
+To decrypt, extract the IV/salt from the first 16 octets of the encrypted data field, and use the method to AES decrypt the remaining octets.
+
+AES has a 128 bit block size, which data must be padded to when encrypting.
+As trailing padding is a core feature of 2ping, no special padding method is required.
+The implementation only needs to make sure the unencrypted packet length is a multiple of 16 octets before encryption.
+
 ### 0x8000 - Extended segments
 
 This opcode data segment extends the 2ping format, allowing for a nearly unlimited number of available segments.
@@ -530,6 +571,9 @@ But if the "server" decides to randomly initiate a ping request of its own, the 
     CLIENT: 32 50 9a 41 00 00 00 00 a0 0b 00 0e 00 06 00 00 00 00 b0 06 00 04 00 00 33 38 00 08 00 01 00 00 00 00 b0 02
 
 ## Changelog
+
+### 4.0 (20170806)
+* Added opcode 0x0200 - Encrypted packet
 
 ### 3.2 (20170722)
 * Added HMAC-SHA512 (index 5) to 0x0080 MAC digest types.

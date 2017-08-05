@@ -21,7 +21,14 @@ import hmac
 import time
 from . import crc32
 from .utils import twoping_checksum, npack, nunpack
+from math import ceil
 import hashlib
+
+try:
+    from Crypto.Cipher import AES
+    has_aes = True
+except ImportError:
+    has_aes = False
 
 
 class Extended():
@@ -379,6 +386,74 @@ class OpcodeHostLatency(Opcode):
         return npack(self.delay_us, 4)
 
 
+class OpcodeEncrypted(Opcode):
+    id = 0x0200
+
+    def __init__(self):
+        self.hkdf_info = b'\xd8\x89\xac\x93\xac\xeb\xa1\xf3\x98\xd0\xc6\x9b\xc8\xc6\xa7\xaa'
+        self.method_index = None
+        self.encrypted = b''
+
+        self.method_map = {
+            1: ('HKDF-AES256-CBC',),
+        }
+
+    def __repr__(self):
+        if self.method_index is not None:
+            return '<{} ({} bytes)>'.format(
+                self.method_map[self.method_index][0],
+                len(self.encrypted),
+            )
+        return '<Encrypted>'
+
+    def load(self, data):
+        self.method_index = nunpack(data[0:2])
+        self.encrypted = data[2:]
+
+    def dump(self, max_length=None):
+        if self.method_index is not None:
+            return npack(self.method_index, 2) + self.encrypted
+        return None
+
+    def encrypt(self, unencrypted, key, iv=None):
+        if not has_aes:
+            return None
+        if self.method_index is None:
+            return None
+        if self.method_index == 1:
+            if iv is None:
+                iv = bytes([random.randint(0, 255) for x in range(16)])
+            aeskey = self.hkdf(32, key, salt=iv, info=self.hkdf_info, digestmod=hashlib.sha256)
+            aes_e = AES.new(aeskey, AES.MODE_CBC, iv)
+            self.iv = iv
+            self.encrypted = iv + aes_e.encrypt(unencrypted)
+        else:
+            return None
+
+    def decrypt(self, key):
+        if not has_aes:
+            return None
+        if self.method_index is None:
+            return None
+        if self.method_index == 1:
+            iv = self.encrypted[0:16]
+            aeskey = self.hkdf(32, key, salt=iv, info=self.hkdf_info, digestmod=hashlib.sha256)
+            aes_d = AES.new(aeskey, AES.MODE_CBC, iv)
+            return aes_d.decrypt(self.encrypted[16:])
+
+    def hkdf(self, length, ikm, salt=b'', info=b'', digestmod=None):
+        if digestmod is None:
+            digestmod = hashlib.sha256
+        prk = hmac.new(salt, ikm, digestmod).digest()
+        hash_len = len(prk)
+        t = b''
+        okm = b''
+        for i in range(ceil(length / hash_len)):
+            t = hmac.new(prk, t + info + bytes([1+i]), digestmod).digest()
+            okm += t
+        return okm[:length]
+
+
 class OpcodeExtended(Opcode):
     id = 0x8000
 
@@ -457,6 +532,7 @@ class Packet():
         self.opcodes = {}
         self.min_length = 0
         self.max_length = 1024
+        self.align_length = 0
         self.padding_pattern = b'\x00'
         self.opcode_data_positions = {}
 
@@ -483,6 +559,7 @@ class Packet():
             OpcodeCourtesyExpiration,
             OpcodeHMAC,
             OpcodeHostLatency,
+            OpcodeEncrypted,
             OpcodeExtended,
         )
         for flag in (2 ** x for x in range(16)):
@@ -511,6 +588,7 @@ class Packet():
         opcode_datas = {}
         packet_length = 12
         for flag in (
+            OpcodeEncrypted.id,
             OpcodeHMAC.id,
             OpcodeReplyRequested.id,
             OpcodeInReplyTo.id,
@@ -546,8 +624,13 @@ class Packet():
             opcode_data += res
             packet_length += res_len + 2
         out = bytearray(b'\x32\x50\x00\x00' + self.message_id + npack(opcode_flags, 2) + opcode_data)
+        target_length = len(out)
         if len(out) < self.min_length:
-            target_padding = self.min_length - len(out)
+            target_length = self.min_length
+        if self.align_length and (target_length % self.align_length):
+            target_length += self.align_length - (target_length % self.align_length)
+        if len(out) < target_length:
+            target_padding = target_length - len(out)
             padding = (self.padding_pattern * int(target_padding / len(self.padding_pattern) + 1))[0:target_padding]
             out += padding
         if (OpcodeHMAC.id in self.opcodes) and auth_pos_begin:

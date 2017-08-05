@@ -8,6 +8,12 @@ import signal
 import random
 from twoping import monotonic_clock
 
+try:
+    from Crypto.Cipher import AES
+    has_aes = True
+except ImportError:
+    has_aes = False
+
 
 @unittest.skipUnless(hasattr(os, 'fork'), 'CLI tests require os.fork()')
 class BaseTestCLI(unittest.TestCase):
@@ -137,6 +143,14 @@ class TestCLIHMACCRC32(BaseTestCLI):
     listener_opts = ['--auth-digest=hmac-crc32', '--auth=mc82kJwtXFlhqQSCKptQ']
 
     def test_hmac(self):
+        self.run_listener_client(self.listener_opts)
+
+
+@unittest.skipUnless(has_aes, 'PyCrypto required')
+class TestCLIEncryptAES256(BaseTestCLI):
+    listener_opts = ['--encrypt-method=hkdf-aes256-cbc', '--auth=S49HVbnJd3fBdDzdMVVw']
+
+    def test_encrypt(self):
         self.run_listener_client(self.listener_opts)
 
 

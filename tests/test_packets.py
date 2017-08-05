@@ -3,6 +3,12 @@
 import unittest
 from twoping import packets
 
+try:
+    from Crypto.Cipher import AES
+    has_aes = True
+except ImportError:
+    has_aes = False
+
 
 class TestPacketsOpcodes(unittest.TestCase):
     def test_opcode_unknown(self):
@@ -75,6 +81,13 @@ class TestPacketsOpcodes(unittest.TestCase):
         opcode = packets.OpcodeHostLatency()
         opcode.load(data)
         self.assertEqual(opcode.id, 0x0100)
+        self.assertEqual(opcode.dump(), data)
+
+    def test_opcode_encrypted(self):
+        data = b'\x00\x01\xaa\xb1\xc0\x0f\x0f\x83\xd2\xc4x\xfe\xa1\xe2\x10by\xee"Rp\xf1\x93\xee\xe98G\xea\x11\xd1\xc9\x80=\xe3'
+        opcode = packets.OpcodeEncrypted()
+        opcode.load(data)
+        self.assertEqual(opcode.id, 0x0200)
         self.assertEqual(opcode.dump(), data)
 
     def test_opcode_extended(self):
@@ -163,6 +176,16 @@ class TestPacketsOpcodes(unittest.TestCase):
         }
         self.assertEqual(opcode.id, 0x88a1f7c7)
         self.assertEqual(opcode.dump(), b'\x00\x02\x00\x00\xff\xff\x00\x01\xce\xa3')
+
+    @unittest.skipUnless(has_aes, 'PyCrypto required')
+    def test_encrypted_encrypt_decrypt(self):
+        key = b'Secret key'
+        iv = b'2\xf0J/\xb3x\xe3\xf3s+J\x8c\x02t\xca\x0e'
+        minimal_packet_data = b'2P\xda\x0a\x0e\xa5[\xe2\x89\x1d\x00\x00\x00\x00\x00\x00'
+        opcode = packets.OpcodeEncrypted()
+        opcode.method_index = 1
+        opcode.encrypt(minimal_packet_data, key, iv=iv)
+        self.assertEqual(opcode.decrypt(key), minimal_packet_data)
 
 
 class TestPacketsReference(unittest.TestCase):

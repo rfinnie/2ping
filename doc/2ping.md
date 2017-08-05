@@ -123,6 +123,14 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 --debug
 :   Print (lots of) debugging information.
 
+--encrypt=*key*
+:   Set a shared key, encrypt 2ping packets, and require encrypted packets from peers encrypted with the same shared key.
+    Requires the PyCrypto module.
+
+--encrypt-method=*method*
+:   When *--encrypt* is used, specify the method used to encrypt packets.
+    Valid options are `hkdf-aes256-cbc` (default).
+
 --fuzz=*percent*
 :   Simulate corruption of incoming packets, with a *percent* probability each bit will be flipped.
     After fuzzing, the packet checksum will be recalculated, and then the checksum itself will be fuzzed (but at a lower probability).
