@@ -1,4 +1,5 @@
 2ping 4.1 (2017-08-06)
+ * Fixed --fuzz CRC function.
  * Added --encrypt option for shared-secret encrypted packets.
  * Added --listen --all-interfaces option for automatically binding to
    all interface IPs (requires Python netifaces module).
