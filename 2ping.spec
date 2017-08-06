@@ -7,23 +7,25 @@ URL:            https://www.finnie.org/software/2ping
 Source0:        https://www.finnie.org/software/%{name}/%{name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
+%{?python_provide:%python_provide python3-%{name}}
 
 %description
-2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP SYN,
+2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP SYN, 
 SYN/ACK, ACK) and after-the-fact state comparison between a 2ping listener and
 a 2ping client to determine which direction packet loss occurs.
 
 %prep
-%autosetup -n 2ping-%{version}
+%setup -n %{name}-%{version}
 
 %build
 %py3_build
 
 %install
 %py3_install
-install -d -m 0755 $RPM_BUILD_ROOT/usr/share/man/man1
-install -m 0644 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1/2ping.1
-install -m 0644 doc/2ping.1 $RPM_BUILD_ROOT/usr/share/man/man1/2ping6.1
+install -d -m 0755 %{buildroot}/usr/share/man/man1
+install -m 0644 doc/2ping.1 %{buildroot}/usr/share/man/man1/2ping.1
+install -m 0644 doc/2ping.1 %{buildroot}/usr/share/man/man1/2ping6.1
 
 %check
 %{__python3} setup.py test
