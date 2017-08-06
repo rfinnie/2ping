@@ -701,7 +701,7 @@ class TwoPing():
 
         # Fuzz the recalculated checksum itself, at a lower probability
         packet[2:4] = b'\x00\x00'
-        packet[2:4] = fuzz_bytearray(npack(twoping_checksum(packet), 2), fuzz_fraction / 10.0)
+        packet[2:4] = fuzz_bytearray(bytearray(npack(twoping_checksum(packet), 2)), fuzz_fraction / 10.0)
 
         return bytes(packet)
 
