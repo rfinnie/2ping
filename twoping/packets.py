@@ -393,6 +393,8 @@ class OpcodeEncrypted(Opcode):
         self.hkdf_info = b'\xd8\x89\xac\x93\xac\xeb\xa1\xf3\x98\xd0\xc6\x9b\xc8\xc6\xa7\xaa'
         self.method_index = None
         self.encrypted = b''
+        self.session = b''
+        self.iv = None
 
         self.method_map = {
             1: ('HKDF-AES256-CBC',),
@@ -400,33 +402,39 @@ class OpcodeEncrypted(Opcode):
 
     def __repr__(self):
         if self.method_index is not None:
-            return '<{} ({} bytes)>'.format(
+            return '<{} (Session {}, IV {}, {} bytes)>'.format(
                 self.method_map[self.method_index][0],
+                repr(self.session),
+                repr(self.iv),
                 len(self.encrypted),
             )
         return '<Encrypted>'
 
     def load(self, data):
         self.method_index = nunpack(data[0:2])
-        self.encrypted = data[2:]
+        if self.method_index == 1:
+            self.session = data[2:10]
+            self.iv = data[10:26]
+            self.encrypted = data[26:]
+        else:
+            self.encrypted = data[2:]
 
     def dump(self, max_length=None):
-        if self.method_index is not None:
-            return npack(self.method_index, 2) + self.encrypted
+        if self.method_index == 1:
+            return npack(self.method_index, 2) + self.session + self.iv + self.encrypted
         return None
 
-    def encrypt(self, unencrypted, key, iv=None):
+    def encrypt(self, unencrypted, key):
         if not has_aes:
             return None
         if self.method_index is None:
             return None
         if self.method_index == 1:
-            if iv is None:
-                iv = bytes([random.randint(0, 255) for x in range(16)])
-            aeskey = self.hkdf(32, key, salt=iv, info=self.hkdf_info, digestmod=hashlib.sha256)
-            aes_e = AES.new(aeskey, AES.MODE_CBC, iv)
-            self.iv = iv
-            self.encrypted = iv + aes_e.encrypt(unencrypted)
+            if self.iv is None:
+                self.iv = bytes([random.randint(0, 255) for x in range(16)])
+            aeskey = self.hkdf(32, key, salt=self.iv, info=(self.hkdf_info + self.session), digestmod=hashlib.sha256)
+            aes_e = AES.new(aeskey, AES.MODE_CBC, self.iv)
+            self.encrypted = aes_e.encrypt(unencrypted)
         else:
             return None
 
@@ -436,10 +444,9 @@ class OpcodeEncrypted(Opcode):
         if self.method_index is None:
             return None
         if self.method_index == 1:
-            iv = self.encrypted[0:16]
-            aeskey = self.hkdf(32, key, salt=iv, info=self.hkdf_info, digestmod=hashlib.sha256)
-            aes_d = AES.new(aeskey, AES.MODE_CBC, iv)
-            return aes_d.decrypt(self.encrypted[16:])
+            aeskey = self.hkdf(32, key, salt=self.iv, info=(self.hkdf_info + self.session), digestmod=hashlib.sha256)
+            aes_d = AES.new(aeskey, AES.MODE_CBC, self.iv)
+            return aes_d.decrypt(self.encrypted)
 
     def hkdf(self, length, ikm, salt=b'', info=b'', digestmod=None):
         if digestmod is None:

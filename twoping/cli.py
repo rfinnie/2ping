@@ -89,6 +89,8 @@ class SocketClass():
         self.ping_positions = {}
         # Used during client mode for the host tuple to send UDP packets to.
         self.client_host = None
+        # Current session of a 5-tuple for encrypted sessions
+        self.encrypted_sessions = {}
 
         # Statistics
         self.pings_transmitted = 0
@@ -109,6 +111,7 @@ class SocketClass():
 
         self.is_shutdown = False
         self.nagios_result = 0
+        self.session = b''
 
     def fileno(self):
         return self.sock.fileno()
@@ -243,6 +246,8 @@ class TwoPing():
             sock_class.courtesy_messages[peer_tuple] = {}
         if peer_tuple not in sock_class.ping_positions:
             sock_class.ping_positions[peer_tuple] = 0
+        if peer_tuple not in sock_class.encrypted_sessions:
+            sock_class.encrypted_sessions[peer_tuple] = None
 
         # Load/parse the packet.
         packet_in = packets.Packet()
@@ -269,8 +274,37 @@ class TwoPing():
                 )
                 return
             data = packet_in.opcodes[packets.OpcodeEncrypted.id].decrypt(self.args.encrypt.encode('UTF-8'))
+            encrypted_packet_in = packet_in
             packet_in = packets.Packet()
             packet_in.load(data)
+            if sock_class.encrypted_sessions[peer_tuple] is None:
+                sock_class.encrypted_sessions[peer_tuple] = (
+                    time_begin,
+                    [],
+                    encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session,
+                )
+            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session != sock_class.encrypted_sessions[peer_tuple][2]:
+                self.errors_received += 1
+                sock_class.errors_received += 1
+                self.print_out(
+                    _('Encryption session mismatch from {address} (expected {expected}, got {got})').format(
+                        address=peer_address[0],
+                        expected=repr(sock_class.encrypted_sessions[peer_tuple][2]),
+                        got=repr(encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session),
+                    )
+                )
+                return
+            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv in sock_class.encrypted_sessions[peer_tuple][1]:
+                self.errors_received += 1
+                sock_class.errors_received += 1
+                self.print_out(
+                    _('Repeated IV {iv} from {address}, discarding').format(
+                        iv=repr(encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv),
+                        address=peer_address[0],
+                    )
+                )
+                return
+            sock_class.encrypted_sessions[peer_tuple][1].append(encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv)
             if self.args.verbose:
                 self.print_out('DECR: {}'.format(repr(packet_in)))
 
@@ -429,6 +463,7 @@ class TwoPing():
                 encrypted_packet = packets.Packet()
                 encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = packets.OpcodeEncrypted()
                 encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = self.args.encrypt_method_index
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
                 encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(dump_out, self.args.encrypt.encode('UTF-8'))
                 sock_out = encrypted_packet.dump()
             else:
@@ -668,6 +703,7 @@ class TwoPing():
         sock = self.new_socket(bind_info[0], bind_info[1], bind_info[4])
         sock_class = SocketClass(sock)
         sock_class.client_host = host_info
+        sock_class.session = bytes([random_sys.randint(0, 255) for x in range(8)])
         self.sock_classes.append(sock_class)
         self.poller.register(sock_class)
         if not self.args.nagios:
@@ -724,6 +760,7 @@ class TwoPing():
             encrypted_packet = packets.Packet()
             encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = packets.OpcodeEncrypted()
             encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = self.args.encrypt_method_index
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = sock_class.session
             encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(dump_out, self.args.encrypt.encode('UTF-8'))
             sock_out = encrypted_packet.dump()
         else:
@@ -1008,6 +1045,10 @@ class TwoPing():
             if len(sock_class.courtesy_messages[peer_tuple]) == 0:
                 del(sock_class.courtesy_messages[peer_tuple])
                 self.print_debug('Cleanup: Removed courtesy_messages empty {}'.format(repr(peer_tuple)))
+        for peer_tuple in tuple(sock_class.encrypted_sessions.keys()):
+            if now > (sock_class.encrypted_sessions[peer_tuple][0] + 600.0):
+                del(sock_class.encrypted_sessions[peer_tuple])
+                self.print_debug('Cleanup: Removed encrypted_sessions {}'.format(repr(peer_tuple)))
 
     def new_socket(self, family, type, bind):
         sock = socket.socket(family, type)

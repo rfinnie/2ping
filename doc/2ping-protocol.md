@@ -324,15 +324,15 @@ Implementations may use a locally-reserved method by specifying index 0, as long
     * Input key material: shared secret, encoded as UTF-8 if needed
     * Salt: 16 octet (128 bit) per-message pseudo-random value
     * Output key length: 32 octets (256 bits)
-    * Expand round info value: 0xd889ac93aceba1f398d0c69bc8c6a7aa
+    * Expand round info value: 0xd889ac93aceba1f398d0c69bc8c6a7aa + 8 octet (64 bit) per-session pseudo-random value (concatenated)
 * AES encryption
     * Cipher mode: AES-CBC
     * Key: 32 octet (256 bit) output of HKDF extract + expand rounds above
     * Initialization vector (IV): Same as HKDF salt above
     * Input: Complete unencrypted 2ping packet
 
-The IV/salt and the result of the AES encryption are concatenated to form the encrypted data field.
-To decrypt, extract the IV/salt from the first 16 octets of the encrypted data field, and use the method to AES decrypt the remaining octets.
+The session ID, IV/salt and the result of the AES encryption are concatenated to form the encrypted data field.
+To decrypt, extract the session ID from the first 8 octets of the encrypted data field, the IV/salt from the following 16 octets, and use the method to AES decrypt the remaining octets.
 
 AES has a 128 bit block size, which data must be padded to when encrypting.
 As trailing padding is a core feature of 2ping, no special padding method is required.

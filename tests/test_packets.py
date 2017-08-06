@@ -183,8 +183,10 @@ class TestPacketsOpcodes(unittest.TestCase):
         iv = b'2\xf0J/\xb3x\xe3\xf3s+J\x8c\x02t\xca\x0e'
         minimal_packet_data = b'2P\xda\x0a\x0e\xa5[\xe2\x89\x1d\x00\x00\x00\x00\x00\x00'
         opcode = packets.OpcodeEncrypted()
+        opcode.session = b'z\xe3\xcb\xdfeK\x86\x96'
+        opcode.iv = iv
         opcode.method_index = 1
-        opcode.encrypt(minimal_packet_data, key, iv=iv)
+        opcode.encrypt(minimal_packet_data, key)
         self.assertEqual(opcode.decrypt(key), minimal_packet_data)
 
 
