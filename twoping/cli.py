@@ -77,7 +77,7 @@ class SocketClass():
         #   * Inbound packet with it in OpcodeInvestigate.
         # Removed in the following conditions:
         #   * Inbound packet with it in OpcodeCourtesyExpiration.
-        #   * Cleanup after 2 minutes.
+        #   * Cleanup after 10 minutes.
         self.seen_messages = {}
         # Courtesy messages waiting to be sent.  Added in the following conditions:
         #   * Inbound packet with OpcodeInReplyTo set.
@@ -1023,7 +1023,7 @@ class TwoPing():
         now = clock()
         for peer_tuple in tuple(sock_class.sent_messages.keys()):
             for message_id_int in tuple(sock_class.sent_messages[peer_tuple].keys()):
-                if now > (sock_class.sent_messages[peer_tuple][message_id_int][0] + 120.0):
+                if now > (sock_class.sent_messages[peer_tuple][message_id_int][0] + 600.0):
                     del(sock_class.sent_messages[peer_tuple][message_id_int])
                     self.print_debug('Cleanup: Removed sent_messages {} {}'.format(repr(peer_tuple), message_id_int))
             if len(sock_class.sent_messages[peer_tuple]) == 0:
