@@ -169,7 +169,7 @@ class ExtendedBatteryLevels(Extended):
         return '<Batteries ({}): [{}]>'.format(
             len(self.batteries),
             ', '.join(
-                ['{}: {:0.03f}%'.format(x, (self.batteries[x] / 65535.0 * 100.0)) for x in sorted(self.batteries)]
+                ['{}: {:0.03%}'.format(x, self.batteries[x] / 65535.0) for x in sorted(self.batteries)]
             ),
         )
 
