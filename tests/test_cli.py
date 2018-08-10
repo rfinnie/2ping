@@ -6,6 +6,7 @@ import subprocess
 import time
 import signal
 import random
+import locale
 from twoping import monotonic_clock
 
 try:
@@ -87,8 +88,7 @@ class TestCLIStandard(BaseTestCLI):
 
     @unittest.skipUnless(
         (
-            os.environ.get('LANG') and
-            ('UTF-8' in os.environ.get('LANG'))
+            locale.getlocale()[1] == 'UTF-8'
         ), 'UTF-8 environment required'
     )
     def test_notice_utf8(self):
