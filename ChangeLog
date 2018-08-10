@@ -1,3 +1,6 @@
+2ping 4.1.1 (2018-08-09)
+ * Fix UTF-8 tests when run with invalid locale (Debian Bug#897498)
+
 2ping 4.1 (2017-08-06)
  * Fixed --fuzz CRC function.
  * Added --encrypt option for shared-secret encrypted packets.
