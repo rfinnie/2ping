@@ -1046,6 +1046,8 @@ class TwoPing():
                 del(sock_class.courtesy_messages[peer_tuple])
                 self.print_debug('Cleanup: Removed courtesy_messages empty {}'.format(repr(peer_tuple)))
         for peer_tuple in tuple(sock_class.encrypted_sessions.keys()):
+            if sock_class.encrypted_sessions[peer_tuple] is None:
+                continue
             if now > (sock_class.encrypted_sessions[peer_tuple][0] + 600.0):
                 del(sock_class.encrypted_sessions[peer_tuple])
                 self.print_debug('Cleanup: Removed encrypted_sessions {}'.format(repr(peer_tuple)))
