@@ -144,6 +144,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 :   Start as a listener.
     The listener will not send out ping requests at regular intervals, and will instead wait for the far end to initiate ping requests.
     A listener is required as the remote end for a client.
+    When run as a listener, a SIGHUP will reload the configuration on all interfaces.
 
 --min-packet-size=*min*
 :   Set the minimum total payload size to *min* bytes, default 128.

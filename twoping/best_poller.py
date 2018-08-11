@@ -35,6 +35,13 @@ class EpollPoller():
             self.poller.register(fileno, select.EPOLLIN)
         self.f_dict[fileno] = f
 
+    def unregister(self, f):
+        fileno = f.fileno()
+        if fileno not in self.f_dict:
+            return
+        self.poller.unregister(fileno)
+        del(self.f_dict[fileno])
+
     def close(self):
         return self.poller.close()
 
@@ -57,25 +64,32 @@ class KqueuePoller():
 
     def __init__(self):
         self.poller = select.kqueue()
-        self.kevents = []
+        self.kevents = {}
         self.f_dict = {}
 
     def register(self, f):
         fileno = f.fileno()
         if fileno not in self.f_dict:
-            self.kevents.append(select.kevent(
+            self.kevents[fileno] = select.kevent(
                 fileno,
                 filter=select.KQ_FILTER_READ,
                 flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
-            ))
+            )
         self.f_dict[fileno] = f
+
+    def unregister(self, f):
+        fileno = f.fileno()
+        if fileno not in self.f_dict:
+            return
+        del(self.kevents[fileno])
+        del(self.f_dict[fileno])
 
     def close(self):
         return self.poller.close()
 
     def poll(self, timeout):
         try:
-            poll_res = self.poller.control(self.kevents, 10, timeout)
+            poll_res = self.poller.control(self.kevents.values(), 10, timeout)
         except (select.error, IOError, OSError) as e:
             if e.args[0] not in (errno.EINTR,):
                 raise
@@ -99,6 +113,13 @@ class PollPoller():
         if fileno not in self.f_dict:
             self.poller.register(fileno, select.POLLIN)
         self.f_dict[fileno] = f
+
+    def unregister(self, f):
+        fileno = f.fileno()
+        if fileno not in self.f_dict:
+            return
+        self.poller.unregister(fileno)
+        del(self.f_dict[fileno])
 
     def close(self):
         return self.poller.close()
@@ -125,6 +146,12 @@ class SelectPoller():
 
     def register(self, f):
         self.f_dict[f.fileno()] = f
+
+    def unregister(self, f):
+        fileno = f.fileno()
+        if fileno not in self.f_dict:
+            return
+        del(self.f_dict[fileno])
 
     def close(self):
         pass

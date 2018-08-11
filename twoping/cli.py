@@ -168,6 +168,8 @@ class TwoPing():
                 else:
                     raise
 
+        self.is_reload = False
+
         if self.args.send_monotonic_clock and (not clock_info.monotonic):
             self.args.send_monotonic_clock = False
 
@@ -585,6 +587,12 @@ class TwoPing():
                     ))
 
     def setup_listener(self):
+        # If called idempotently, destroy all listeners first
+        for sock_class in self.sock_classes:
+            self.poller.unregister(sock_class)
+            sock_class.sock.close()
+
+        self.sock_classes = []
         bound_addresses = []
         if self.args.all_interfaces:
             if not has_netifaces:
@@ -807,6 +815,10 @@ class TwoPing():
     def sigquit_handler(self, signum, frame):
         self.print_stats(short=True)
 
+    def sighup_handler(self, signum, frame):
+        self.print_debug('Received SIGHUP, scheduling reload')
+        self.is_reload = True
+
     def stats_time(self, seconds):
         conversion = (
             (1000, 'ms'),
@@ -964,6 +976,8 @@ class TwoPing():
         self.print_debug('Poller: {}'.format(self.poller.poller_type))
         if hasattr(signal, 'SIGQUIT'):
             signal.signal(signal.SIGQUIT, self.sigquit_handler)
+        if hasattr(signal, 'SIGHUP'):
+            signal.signal(signal.SIGHUP, self.sighup_handler)
 
         try:
             if self.args.listen:
@@ -1149,6 +1163,11 @@ class TwoPing():
                     break
             if all_shutdown:
                 self.shutdown()
+
+            if self.is_reload:
+                self.is_reload = False
+                if self.args.listen:
+                    self.setup_listener()
 
 
 def main():
