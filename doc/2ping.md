@@ -6,7 +6,7 @@
 
 # SYNOPSIS
 
-2ping [*options*] *--listen* | host/IP
+2ping [*options*] *--listen* | host/IP [host/IP [...]]
 
 # DESCRIPTION
 
