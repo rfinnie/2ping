@@ -62,35 +62,11 @@ class SocketClass():
     def __init__(self, sock):
         self.sock = sock
 
-        # In-flight outbound messages.  Added in the following conditions:
-        #   * Outbound packet with OpcodeReplyRequested sent.
-        # Removed in following conditions:
-        #   * Inbound packet with OpcodeInReplyTo set to it.
-        #   * Inbound packet with it in OpcodeInvestigationSeen or OpcodeInvestigationUnseen.
-        #   * Cleanup after 10 minutes.
-        # If it remains for more than <10> seconds, it it sent as part of
-        # OpcodeInvestigate with the next outbound packet with OpcodeReplyRequested set.
-        self.sent_messages = {}
-        # Seen inbound messages.  Added in the following conditions:
-        #   * Inbound packet with OpcodeReplyRequested set.
-        # Referenced in the following conditions:
-        #   * Inbound packet with it in OpcodeInvestigate.
-        # Removed in the following conditions:
-        #   * Inbound packet with it in OpcodeCourtesyExpiration.
-        #   * Cleanup after 10 minutes.
-        self.seen_messages = {}
-        # Courtesy messages waiting to be sent.  Added in the following conditions:
-        #   * Inbound packet with OpcodeInReplyTo set.
-        # Removed in the following conditions:
-        #   * Outbound packet where there is room to send it as part of OpcodeCourtesyExpiration.
-        #   * Cleanup after 2 minutes.
-        self.courtesy_messages = {}
-        # Current position of a peer tuple's incrementing ping integer.
-        self.ping_positions = {}
         # Used during client mode for the host tuple to send UDP packets to.
         self.client_host = None
-        # Current session of a 5-tuple for encrypted sessions
-        self.encrypted_sessions = {}
+
+        # Dict of PeerState instances, indexed by peer tuple
+        self.peer_states = {}
 
         # Statistics
         self.pings_transmitted = 0
@@ -115,6 +91,44 @@ class SocketClass():
 
     def fileno(self):
         return self.sock.fileno()
+
+
+class PeerState():
+    def __init__(self, peer_tuple, sock_class):
+        self.peer_tuple = peer_tuple
+        self.sock_class = sock_class
+
+        # In-flight outbound messages.  Added in the following conditions:
+        #   * Outbound packet with OpcodeReplyRequested sent.
+        # Removed in following conditions:
+        #   * Inbound packet with OpcodeInReplyTo set to it.
+        #   * Inbound packet with it in OpcodeInvestigationSeen or OpcodeInvestigationUnseen.
+        #   * Cleanup after 10 minutes.
+        # If it remains for more than <10> seconds, it it sent as part of
+        # OpcodeInvestigate with the next outbound packet with OpcodeReplyRequested set.
+        self.sent_messages = {}
+        # Seen inbound messages.  Added in the following conditions:
+        #   * Inbound packet with OpcodeReplyRequested set.
+        # Referenced in the following conditions:
+        #   * Inbound packet with it in OpcodeInvestigate.
+        # Removed in the following conditions:
+        #   * Inbound packet with it in OpcodeCourtesyExpiration.
+        #   * Cleanup after 10 minutes.
+        self.seen_messages = {}
+        # Courtesy messages waiting to be sent.  Added in the following conditions:
+        #   * Inbound packet with OpcodeInReplyTo set.
+        # Removed in the following conditions:
+        #   * Outbound packet where there is room to send it as part of OpcodeCourtesyExpiration.
+        #   * Cleanup after 2 minutes.
+        self.courtesy_messages = {}
+        # Current position of a peer tuple's incrementing ping integer.
+        self.ping_position = 0
+        # Current encrypted session ID
+        self.encrypted_session_id = None
+        # Seen encrypted session IVs
+        self.encrypted_session_ivs = {}
+        # Last time a peer was sent to or received from
+        self.last_seen = clock()
 
 
 class TwoPing():
@@ -240,16 +254,10 @@ class TwoPing():
         peer_tuple = (socket_address, peer_address, sock.type)
 
         # Preload state tables if the client has not been seen (or has been cleaned).
-        if peer_tuple not in sock_class.seen_messages:
-            sock_class.seen_messages[peer_tuple] = {}
-        if peer_tuple not in sock_class.sent_messages:
-            sock_class.sent_messages[peer_tuple] = {}
-        if peer_tuple not in sock_class.courtesy_messages:
-            sock_class.courtesy_messages[peer_tuple] = {}
-        if peer_tuple not in sock_class.ping_positions:
-            sock_class.ping_positions[peer_tuple] = 0
-        if peer_tuple not in sock_class.encrypted_sessions:
-            sock_class.encrypted_sessions[peer_tuple] = None
+        if peer_tuple not in sock_class.peer_states:
+            sock_class.peer_states[peer_tuple] = PeerState(peer_tuple, sock_class)
+        peer_state = sock_class.peer_states[peer_tuple]
+        peer_state.last_seen = time_begin
 
         # Load/parse the packet.
         packet_in = packets.Packet()
@@ -279,24 +287,20 @@ class TwoPing():
             encrypted_packet_in = packet_in
             packet_in = packets.Packet()
             packet_in.load(data)
-            if sock_class.encrypted_sessions[peer_tuple] is None:
-                sock_class.encrypted_sessions[peer_tuple] = (
-                    time_begin,
-                    [],
-                    encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session,
-                )
-            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session != sock_class.encrypted_sessions[peer_tuple][2]:
+            if peer_state.encrypted_session_id is None:
+                peer_state.encrypted_session_id = encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
+            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session != peer_state.encrypted_session_id:
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _('Encryption session mismatch from {address} (expected {expected}, got {got})').format(
                         address=peer_address[0],
-                        expected=repr(sock_class.encrypted_sessions[peer_tuple][2]),
+                        expected=repr(peer_state.encrypted_session_id),
                         got=repr(encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session),
                     )
                 )
                 return
-            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv in sock_class.encrypted_sessions[peer_tuple][1]:
+            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv in peer_state.encrypted_session_ivs:
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
@@ -306,7 +310,7 @@ class TwoPing():
                     )
                 )
                 return
-            sock_class.encrypted_sessions[peer_tuple][1].append(encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv)
+            peer_state.encrypted_session_ivs[encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv] = (time_begin,)
             if self.args.verbose:
                 self.print_out('DECR: {}'.format(repr(packet_in)))
 
@@ -353,9 +357,9 @@ class TwoPing():
         if packets.OpcodeInReplyTo.id in packet_in.opcodes:
             replied_message_id = packet_in.opcodes[packets.OpcodeInReplyTo.id].message_id
             replied_message_id_int = nunpack(replied_message_id)
-            if replied_message_id_int in sock_class.sent_messages[peer_tuple]:
-                (sent_time, _unused, ping_position) = sock_class.sent_messages[peer_tuple][replied_message_id_int]
-                del(sock_class.sent_messages[peer_tuple][replied_message_id_int])
+            if replied_message_id_int in peer_state.sent_messages:
+                (sent_time, _unused, ping_position) = peer_state.sent_messages[replied_message_id_int]
+                del(peer_state.sent_messages[replied_message_id_int])
                 calculated_rtt = (time_begin - sent_time) * 1000
                 self.pings_received += 1
                 sock_class.pings_received += 1
@@ -371,7 +375,7 @@ class TwoPing():
                         self.print_out(
                             _('{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms peertime={peerms:0.03f} ms').format(
                                 bytes=len(data),
-                                address=peer_tuple[1][0],
+                                address=peer_state.peer_tuple[1][0],
                                 seq=ping_position,
                                 ms=calculated_rtt,
                                 peerms=(packet_in.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us / 1000.0),
@@ -381,7 +385,7 @@ class TwoPing():
                         self.print_out(
                             _('{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms').format(
                                 bytes=len(data),
-                                address=peer_tuple[1][0],
+                                address=peer_state.peer_tuple[1][0],
                                 seq=ping_position,
                                 ms=calculated_rtt,
                             )
@@ -392,22 +396,22 @@ class TwoPing():
                     ):
                         notice = packet_in.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text
                         self.print_out('  ' + _('Peer notice: {notice}').format(notice=notice))
-            sock_class.courtesy_messages[peer_tuple][replied_message_id_int] = (time_begin, replied_message_id)
+            peer_state.courtesy_messages[replied_message_id_int] = (time_begin, replied_message_id)
 
         # Check if any invesitgations results have come back.
-        self.check_investigations(sock_class, peer_tuple, packet_in)
+        self.check_investigations(peer_state, packet_in)
 
         # Process courtesy expirations
         if packets.OpcodeCourtesyExpiration.id in packet_in.opcodes:
             for message_id in packet_in.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids:
                 message_id_int = nunpack(message_id)
-                if message_id_int in sock_class.seen_messages[peer_tuple]:
-                    del(sock_class.seen_messages[peer_tuple][message_id_int])
+                if message_id_int in peer_state.seen_messages:
+                    del(peer_state.seen_messages[message_id_int])
 
         # If the peer requested a reply, prepare one.
         if packets.OpcodeReplyRequested.id in packet_in.opcodes:
             # Populate seen_messages.
-            sock_class.seen_messages[peer_tuple][nunpack(packet_in.message_id)] = time_begin
+            peer_state.seen_messages[nunpack(packet_in.message_id)] = (time_begin,)
 
             # Basic packet configuration.
             packet_out = self.base_packet()
@@ -429,7 +433,7 @@ class TwoPing():
             # Check for any investigations the peer requested.
             if packets.OpcodeInvestigate.id in packet_in.opcodes:
                 for message_id in packet_in.opcodes[packets.OpcodeInvestigate.id].message_ids:
-                    if nunpack(message_id) in sock_class.seen_messages[peer_tuple]:
+                    if nunpack(message_id) in peer_state.seen_messages:
                         if packets.OpcodeInvestigationSeen.id not in packet_out.opcodes:
                             packet_out.opcodes[packets.OpcodeInvestigationSeen.id] = packets.OpcodeInvestigationSeen()
                         packet_out.opcodes[packets.OpcodeInvestigationSeen.id].message_ids.append(message_id)
@@ -444,12 +448,12 @@ class TwoPing():
                 packet_out.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
 
             # Send any investigations we would like to know about.
-            self.start_investigations(sock_class, peer_tuple, packet_out)
+            self.start_investigations(peer_state, packet_out)
 
             # Any courtesy expirations we have waiting should be sent.
-            if len(sock_class.courtesy_messages[peer_tuple]) > 0:
+            if len(peer_state.courtesy_messages) > 0:
                 packet_out.opcodes[packets.OpcodeCourtesyExpiration.id] = packets.OpcodeCourtesyExpiration()
-                for (courtesy_time, courtesy_message_id) in sock_class.courtesy_messages[peer_tuple].values():
+                for (courtesy_time, courtesy_message_id) in peer_state.courtesy_messages.values():
                     packet_out.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids.append(courtesy_message_id)
 
             # Calculate the host latency as late as possible.
@@ -480,11 +484,11 @@ class TwoPing():
             if packets.OpcodeReplyRequested.id in packet_out.opcodes:
                 self.pings_transmitted += 1
                 sock_class.pings_transmitted += 1
-                sock_class.ping_positions[peer_tuple] += 1
-                sock_class.sent_messages[peer_tuple][nunpack(packet_out.message_id)] = (
+                peer_state.ping_position += 1
+                peer_state.sent_messages[nunpack(packet_out.message_id)] = (
                     time_send,
                     packet_out.message_id,
-                    sock_class.ping_positions[peer_tuple]
+                    peer_state.ping_position
                 )
 
             # Examine the sent packet.
@@ -495,8 +499,8 @@ class TwoPing():
             if packets.OpcodeCourtesyExpiration.id in packet_out_examine.opcodes:
                 for courtesy_message_id in packet_out_examine.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids:
                     courtesy_message_id_int = nunpack(courtesy_message_id)
-                    if courtesy_message_id_int in sock_class.courtesy_messages[peer_tuple]:
-                        del(sock_class.courtesy_messages[peer_tuple][courtesy_message_id_int])
+                    if courtesy_message_id_int in peer_state.courtesy_messages:
+                        del(peer_state.courtesy_messages[courtesy_message_id_int])
 
             if self.args.verbose:
                 if self.args.encrypt:
@@ -519,16 +523,16 @@ class TwoPing():
         except socket.error as e:
             self.handle_socket_error(e, sock_class, peer_address=address)
 
-    def start_investigations(self, sock_class, peer_tuple, packet_check):
-        if len(sock_class.sent_messages[peer_tuple]) == 0:
+    def start_investigations(self, peer_state, packet_check):
+        if len(peer_state.sent_messages) == 0:
             return
         if packets.OpcodeInvestigate.id in packet_check.opcodes:
             iobj = packet_check.opcodes[packets.OpcodeInvestigate.id]
         else:
             iobj = None
         now = clock()
-        for message_id_str in sock_class.sent_messages[peer_tuple]:
-            (sent_time, message_id, _unused) = sock_class.sent_messages[peer_tuple][message_id_str]
+        for message_id_str in peer_state.sent_messages:
+            (sent_time, message_id, _unused) = peer_state.sent_messages[message_id_str]
             if now >= (sent_time + self.args.inquire_wait):
                 if iobj is None:
                     iobj = packets.OpcodeInvestigate()
@@ -537,32 +541,32 @@ class TwoPing():
         if iobj is not None:
             packet_check.opcodes[packets.OpcodeInvestigate.id] = iobj
 
-    def check_investigations(self, sock_class, peer_tuple, packet_check):
+    def check_investigations(self, peer_state, packet_check):
         found = {}
 
         # Inbound
         if packets.OpcodeInvestigationSeen.id in packet_check.opcodes:
             for message_id in packet_check.opcodes[packets.OpcodeInvestigationSeen.id].message_ids:
                 message_id_int = nunpack(message_id)
-                if message_id_int not in sock_class.sent_messages[peer_tuple]:
+                if message_id_int not in peer_state.sent_messages:
                     continue
-                (_unused, _unused, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
-                found[ping_seq] = ('inbound', peer_tuple[1][0])
-                del(sock_class.sent_messages[peer_tuple][message_id_int])
+                (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id_int]
+                found[ping_seq] = ('inbound', peer_state.peer_tuple[1][0])
+                del(peer_state.sent_messages[message_id_int])
                 self.lost_inbound += 1
-                sock_class.lost_inbound += 1
+                peer_state.sock_class.lost_inbound += 1
 
         # Outbound
         if packets.OpcodeInvestigationUnseen.id in packet_check.opcodes:
             for message_id in packet_check.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids:
                 message_id_int = nunpack(message_id)
-                if message_id_int not in sock_class.sent_messages[peer_tuple]:
+                if message_id_int not in peer_state.sent_messages:
                     continue
-                (_unused, _unused, ping_seq) = sock_class.sent_messages[peer_tuple][message_id_int]
-                found[ping_seq] = ('outbound', peer_tuple[1][0])
-                del(sock_class.sent_messages[peer_tuple][message_id_int])
+                (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id_int]
+                found[ping_seq] = ('outbound', peer_state.peer_tuple[1][0])
+                del(peer_state.sent_messages[message_id_int])
                 self.lost_outbound += 1
-                sock_class.lost_outbound += 1
+                peer_state.sock_class.lost_outbound += 1
 
         if self.args.quiet:
             return
@@ -753,14 +757,14 @@ class TwoPing():
         sock = sock_class.sock
         socket_address = sock.getsockname()
         peer_tuple = (socket_address, peer_address, sock.type)
-        if peer_tuple not in sock_class.sent_messages:
-            sock_class.sent_messages[peer_tuple] = {}
-        if peer_tuple not in sock_class.ping_positions:
-            sock_class.ping_positions[peer_tuple] = 0
+        if peer_tuple not in sock_class.peer_states:
+            sock_class.peer_states[peer_tuple] = PeerState(peer_tuple, sock_class)
+        peer_state = sock_class.peer_states[peer_tuple]
+        peer_state.last_seen = clock()
 
         packet_out = self.base_packet()
         packet_out.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.start_investigations(sock_class, peer_tuple, packet_out)
+        self.start_investigations(peer_state, packet_out)
         dump_out = packet_out.dump()
 
         # If enabled, encrypt the packet and wrap it in a stub packet.
@@ -780,11 +784,11 @@ class TwoPing():
         sock_class.packets_transmitted += 1
         self.pings_transmitted += 1
         sock_class.pings_transmitted += 1
-        sock_class.ping_positions[peer_tuple] += 1
-        sock_class.sent_messages[peer_tuple][nunpack(packet_out.message_id)] = (
+        peer_state.ping_position += 1
+        peer_state.sent_messages[nunpack(packet_out.message_id)] = (
             now,
             packet_out.message_id,
-            sock_class.ping_positions[peer_tuple]
+            peer_state.ping_position
         )
         packet_out_examine = packets.Packet()
         packet_out_examine.load(dump_out)
@@ -1035,36 +1039,23 @@ class TwoPing():
 
     def scheduled_cleanup_sock_class(self, sock_class):
         now = clock()
-        for peer_tuple in tuple(sock_class.sent_messages.keys()):
-            for message_id_int in tuple(sock_class.sent_messages[peer_tuple].keys()):
-                if now > (sock_class.sent_messages[peer_tuple][message_id_int][0] + 600.0):
-                    del(sock_class.sent_messages[peer_tuple][message_id_int])
-                    self.print_debug('Cleanup: Removed sent_messages {} {}'.format(repr(peer_tuple), message_id_int))
-            if len(sock_class.sent_messages[peer_tuple]) == 0:
-                del(sock_class.sent_messages[peer_tuple])
-                self.print_debug('Cleanup: Removed sent_messages empty {}'.format(repr(peer_tuple)))
-        for peer_tuple in tuple(sock_class.seen_messages.keys()):
-            for message_id_int in tuple(sock_class.seen_messages[peer_tuple].keys()):
-                if now > (sock_class.seen_messages[peer_tuple][message_id_int] + 600.0):
-                    del(sock_class.seen_messages[peer_tuple][message_id_int])
-                    self.print_debug('Cleanup: Removed seen_messages {} {}'.format(repr(peer_tuple), message_id_int))
-            if len(sock_class.seen_messages[peer_tuple]) == 0:
-                del(sock_class.seen_messages[peer_tuple])
-                self.print_debug('Cleanup: Removed seen_messages empty {}'.format(repr(peer_tuple)))
-        for peer_tuple in tuple(sock_class.courtesy_messages.keys()):
-            for message_id_int in tuple(sock_class.courtesy_messages[peer_tuple].keys()):
-                if now > (sock_class.courtesy_messages[peer_tuple][message_id_int][0] + 120.0):
-                    del(sock_class.courtesy_messages[peer_tuple][message_id_int])
-                    self.print_debug('Cleanup: Removed courtesy_messages {} {}'.format(repr(peer_tuple), message_id_int))
-            if len(sock_class.courtesy_messages[peer_tuple]) == 0:
-                del(sock_class.courtesy_messages[peer_tuple])
-                self.print_debug('Cleanup: Removed courtesy_messages empty {}'.format(repr(peer_tuple)))
-        for peer_tuple in tuple(sock_class.encrypted_sessions.keys()):
-            if sock_class.encrypted_sessions[peer_tuple] is None:
+        for peer_tuple in tuple(sock_class.peer_states.keys()):
+            peer_state = sock_class.peer_states[peer_tuple]
+            if now > peer_state.last_seen + 600.0:
+                del(sock_class.peer_states[peer_tuple])
+                self.print_debug('Cleanup: Removed {}'.format(repr(peer_tuple)))
                 continue
-            if now > (sock_class.encrypted_sessions[peer_tuple][0] + 600.0):
-                del(sock_class.encrypted_sessions[peer_tuple])
-                self.print_debug('Cleanup: Removed encrypted_sessions {}'.format(repr(peer_tuple)))
+            for table_name, max_time in (
+                ('sent_messages', 600.0),
+                ('seen_messages', 600.0),
+                ('courtesy_messages', 120.0),
+                ('encrypted_session_ivs', 600.0),
+            ):
+                table = getattr(peer_state, table_name)
+                for table_key_name in tuple(table.keys()):
+                    if now > (table[table_key_name][0] + max_time):
+                        del(table[table_key_name])
+                        self.print_debug('Cleanup: Removed {} {} {}'.format(repr(peer_tuple), table_name, table_key_name))
 
     def new_socket(self, family, type, bind):
         sock = socket.socket(family, type)
