@@ -15,7 +15,7 @@ setup(
     name='2ping',
     description='2ping a bi-directional ping utility',
     long_description=read('README'),
-    version='4.1',
+    version='4.2',
     license='GPLv2+',
     platforms=['Unix'],
     author='Ryan Finnie',

@@ -1,3 +1,8 @@
+2ping 4.2 (2018-08-11)
+ * Added SIGHUP handling of listener processes
+ * Added an example bash_completion script
+ * Better cleanup handling of peer information
+
 2ping 4.1.2 (2018-08-09)
  * Fix UTF-8 tests when run with invalid locale (Debian Bug#897498)
  * Fix cleanup on non-encrypted sessions (GitHub rfinnie/2ping#5)
