@@ -651,7 +651,7 @@ class TwoPing():
                 lookup_hosts_found = 0
                 self.print_debug('SRV lookup: {}'.format(lookup))
                 try:
-                    res = dns.resolver.query('_2ping._udp.{}'.format(lookup), 'srv')
+                    res = dns.resolver.query('_{}._udp.{}'.format(self.args.srv_service, lookup), 'srv')
                 except dns.exception.DNSException as e:
                     raise socket.error('{}: {}'.format(lookup, repr(e)))
                 for rdata in res:

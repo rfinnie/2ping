@@ -209,6 +209,10 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
     The record's port will be used instead of *--port*.
     This functionality requires the dnspython module to be installed.
 
+--srv-service=*service*
+:   When combined with *--srv*, service name to be used for SRV lookups.
+    Default service is "2ping".
+
 --stats=*interval*
 :   Print a line of brief current statistics every *interval* seconds.
     The same line can be printed on demand by entering \^\\ or sending the QUIT signal to the 2ping process.
