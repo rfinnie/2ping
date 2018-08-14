@@ -299,7 +299,7 @@ directional packet loss that it detects.
 When sending replies, 2ping will try to match the packet size of the
 received packet by adding padding if necessary, but will not exceed
 \f[I]\-\-max\-packet\-size\f[].
-\f[I]\-\-no\-match\-packet\-size\f[] disabled this behavior, always
+\f[I]\-\-no\-match\-packet\-size\f[] disables this behavior, always
 setting the minimum to \f[I]\-\-min\-packet\-size\f[].
 .RS
 .RE
@@ -325,7 +325,7 @@ for both outbound and inbound.
 .RE
 .TP
 .B \-\-port=\f[I]port\f[]
-Use UDP port \f[I]port\f[], either a numeric port number of a service
+Use UDP port \f[I]port\f[], either a numeric port number or a service
 name string.
 With \f[I]\-\-listen\f[], this is the port to bind as, otherwise this is
 the port to send to.

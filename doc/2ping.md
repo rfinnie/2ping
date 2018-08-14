@@ -169,7 +169,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 
 --no-match-packet-size
 :   When sending replies, 2ping will try to match the packet size of the received packet by adding padding if necessary, but will not exceed *--max-packet-size*.
-    *--no-match-packet-size* disabled this behavior, always setting the minimum to *--min-packet-size*.
+    *--no-match-packet-size* disables this behavior, always setting the minimum to *--min-packet-size*.
 
 --no-send-version
 :   Do not send the current running version of 2ping with each packet.
@@ -184,7 +184,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
     A single number without colon separation means use the same percentage for both outbound and inbound.
 
 --port=*port*
-:   Use UDP port *port*, either a numeric port number of a service name string.
+:   Use UDP port *port*, either a numeric port number or a service name string.
     With *--listen*, this is the port to bind as, otherwise this is the port to send to.
     Default is UDP port 15998.
 
