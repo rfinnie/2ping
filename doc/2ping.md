@@ -32,8 +32,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 
 --adaptive, -A
 :   Adaptive ping.
-    A new client ping request is sent as soon as a client ping response is received.
-    If a ping response is not received within the interval period, a new ping request is sent.
+    Interpacket interval adapts to round-trip time, so that effectively not more than one (or more, if preload is set) unanswered probe is present in the network.
     On networks with low rtt this mode is essentially equivalent to flood mode.
 
 --count=*count*, -c *count*

@@ -85,7 +85,7 @@ class SocketClass():
 
         self.next_send = 0
 
-        self.is_shutdown = False
+        self.shutdown_time = 0
         self.nagios_result = 0
         self.session = b''
 
@@ -508,9 +508,15 @@ class TwoPing():
                 else:
                     self.print_out('SEND: {}'.format(repr(packet_out_examine)))
 
-        # If we're in flood mode and this is a ping reply, send a new ping ASAP.
-        if self.args.flood and (not self.args.listen) and (packets.OpcodeInReplyTo.id in packet_in.opcodes):
-            sock_class.next_send = time_begin
+        if (not self.args.listen) and (packets.OpcodeInReplyTo.id in packet_in.opcodes):
+            if self.args.flood:
+                # If we're in flood mode and this is a ping reply, send a new ping ASAP.
+                sock_class.next_send = time_begin
+            elif self.args.adaptive and sock_class.rtt_ewma:
+                # Adaptive gets recalculated immediately after the reply.
+                next_send = time_begin + (sock_class.rtt_ewma / 8.0 / 1000.0)
+                if next_send < sock_class.next_send:
+                    sock_class.next_send = next_send
 
     def sock_sendto(self, sock_class, data, address):
         sock = sock_class.sock
@@ -1081,24 +1087,25 @@ class TwoPing():
                 self.next_cleanup = now + 60.0
             if not self.args.listen:
                 for sock_class in self.sock_classes:
-                    if sock_class.is_shutdown:
+                    if sock_class.shutdown_time:
+                        # Scheduled to shutdown, do not send any more pings
                         continue
                     if now >= sock_class.next_send:
                         if self.args.count and (sock_class.pings_transmitted >= self.args.count):
-                            sock_class.is_shutdown = True
+                            sock_class.shutdown_time = now + self.args.interval
+                            sock_class.next_send = now + self.args.interval
                             continue
                         if (sock_class.pings_transmitted == 0) and (self.args.preload > 1):
                             for i in range(self.args.preload):
                                 self.send_new_ping(sock_class, sock_class.client_host[4])
                         else:
                             self.send_new_ping(sock_class, sock_class.client_host[4])
-                        sock_class.next_send = now + self.args.interval
-
-            if self.args.flood:
-                next_send = now + 0.01
-                for sock_class in self.sock_classes:
-                    if next_send < sock_class.next_send:
-                        sock_class.next_send = next_send
+                        if self.args.adaptive and sock_class.rtt_ewma:
+                            sock_class.next_send = now + (sock_class.rtt_ewma / 8.0 / 1000.0)
+                        elif self.args.flood:
+                            sock_class.next_send = now + 0.01
+                        else:
+                            sock_class.next_send = now + self.args.interval
 
             next_wakeup = now + self.old_age_interval
             next_wakeup_reason = 'old age'
@@ -1106,6 +1113,9 @@ class TwoPing():
                 if (not self.args.listen) and (sock_class.next_send < next_wakeup):
                     next_wakeup = sock_class.next_send
                     next_wakeup_reason = 'send'
+                if sock_class.shutdown_time and (sock_class.shutdown_time < next_wakeup):
+                    next_wakeup = sock_class.shutdown_time
+                    next_wakeup_reason = 'shutdown'
             if self.args.stats:
                 if now >= self.next_stats:
                     self.print_stats(short=True)
@@ -1137,19 +1147,16 @@ class TwoPing():
                     if self.args.debug:
                         raise
 
-                if self.args.adaptive and sock_class.rtt_ewma:
-                    target = sock_class.rtt_ewma / 8.0 / 1000.0
-                    sock_class.next_send = now + target
                 if (
                     self.args.count and
                     (sock_class.pings_transmitted >= self.args.count) and
                     (sock_class.pings_transmitted == sock_class.pings_received)
                 ):
-                    sock_class.is_shutdown = True
+                    sock_class.shutdown_time = now
 
             all_shutdown = True
             for sock_class in self.sock_classes:
-                if not sock_class.is_shutdown:
+                if (not sock_class.shutdown_time) or (sock_class.shutdown_time >= now):
                     all_shutdown = False
                     break
             if all_shutdown:
