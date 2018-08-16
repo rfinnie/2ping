@@ -1,5 +1,5 @@
 # 2ping - A bi-directional ping utility
-# Copyright (C) 2010-2017 Ryan Finnie
+# Copyright (C) 2010-2018 Ryan Finnie
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
