@@ -1,3 +1,8 @@
+2ping 4.3 (2018-12-03)
+ * dd --srv-service
+ * Change --adaptive behavior to better match ping -A
+ * Fix typos in manpage
+
 2ping 4.2 (2018-08-11)
  * Added SIGHUP handling of listener processes
  * Added an example bash_completion script
