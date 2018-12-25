@@ -1,5 +1,5 @@
 2ping 4.3 (2018-12-03)
- * dd --srv-service
+ * Add --srv-service
  * Change --adaptive behavior to better match ping -A
  * Fix typos in manpage
 
