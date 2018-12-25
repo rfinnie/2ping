@@ -25,52 +25,27 @@ The 2ping format is a variable length binary format, with the length determined 
 Opcode data lengths are in a standardized location, which allows for forward compatibility.
 A program utilizing the 2ping protocol can still parse a complete payload, even if the program does not understand a certain opcode.
 
-All data is in network byte format: octets are most significant bit first, and multiple-octet sequences (flags and integers capable of being larger than 8 bits) are most significant octet first.
-An exception is the order of opcode data segments; data for opcodes is stored in sequence according to which flags are set, starting with the least significant bit.
+All data is in network byte order (big endian), with one byte equal to 8 bits (1 octet).
+Bytes are most significant bit first, and multiple-byte sequences (flags and integers capable of being larger than 8 bits) are most significant byte first.
 
 | Field | Length |
 | ----- | ------ |
-| Magic number 0x3250 | 2 octets, required |
-| Checksum | 2 octets, field required, checksum optional |
-| Message ID | 6 octets, required |
-| Opcode flags | 2 octets, required |
-| Opcode data | Variable, zero or more octets, length depends on opcode flags |
+| Magic number 0x3250 | 2 bytes, required |
+| Checksum | 2 bytes, field required, checksum optional |
+| Message ID | 6 bytes, required |
+| Opcode flags | 2 bytes, required |
+| Opcode data | Variable, zero or more bytes, length depends on opcode flags |
 | Padding | Variable, optional |
 
-Thus, the minimum valid length of a 2ping payload is 12 octets (2-octet magic number + 2-octet checksum field + 6-octet message ID + 2-octet opcode flags with no flags enabled).
-
-2 octets of opcode flags allow for up to 16 flags.
-The final flag (0x8000) is a container for an extended segment format, and allows for a nearly unlimited number of available segments.
-
 Padding may be added to a packet to bring it up to a desired minimum size.
-A 128 octet minimum packet size is recommended.
-Padding octets should be null character octets by default, but the contents of the padding is not important, as the packet parser should not use the contents of the padding for program operation.
+A 128 byte minimum packet size is recommended.
+Padding bytes should be null character bytes by default, but the contents of the padding is not important, as the packet parser should not use the contents of the padding for program operation.
 
-Zero or more opcode data segments are appended to form the opcode data area.
-Each opcode data segment is comprised of the following:
-
-| Field | Length |
-| ----- | ------ |
-| Segment data length (not including length header itself) | 2 octets, required |
-| Segment data | Variable, zero or more octets, determined by segment data length header above |
-
-An opcode data segment may be between zero and 65,535 octets long, plus 2 octets for the segment header.
-
-This layout is designed for forward compatibility with future protocol revisions.
-A 2ping implementation can simply stop processing once it reaches the last opcode flag it understands, or it can at least parse the opcodes it does not understand, as the opcode data segment header includes the length of the segment data -- using this information, the implementation can simply skip over the opcodes it does not understand.
-
-If there is a numeric gap in the understood opcodes of a 2ping implementation, it must at least check for the opcode and parse the opcode data segment in order to skip over it.
-For example, a 2ping implementation might understand 0x0001, 0x0002 and 0x0008, but not 0x0004, 0x0010 or 0x0020.
-To be able to parse the data segment for 0x0008, it must still check whether 0x0004 is set and seek to its segment data length header, determine the length of the segment data for 0x0004, and skip over it to begin parsing 0x0008.
-Due to the standardized length headers, this is possible without knowing what 0x0004 does.
-Once it is finished parsing 0x0008, it may stop checking opcode flags altogether.
-
-The minimum 2ping implementation must be able to understand and follow opcodes 0x0001 (reply requested) and 0x0002 (in reply to).
-Implementation of all other opcodes are optional (but highly recommended, as investigation opcodes are the core focus of 2ping).
+The minimum valid length of a 2ping payload is 12 bytes (2-byte magic number + 2-byte checksum field + 6-byte message ID + 2-byte opcode flags with no flags enabled + zero padding).
 
 ## Message IDs
 
-Message IDs are 48 bits (6 octets) of data to identify a specific message.
+Message IDs are 48 bits (6 bytes) of data to identify a specific message.
 The message ID must be 48 bits of pseudo-random data; do not use incrementing numbers or a discernible pattern.
 Likewise, do not attempt to analyze or devise logic from the message IDs that a peer sends.
 
@@ -118,25 +93,50 @@ However, it was discovered that the only known 2ping implementation which comput
 
 ## Opcodes
 
-Opcode data areas are only included when the corresponding opcode flag is set.
+Opcodes' data in the opcode data area is stored in sequence according to which flags are set in the opcode flags field, starting with the least significant bit.
 Thus if no opcode flags are set, the opcode data area does not exist.
-If 0x0001 and 0x0020 flags are set, the entire opcode data area consists of the opcode header and segment data for 0x0001, followed by the opcode header and segment data for 0x0020.
+
+For example, if 0x0001 and 0x0020 flags are set, the entire opcode data area consists of the opcode header and segment data for 0x0001, followed by the opcode header and segment data for 0x0020.
+
+2 bytes of opcode flags allow for up to 16 opcodes.
+The final flag (0x8000) is a container for an extended segment format, and allows for an arbitrary number of segments.
+
+Each opcode data segment is comprised of the following:
+
+| Field | Length |
+| ----- | ------ |
+| Segment data length (not including length header itself) | 2 bytes, required |
+| Segment data | Variable, zero or more bytes, determined by segment data length header above |
+
+An opcode data segment may be between zero and 65,535 bytes long, plus 2 bytes for the segment header.
+
+This layout is designed for forward compatibility with future protocol revisions.
+A 2ping implementation can simply stop processing once it reaches the last opcode flag it understands, or it can at least parse the opcodes it does not understand, as the opcode data segment header includes the length of the segment data -- using this information, the implementation can simply skip over the opcodes it does not understand.
+
+If there is a numeric gap in the understood opcodes of a 2ping implementation, it must at least check for the opcode and parse the opcode data segment in order to skip over it.
+For example, a 2ping implementation might understand 0x0001, 0x0002 and 0x0008, but not 0x0004, 0x0010 or 0x0020.
+To be able to parse the data segment for 0x0008, it must still check whether 0x0004 is set and seek to its segment data length header, determine the length of the segment data for 0x0004, and skip over it to begin parsing 0x0008.
+Due to the standardized length headers, this is possible without knowing what 0x0004 does.
+Once it is finished parsing 0x0008, it may stop checking opcode flags altogether.
+
+The minimum 2ping implementation must be able to understand and follow opcodes 0x0001 (reply requested) and 0x0002 (in reply to).
+Implementation of all other opcodes are optional (but highly recommended, as investigation opcodes are the core focus of 2ping).
 
 ### 0x0001 - Reply requested
 
 | Field | Length |
 | ----- | ------ |
-| No segment data | 0 octets |
+| No segment data | 0 bytes |
 
 The sending end requests a reply from the receiving end.
 If the receiving end does not send a reply back to the sending end, the sending end will consider it a lost packet.
-Note: No segment data is part of this opcode, but as all used opcode segments must have a header, there will still be a 2-octet length header, signifying zero octets of data.
+Note: No segment data is part of this opcode, but as all used opcode segments must have a header, there will still be a 2-byte length header, signifying zero bytes of data.
 
 ### 0x0002 - In reply to
 
 | Field | Length |
 | ----- | ------ |
-| Replied message ID | 6 octets, required |
+| Replied message ID | 6 bytes, required |
 
 This opcode signifies the reply to a packet that requested a reply.
 The original sender's message ID is enclosed.
@@ -145,7 +145,7 @@ The original sender's message ID is enclosed.
 
 | Field | Length |
 | ----- | ------ |
-| RTT in microseconds | 4 octets, required |
+| RTT in microseconds | 4 bytes, required |
 
 If this packet is a reply packet and an RTT is enclosed, the packet being replied to was a successful ping, and the RTT is the round trip time of the previous operation, in microseconds.
 Up to 2^32-1 microseconds are possible, approximately 71 minutes.
@@ -156,15 +156,15 @@ Thus the server will know both the server->client->server ping RTT, as well as t
 
 | Field | Length |
 | ----- | ------ |
-| Number of message IDs enclosed | 2 octets, required |
-| Message ID | 6 octets, optional |
-| Message ID... | 6 octets..., optional |
+| Number of message IDs enclosed | 2 bytes, required |
+| Message ID | 6 bytes, optional |
+| Message ID... | 6 bytes..., optional |
 
 This is a response to "0x0020 - Expected reply never received, please investigate", please continue reading below.
 The message IDs listed in this opcode are packets that the responder knows about, and had responded to.
 Since the requester never received the response, the requester can assume that the packet loss occurred inbound (relative to the requester).
 
-In theory, the number of message IDs enclosed may be between zero and 65,535, but limits on the total octet length of the opcode data area will make this impossible to achieve.
+In theory, the number of message IDs enclosed may be between zero and 65,535, but limits on the total byte length of the opcode data area will make this impossible to achieve.
 In addition, UDP, IP and Ethernet length restrictions will further limit the number of message IDs that can be enclosed.
 The number of message IDs enclosed may legally be zero, but if that is the case, it's better to just not set the 0x0008 opcode flag.
 
@@ -176,15 +176,15 @@ It is the responsibility of the requester to resend investigation requests if th
 
 | Field | Length |
 | ----- | ------ |
-| Number of message IDs enclosed | 2 octets, required |
-| Message ID | 6 octets, optional |
-| Message ID... | 6 octets..., optional |
+| Number of message IDs enclosed | 2 bytes, required |
+| Message ID | 6 bytes, optional |
+| Message ID... | 6 bytes..., optional |
 
 This is a response to "0x0020 - Expected reply never received, please investigate", please continue reading below.
 The message IDs listed in this opcode are packets that the responder does not know about.
 Since the responder never received the request, the requester can assume that the packet loss occurred outbound (relative to the requester).
 
-In theory, the number of message IDs enclosed may be between zero and 65,535, but limits on the total octet length of the opcode data area will make this impossible to achieve.
+In theory, the number of message IDs enclosed may be between zero and 65,535, but limits on the total byte length of the opcode data area will make this impossible to achieve.
 In addition, UDP, IP and Ethernet length restrictions will further limit the number of message IDs that can be enclosed.
 The number of message IDs enclosed may legally be zero, but if that is the case, it's better to just not set the 0x0010 opcode flag.
 
@@ -196,14 +196,14 @@ It is the responsibility of the requester to resend investigation requests if th
 
 | Field | Length |
 | ----- | ------ |
-| Number of message IDs enclosed | 2 octets, required |
-| Message ID | 6 octets, optional |
-| Message ID... | 6 octets..., optional |
+| Number of message IDs enclosed | 2 bytes, required |
+| Message ID | 6 bytes, optional |
+| Message ID... | 6 bytes..., optional |
 
 If the requester sends a packet to a remote party and indicates a reply is requested (0x0001), and a reply is never received, the requester can use this opcode to inquire about what happened to it.
 If replies to this inquiry come back in either "0x0008 - Investigation complete, originally replied to as requested" or "0x0010 - Investigation complete, request never received" opcodes (as explained above), the requester can use this information to determine whether the packet loss occurred inbound or outbound relative to the requester.
 
-In theory, the number of message IDs enclosed may be between zero and 65,535, but limits on the total octet length of the opcode data area will make this impossible to achieve.
+In theory, the number of message IDs enclosed may be between zero and 65,535, but limits on the total byte length of the opcode data area will make this impossible to achieve.
 In addition, UDP, IP and Ethernet length restrictions will further limit the number of message IDs that can be enclosed.
 The number of message IDs enclosed may legally be zero, but if that is the case, it's better to just not set the 0x0020 opcode flag.
 
@@ -218,9 +218,9 @@ Thus it is the responsibility of the requester to continue to send inquiries unt
 
 | Field | Length |
 | ----- | ------ |
-| Number of message IDs enclosed | 2 octets, required |
-| Message ID | 6 octets, optional |
-| Message ID... | 6 octets..., optional |
+| Number of message IDs enclosed | 2 bytes, required |
+| Message ID | 6 bytes, optional |
+| Message ID... | 6 bytes..., optional |
 
 To facilitate bi-directional packet loss detection, it is necessary for each peer to maintain a set of state tables: messages expecting a reply and not yet received, and remote peer messages expecting a reply that the near end has replied to.
 Maintenance of the first cache is easy; simply remove a message ID once a reply or investigation has been received.
@@ -247,7 +247,7 @@ Peers may send unsolicited messages with courtesy opcodes (a message not request
 
 | Field | Length |
 | ----- | ------ |
-| Digest type index | 2 octets, required |
+| Digest type index | 2 bytes, required |
 | Computed hash value | Length depends on digest type, required |
 
 The message authentication code field is allowed to provide cryptographic data integrity and authentication of the remote side.
@@ -259,11 +259,11 @@ The digest types supported are:
 | Index | Digest Type | Computed hash size |
 | ----- | ----------- | ------------------ |
 | 0 | Private / locally reserved | Variable |
-| 1 | HMAC-MD5 | 16 octets |
-| 2 | HMAC-SHA1 | 20 octets |
-| 3 | HMAC-SHA256 | 32 octets |
-| 4 | HMAC-CRC32 | 4 octets |
-| 5 | HMAC-SHA512 | 64 octets |
+| 1 | HMAC-MD5 | 16 bytes |
+| 2 | HMAC-SHA1 | 20 bytes |
+| 3 | HMAC-SHA256 | 32 bytes |
+| 4 | HMAC-CRC32 | 4 bytes |
+| 5 | HMAC-SHA512 | 64 bytes |
 
 The two peers must use the same key and digest type.
 If a peer is instructed to hash its messages, it must not accept replies that are not hashed with the same digest type and key.
@@ -272,7 +272,7 @@ Index 0 may be used by clients for digest types not defined by this specificatio
 Additional digest types may be added to this specification in the future.
 
 The entire payload is hashed, from the magic number to the padding, inclusive.
-When computing the MAC hash, the hash value itself is filled with zeroed octets, and replaced with the computed hash.
+When computing the MAC hash, the hash value itself is filled with zeroed bytes, and replaced with the computed hash.
 The MAC hash is computed before the payload checksum, therefore the checksum area must also be zeroed before the MAC hash is computed.
 
 Use of this opcode is optional and its parameters (whether to use hashing, the digest type and the shared secret) must be coordinated between the two sides ahead of time.
@@ -287,7 +287,7 @@ The HMAC specification requires aligning the key to the digest function's block 
 
 | Field | Length |
 | ----- | ------ |
-| Delay in microseconds | 4 octets, required |
+| Delay in microseconds | 4 bytes, required |
 
 The time between receiving a message packet and sending a reply packet may be non-trivial, due to host processing.
 This opcode can be used by an implementation, when sending a reply (0x0002), to inform a peer how much time progressed between a receive and a send.
@@ -297,11 +297,13 @@ Up to 2^32-1 microseconds are possible, approximately 71 minutes.
 The delta should be computed from immediately after the original message packet has been received, to as soon as possible before the reply packet has been sent.
 Note that due to optional MAC hash and checksum calculation processing, which must be computed after the rest of the opcode data area, there still could be some host processing latency not accounted for in the reported latency time.
 
+This opcode should only be used when combined with a monotonic clock, as using a wall clock may result in processing being greater than the RTT, less than zero, etc.
+
 ### 0x0200 - Encrypted packet
 
 | Field | Length |
 | ----- | ------ |
-| Method index | 2 octets, required |
+| Method index | 2 bytes, required |
 | Encrypted data | Variable, required |
 
 This opcode acts as a container for a shared-secret encrypted 2ping packet.
@@ -321,22 +323,22 @@ Implementations may use a locally-reserved method by specifying index 0, as long
 
 * Shared secret
 * HKDF (RFC 5869) key derivation function, extract + expand rounds
-    * Input key material: shared secret, encoded as UTF-8 if needed
-    * Salt: 16 octet (128 bit) per-message pseudo-random value
-    * Output key length: 32 octets (256 bits)
-    * Expand round info value: 0xd889ac93aceba1f398d0c69bc8c6a7aa + 8 octet (64 bit) per-session pseudo-random value (concatenated)
+    * Input key material: shared secret (UTF-8)
+    * Salt: 16 byte (128 bit) per-message pseudo-random value
+    * Output key length: 32 bytes (256 bits)
+    * Expand round info value: 0xd889ac93aceba1f398d0c69bc8c6a7aa + 8 byte (64 bit) per-session pseudo-random value (concatenated)
 * AES encryption
     * Cipher mode: AES-CBC
-    * Key: 32 octet (256 bit) output of HKDF extract + expand rounds above
+    * Key: 32 byte (256 bit) output of HKDF extract + expand rounds above
     * Initialization vector (IV): Same as HKDF salt above
     * Input: Complete unencrypted 2ping packet
 
 The session ID, IV/salt and the result of the AES encryption are concatenated to form the encrypted data field.
-To decrypt, extract the session ID from the first 8 octets of the encrypted data field, the IV/salt from the following 16 octets, and use the method to AES decrypt the remaining octets.
+To decrypt, extract the session ID from the first 8 bytes of the encrypted data field, the IV/salt from the following 16 bytes, and use the method to AES decrypt the remaining bytes.
 
 AES has a 128 bit block size, which data must be padded to when encrypting.
 As trailing padding is a core feature of 2ping, no special padding method is required.
-The implementation only needs to make sure the unencrypted packet length is a multiple of 16 octets before encryption.
+The implementation only needs to make sure the unencrypted packet length is a multiple of 16 bytes before encryption.
 
 ### 0x8000 - Extended segments
 
@@ -346,9 +348,9 @@ Each part is built as so:
 
 | Field | Length |
 | ----- | ------ |
-| Extended segment ID | 4 octets, required |
-| Extended segment data length | 2 octets, required |
-| Extended segment data | Variable, zero or more octets, determined by extended segment data length header above |
+| Extended segment ID | 4 bytes, required |
+| Extended segment data length | 2 bytes, required |
+| Extended segment data | Variable, zero or more bytes, determined by extended segment data length header above |
 
 Multiple extended segment parts are chained together to form the data area of a 0x8000 opcode.
 The opcode data area must include a maximum of one instance of any individual extended segment.
@@ -371,7 +373,7 @@ An implementation is not required to implement any extended segments (or the ext
 
 | Field | Length |
 | ----- | ------ |
-| Program version text | Variable length |
+| Program version text (UTF-8) | Variable length |
 
 The human-readable text version of the program or firmware generating the packet, with optional information such as architecture, etc.
 An example could be "Network Tools 3.0-1distro2 (x86_64-linux)".
@@ -379,11 +381,14 @@ An example could be "Network Tools 3.0-1distro2 (x86_64-linux)".
 As the 2ping protocol is designed to be backwards and forwards compatible, this field must not be used by an implementation to determine functionality.
 It is recommended that this field be sent with every packet, but received segments should not be displayed to the user unless in a verbose/debug/etc mode.
 
+This segment's number, 0x3250564e, evaluates to ASCII "2PVN" ("2ping version number"), and was chosen before the decision to recommend segment numbers be randomly assigned to avoid collisions with unregistered extended segments.
+All other extended segment numbers in this specification were randomly chosen.
+
 ### 0x2ff6ad68 - Random data
 
 | Field | Length |
 | ----- | ------ |
-| Flags | 2 octets, required |
+| Flags | 2 bytes, required |
 | Random data | Variable length |
 
 Random data as generated by the host's random number generator.
@@ -392,13 +397,13 @@ The following flags may be present:
 * 0x0001 - Whether the data was generated by a hardware random number generator.
 * 0x0002 - Whether the data was generated by the operating system's random number generator.
 
-If this segment is to be used for cryptographic or trusted purposes, it should be combined with "0x0080 - Message authentication code (MAC)" to ensure end-to-end integrity.
+If this segment is to be used for cryptographic or trusted purposes, it should be combined with "0x0080 - Message authentication code (MAC)" or "0x0200 - Encrypted packet" to ensure end-to-end integrity.
 
 ### 0x64f69319 - Wall clock
 
 | Field | Length |
 | ----- | ------ |
-| Time in microseconds | 8 octets, required |
+| Time in microseconds | 8 bytes, required |
 
 Host time (wall clock) of the sender, in microseconds since 1970-01-01 00:00:00 UTC (Unix epoch).
 
@@ -406,11 +411,13 @@ Host time (wall clock) of the sender, in microseconds since 1970-01-01 00:00:00 
 
 | Field | Length |
 | ----- | ------ |
-| Generation ID | 2 octets, required |
-| Time in microseconds | 8 octets, required |
+| Generation ID | 2 bytes, required |
+| Time in microseconds | 8 bytes, required |
 
 Monotonic clock time, in microseconds since an epoch.
-The epoch is arbitrary; to avoid leaking the uptime of the host system/process, the epoch may be zeroed to a random offset, and the generation ID must be set to a random value at the same time as the epoch offset.
+The epoch is arbitrary; set the generation ID to a random value and the epoch to a random offset from the host's monotonic clock.
+The generation ID and epoch may occasionally be regenerated together (for example, every few hours or days), to avoid leaking information about wall clock or program start time.
+
 A peer may compare two successive values by making sure the generation IDs match and the later time is greater than the earlier time.
 
 This segment must only be sent if the host is capable of using a monotonic, high-precision clock.
@@ -419,11 +426,11 @@ This segment must only be sent if the host is capable of using a monotonic, high
 
 | Field | Length |
 | ----- | ------ |
-| Number of batteries enclosed | 2 octets, required |
-| Battery ID | 2 octets, optional |
-| Battery level | 2 octets, optional |
-| Battery ID... | 2 octets..., optional |
-| Battery level... | 2 octets..., optional |
+| Number of batteries enclosed | 2 bytes, required |
+| Battery ID | 2 bytes, optional |
+| Battery level | 2 bytes, optional |
+| Battery ID... | 2 bytes..., optional |
+| Battery level... | 2 bytes..., optional |
 
 If the host is a device which includes batteries, this may be used to report their levels.
 Multiple batteries may be reported using different battery IDs.
@@ -435,7 +442,7 @@ The number of batteries enclosed may legally be zero, but if that is the case, i
 
 | Field | Length |
 | ----- | ------ |
-| Notice text | Variable length |
+| Notice text (UTF-8) | Variable length |
 
 Arbitrary text to be sent with the packet.
 This text should be defined by the user by a program flag, UI option, etc.
@@ -447,11 +454,11 @@ The implementation may display this text to the user, but it is not guaranteed t
 ## Procedures
 
 In the following pseudocode examples, message IDs are represented as zero-padded incrementing numbers.
-This is for the purpose of identifying reply chains in these examples only.
-In real life, message IDs MUST be randomly-generated 48-bit (6 octet) identifiers.
+This is for the purpose of illustrating reply chains in these examples only.
+In real life, message IDs MUST be randomly-generated 48-bit (6 byte) identifiers.
 The program implementing the 2ping protocol may choose to locally associate a better identifier for the user (such as an incrementing integer), but the protocol message ID must be random and pseudo-unique.
 
-As mentioned above, the simplest 2ping packet is a 12-octet payload: 2 octets for the magic number (always 0x3250), 2 octets for the checksum field, 6 octets for the message ID, and 2 blank opcode flag octets:
+As mentioned above, the simplest 2ping packet is a 12-byte payload: 2 bytes for the magic number (always 0x3250), 2 bytes for the checksum field, 6 bytes for the message ID, and 2 blank opcode flag bytes:
 
 ### Example 1
 
@@ -572,6 +579,15 @@ But if the "server" decides to randomly initiate a ping request of its own, the 
 
 ## Changelog
 
+### 4.1 (20181225)
+* Moved all opcode-related information to the Opcodes section.
+* Program version text, notice text and HKDF input key material are explicitly specified as being UTF-8 encoded.
+* Added note that host processing latency should only be used with a monotonic clock.
+* Clarified monotonic clock best practices.
+* Added note about the meaning of extended segment number 0x3250564e, and how it shouldn't be used as a guide.
+* Changed all instances of "octet" to "byte", and explicitly defined a byte as 8 bits.
+* General cleanup and minor clarifications.
+
 ### 4.0 (20170806)
 * Added opcode 0x0200 - Encrypted packet
 
@@ -591,8 +607,8 @@ But if the "server" decides to randomly initiate a ping request of its own, the 
 * Changed the checksum method from RFC 768 to a custom method with example pseudocode.
 This creates a functional incompatibility with previous versions of the specification.
 However, it was discovered that the only known 2ping implementation which computed checksums at the time was using an incorrect method, so the specification was changed to match the implementation to preserve compatibility.
-* Fixed a typo in the extended segment table, changing "Extended segment ID" from 8 octets to 4 octets.
-This clarifies the previous (correct) assertion that the segment ID is 32 bits (4 octets).
+* Fixed a typo in the extended segment table, changing "Extended segment ID" from 8 bytes to 4 bytes.
+This clarifies the previous (correct) assertion that the segment ID is 32 bits (4 bytes).
 * Populated checksums of example packet dumps.
 * Corrected the 5th client line of Example 6's packet dump (pseudocode version was correct, but example dump had 2 incorrect bytes added).
 * Adjusted wording of psuedocode examples to clarify "reply requested" opcode comes before "in reply to" opcode.
@@ -600,7 +616,7 @@ This clarifies the previous (correct) assertion that the segment ID is 32 bits (
 ### 2.0 (20120422)
 
 * Protocol versions 1.0 and 2.0 are backwards and forwards compatible with each other.
-* Changed recommended default minimum packet size from 64 octets to 128 octets.
+* Changed recommended default minimum packet size from 64 bytes to 128 bytes.
 * Added an extended segment container at opcode 0x8000.
 * Added the following registered extended segments:
   * 0x3250564e: Program version
