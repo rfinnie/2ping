@@ -360,7 +360,14 @@ class TwoPing():
             if replied_message_id_int in peer_state.sent_messages:
                 (sent_time, _unused, ping_position) = peer_state.sent_messages[replied_message_id_int]
                 del(peer_state.sent_messages[replied_message_id_int])
+
                 calculated_rtt = (time_begin - sent_time) * 1000
+                if self.args.ignore_peer_host_latency and packets.OpcodeHostLatency.id in packet_in.opcodes:
+                    calculated_rtt -= packet_in.opcodes[packets.OpcodeHostLatency.id].delay_us / 1000.0
+                # Peer host latency could be wildly innacurate; guard against negative RTT.
+                if calculated_rtt < 0:
+                    calculated_rtt = 0
+
                 self.pings_received += 1
                 sock_class.pings_received += 1
                 self.update_rtts(sock_class, calculated_rtt)
@@ -457,9 +464,10 @@ class TwoPing():
                     packet_out.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids.append(courtesy_message_id)
 
             # Calculate the host latency as late as possible.
-            packet_out.opcodes[packets.OpcodeHostLatency.id] = packets.OpcodeHostLatency()
-            time_send = clock()
-            packet_out.opcodes[packets.OpcodeHostLatency.id].delay_us = int((time_send - time_begin) * 1000000)
+            if clock_info.monotonic:
+                packet_out.opcodes[packets.OpcodeHostLatency.id] = packets.OpcodeHostLatency()
+                time_send = clock()
+                packet_out.opcodes[packets.OpcodeHostLatency.id].delay_us = int((time_send - time_begin) * 1000000)
 
             # Dump the packet.
             dump_out = packet_out.dump()

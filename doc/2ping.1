@@ -235,6 +235,13 @@ checksum itself will be fuzzed (but at a lower probability).
 .RS
 .RE
 .TP
+.B \-\-ignore\-peer\-host\-latency
+If a peer sends its host latency (the amount of time it spends between
+receiving a packet and sending out a reply), subtract it from RTT
+calculations.
+.RS
+.RE
+.TP
 .B \-\-inquire\-wait=\f[I]secs\f[]
 Wait at least \f[I]secs\f[] seconds before inquiring about a lost
 packet.

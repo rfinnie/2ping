@@ -206,6 +206,10 @@ def parse_args(argv=None):
         '--srv-service', type=str, default='2ping',
         help=_('service name for SRV lookups'),
     )
+    parser.add_argument(
+        '--ignore-peer-host-latency', action='store_true',
+        help=_('subtract peer host latency from RTT calculations, if sent'),
+    )
 
     # ping-compatible ignored options
     for opt in 'b|B|d|L|n|R|r|U'.split('|'):
