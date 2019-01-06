@@ -27,14 +27,13 @@ _pl = gettext.translation('2ping', fallback=True).ngettext
 def twoping_checksum(d):
     checksum = 0
 
-    for i in range(len(d)):
-        if i & 1:
-            checksum += d[i]
-        else:
-            checksum += d[i] << 8
+    if (len(d) % 2 == 1):
+        d += b'\x00'
 
-    checksum = ((checksum >> 16) + (checksum & 0xffff))
-    checksum = ((checksum >> 16) + (checksum & 0xffff))
+    for i in range(0, len(d), 2):
+        checksum = checksum + (d[i] << 8) + d[i+1]
+        checksum = ((checksum & 0xffff) + (checksum >> 16))
+
     checksum = ~checksum & 0xffff
 
     if checksum == 0:
