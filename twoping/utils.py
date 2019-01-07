@@ -27,8 +27,9 @@ _pl = gettext.translation('2ping', fallback=True).ngettext
 def twoping_checksum(d):
     checksum = 0
 
-    if (len(d) % 2 == 1):
-        d += b'\x00'
+    if (len(d) % 2) == 1:
+        # Convert from (possible) bytearray to bytes before appending
+        d = bytes(d) + b'\x00'
 
     for i in range(0, len(d), 2):
         checksum = checksum + (d[i] << 8) + d[i+1]
