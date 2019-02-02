@@ -140,6 +140,7 @@ class TwoPing():
         self.fake_time_generation = random_sys.randint(0, 65535)
 
         self.sock_classes = []
+        self.systemd_socks = []
         self.poller = best_poller.best_poller()
 
         self.pings_transmitted = 0
@@ -604,15 +605,43 @@ class TwoPing():
                         seq=ping_seq,
                     ))
 
+    def gather_systemd_socks(self):
+        # If we've done this before, don't re-attempt
+        if len(self.systemd_socks) > 0:
+            return
+
+        try:
+            import systemd.daemon
+        except ImportError:
+            return
+
+        # Note that listen_fds() defaults to unset_environment=True
+        # so we only want to try this once (see above)
+        for fd in systemd.daemon.listen_fds():
+            for family in (socket.AF_INET6, socket.AF_INET):
+                if not systemd.daemon.is_socket_inet(fd, family=family, type=socket.SOCK_DGRAM):
+                    continue
+                sock = socket.fromfd(fd, family, socket.SOCK_DGRAM)
+                self.systemd_socks.append(sock)
+                self.print_debug('Using systemd-supplied socket on fd {}: {}'.format(fd, (family, socket.SOCK_DGRAM, sock.getsockname())))
+                break
+
     def setup_listener(self):
         # If called idempotently, destroy all listeners first
         for sock_class in self.sock_classes:
             self.poller.unregister(sock_class)
-            sock_class.sock.close()
+            # Do not close systemd-supplied sockets
+            if sock_class.sock not in self.systemd_socks:
+                sock_class.sock.close()
 
         self.sock_classes = []
         bound_addresses = []
-        if self.args.all_interfaces:
+        self.gather_systemd_socks()
+        if len(self.systemd_socks) > 0:
+            for sock in self.systemd_socks:
+                self.sock_classes.append(SocketClass(sock))
+            interface_addresses = []
+        elif self.args.all_interfaces:
             if not has_netifaces:
                 raise socket.error('All interface addresses not available; please install netifaces')
             addrs = set()
@@ -646,15 +675,15 @@ class TwoPing():
                 else:
                     continue
                 sock = self.new_socket(l[0], l[1], l[4])
-                sock_class = SocketClass(sock)
-                self.sock_classes.append(sock_class)
-                self.poller.register(sock_class)
+                self.sock_classes.append(SocketClass(sock))
                 bound_addresses.append(l)
-                self.print_out(_('2PING listener ({address}): {min} to {max} bytes of data.').format(
-                    address=l[4][0],
-                    min=self.args.min_packet_size,
-                    max=self.args.max_packet_size,
-                ))
+        for sock_class in self.sock_classes:
+            self.poller.register(sock_class)
+            self.print_out(_('2PING listener ({address}): {min} to {max} bytes of data.').format(
+                address=sock_class.sock.getsockname()[0],
+                min=self.args.min_packet_size,
+                max=self.args.max_packet_size,
+            ))
 
     def setup_client(self):
         if self.args.srv:
