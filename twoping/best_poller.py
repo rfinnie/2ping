@@ -23,7 +23,7 @@ import select
 
 
 class EpollPoller:
-    poller_type = 'epoll'
+    poller_type = "epoll"
 
     def __init__(self):
         self.poller = select.epoll()
@@ -60,7 +60,7 @@ class EpollPoller:
 
 
 class KqueuePoller:
-    poller_type = 'kqueue'
+    poller_type = "kqueue"
 
     def __init__(self):
         self.poller = select.kqueue()
@@ -100,7 +100,7 @@ class KqueuePoller:
 
 
 class PollPoller:
-    poller_type = 'poll'
+    poller_type = "poll"
 
     def __init__(self):
         self.poller = select.poll()
@@ -137,7 +137,7 @@ class PollPoller:
 
 
 class SelectPoller:
-    poller_type = 'select'
+    poller_type = "select"
 
     def __init__(self):
         self.f_dict = {}
@@ -189,8 +189,8 @@ def available_pollers():
     return available
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     available = available_pollers()
-    print('Available pollers: {}'.format(' '.join([p.poller_type for p in available])))
+    print("Available pollers: {}".format(" ".join([p.poller_type for p in available])))
     poller = best_poller()
-    print('Best poller: {}'.format(poller.poller_type))
+    print("Best poller: {}".format(poller.poller_type))

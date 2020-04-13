@@ -35,14 +35,14 @@ class Extended:
     id = None
 
     def __init__(self):
-        self.data = b''
+        self.data = b""
 
     def __repr__(self):
         if self.id is None:
-            return '<Extended: {} bytes>'.format(len(self.data))
+            return "<Extended: {} bytes>".format(len(self.data))
         else:
-            id_hex = ''.join(['{:02x}'.format(x) for x in npack(self.id, 4)])
-            return '<Extended (0x{}): {} bytes>'.format(id_hex, len(self.data))
+            id_hex = "".join(["{:02x}".format(x) for x in npack(self.id, 4)])
+            return "<Extended (0x{}): {} bytes>".format(id_hex, len(self.data))
 
     def load(self, data):
         self.data = data
@@ -56,13 +56,13 @@ class ExtendedText(Extended):
         self.text = str()
 
     def __repr__(self):
-        return '<Text (Generic): {}>'.format(self.text)
+        return "<Text (Generic): {}>".format(self.text)
 
     def load(self, data):
-        self.text = data.decode('UTF-8')
+        self.text = data.decode("UTF-8")
 
     def dump(self, max_length=None):
-        text_bytes = self.text.encode('UTF-8')
+        text_bytes = self.text.encode("UTF-8")
         if (max_length is not None) and (max_length < len(text_bytes)):
             return None
         return text_bytes
@@ -72,14 +72,14 @@ class ExtendedVersion(ExtendedText):
     id = 0x3250564E
 
     def __repr__(self):
-        return '<Version: {}>'.format(self.text)
+        return "<Version: {}>".format(self.text)
 
 
 class ExtendedNotice(ExtendedText):
     id = 0xA837B44E
 
     def __repr__(self):
-        return '<Notice: {}>'.format(self.text)
+        return "<Notice: {}>".format(self.text)
 
 
 class ExtendedWallClock(Extended):
@@ -89,7 +89,7 @@ class ExtendedWallClock(Extended):
         self.time_us = 0
 
     def __repr__(self):
-        return '<Wall Clock: {}>'.format(time.strftime('%c', time.gmtime(self.time_us / 1000000.0)))
+        return "<Wall Clock: {}>".format(time.strftime("%c", time.gmtime(self.time_us / 1000000.0)))
 
     def load(self, data):
         self.time_us = nunpack(data[0:8])
@@ -108,7 +108,7 @@ class ExtendedMonotonicClock(Extended):
         self.time_us = 0
 
     def __repr__(self):
-        return '<Monotonic Clock: {:0.9f}, gen {}>'.format((self.time_us / 1000000.0), self.generation)
+        return "<Monotonic Clock: {:0.9f}, gen {}>".format((self.time_us / 1000000.0), self.generation)
 
     def load(self, data):
         self.generation = nunpack(data[0:2])
@@ -126,10 +126,10 @@ class ExtendedRandom(Extended):
     def __init__(self):
         self.is_hwrng = False
         self.is_os = False
-        self.random_data = b''
+        self.random_data = b""
 
     def __repr__(self):
-        return '<Random: {} ({}), HWRNG {}, OS {}>'.format(
+        return "<Random: {} ({}), HWRNG {}, OS {}>".format(
             repr(self.random_data), len(self.random_data), repr(self.is_hwrng), repr(self.is_os)
         )
 
@@ -163,9 +163,9 @@ class ExtendedBatteryLevels(Extended):
         self.batteries = {}
 
     def __repr__(self):
-        return '<Batteries ({}): [{}]>'.format(
+        return "<Batteries ({}): [{}]>".format(
             len(self.batteries),
-            ', '.join(['{}: {:0.03%}'.format(x, self.batteries[x] / 65535.0) for x in sorted(self.batteries)]),
+            ", ".join(["{}: {:0.03%}".format(x, self.batteries[x] / 65535.0) for x in sorted(self.batteries)]),
         )
 
     def load(self, data):
@@ -198,14 +198,14 @@ class Opcode:
     id = None
 
     def __init__(self):
-        self.data = b''
+        self.data = b""
 
     def __repr__(self):
         if self.id is None:
-            return '<Opcode: {} bytes>'.format(len(self.data))
+            return "<Opcode: {} bytes>".format(len(self.data))
         else:
-            id_hex = ''.join(['{:02x}'.format(x) for x in npack(self.id, 2)])
-            return '<Opcode (0x{}): {} bytes>'.format(id_hex, len(self.data))
+            id_hex = "".join(["{:02x}".format(x) for x in npack(self.id, 2)])
+            return "<Opcode (0x{}): {} bytes>".format(id_hex, len(self.data))
 
     def load(self, data):
         self.data = data
@@ -221,24 +221,24 @@ class OpcodeReplyRequested(Opcode):
         pass
 
     def __repr__(self):
-        return '<Reply Requested>'
+        return "<Reply Requested>"
 
     def load(self, data):
         pass
 
     def dump(self, max_length=None):
-        return b''
+        return b""
 
 
 class OpcodeInReplyTo(Opcode):
     id = 0x0002
 
     def __init__(self):
-        self.message_id = b''
+        self.message_id = b""
 
     def __repr__(self):
-        message_id_hex = ''.join(['{:02x}'.format(x) for x in self.message_id])
-        return '<In Reply To: 0x{}>'.format(message_id_hex)
+        message_id_hex = "".join(["{:02x}".format(x) for x in self.message_id])
+        return "<In Reply To: 0x{}>".format(message_id_hex)
 
     def load(self, data):
         self.message_id = data[0:6]
@@ -256,7 +256,7 @@ class OpcodeRTTEnclosed(Opcode):
         self.rtt_us = 0
 
     def __repr__(self):
-        return '<RTT Enclosed: {} us>'.format(self.rtt_us)
+        return "<RTT Enclosed: {} us>".format(self.rtt_us)
 
     def load(self, data):
         self.rtt_us = nunpack(data[0:4])
@@ -272,8 +272,8 @@ class OpcodeMessageIDList(Opcode):
         self.message_ids = []
 
     def __repr__(self):
-        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y]) for y in self.message_ids)]
-        return '<ID List (Generic): [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
+        ids = ["0x{}".format("".join(["{:02x}".format(x) for x in y]) for y in self.message_ids)]
+        return "<ID List (Generic): [{}] ({})>".format(", ".join(ids), len(self.message_ids))
 
     def load(self, data):
         self.message_ids = []
@@ -300,56 +300,56 @@ class OpcodeInvestigationSeen(OpcodeMessageIDList):
     id = 0x0008
 
     def __repr__(self):
-        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
-        return '<Investigation Seen: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
+        ids = ["0x{}".format("".join(["{:02x}".format(x) for x in y])) for y in self.message_ids]
+        return "<Investigation Seen: [{}] ({})>".format(", ".join(ids), len(self.message_ids))
 
 
 class OpcodeInvestigationUnseen(OpcodeMessageIDList):
     id = 0x0010
 
     def __repr__(self):
-        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
-        return '<Investigation Unseen: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
+        ids = ["0x{}".format("".join(["{:02x}".format(x) for x in y])) for y in self.message_ids]
+        return "<Investigation Unseen: [{}] ({})>".format(", ".join(ids), len(self.message_ids))
 
 
 class OpcodeInvestigate(OpcodeMessageIDList):
     id = 0x0020
 
     def __repr__(self):
-        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
-        return '<Investigate: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
+        ids = ["0x{}".format("".join(["{:02x}".format(x) for x in y])) for y in self.message_ids]
+        return "<Investigate: [{}] ({})>".format(", ".join(ids), len(self.message_ids))
 
 
 class OpcodeCourtesyExpiration(OpcodeMessageIDList):
     id = 0x0040
 
     def __repr__(self):
-        ids = ['0x{}'.format(''.join(['{:02x}'.format(x) for x in y])) for y in self.message_ids]
-        return '<Courtesy Expiration: [{}] ({})>'.format(', '.join(ids), len(self.message_ids))
+        ids = ["0x{}".format("".join(["{:02x}".format(x) for x in y])) for y in self.message_ids]
+        return "<Courtesy Expiration: [{}] ({})>".format(", ".join(ids), len(self.message_ids))
 
 
 class OpcodeHMAC(Opcode):
     id = 0x0080
 
     def __init__(self):
-        self.key = b''
+        self.key = b""
         self.digest_index = None
-        self.hash = b''
+        self.hash = b""
 
         self.digest_map = {
-            1: (hashlib.md5, 16, 'HMAC-MD5'),
-            2: (hashlib.sha1, 20, 'HMAC-SHA1'),
-            3: (hashlib.sha256, 32, 'HMAC-SHA256'),
-            4: (crc32, 4, 'HMAC-CRC32'),
-            5: (hashlib.sha512, 64, 'HMAC-SHA512'),
+            1: (hashlib.md5, 16, "HMAC-MD5"),
+            2: (hashlib.sha1, 20, "HMAC-SHA1"),
+            3: (hashlib.sha256, 32, "HMAC-SHA256"),
+            4: (crc32, 4, "HMAC-CRC32"),
+            5: (hashlib.sha512, 64, "HMAC-SHA512"),
         }
 
     def __repr__(self):
         if self.digest_index is not None:
-            return '<{}: 0x{}>'.format(
-                self.digest_map[self.digest_index][2], ''.join(['{:02x}'.format(x) for x in self.hash])
+            return "<{}: 0x{}>".format(
+                self.digest_map[self.digest_index][2], "".join(["{:02x}".format(x) for x in self.hash])
             )
-        return '<HMAC>'
+        return "<HMAC>"
 
     def load(self, data):
         self.digest_index = nunpack(data[0:2])
@@ -369,7 +369,7 @@ class OpcodeHostLatency(Opcode):
         self.delay_us = 0
 
     def __repr__(self):
-        return '<Host Latency: {} us>'.format(self.delay_us)
+        return "<Host Latency: {} us>".format(self.delay_us)
 
     def load(self, data):
         self.delay_us = nunpack(data[0:4])
@@ -384,20 +384,20 @@ class OpcodeEncrypted(Opcode):
     id = 0x0200
 
     def __init__(self):
-        self.hkdf_info = b'\xd8\x89\xac\x93\xac\xeb\xa1\xf3\x98\xd0\xc6\x9b\xc8\xc6\xa7\xaa'
+        self.hkdf_info = b"\xd8\x89\xac\x93\xac\xeb\xa1\xf3\x98\xd0\xc6\x9b\xc8\xc6\xa7\xaa"
         self.method_index = None
-        self.encrypted = b''
-        self.session = b''
+        self.encrypted = b""
+        self.session = b""
         self.iv = None
 
-        self.method_map = {1: ('HKDF-AES256-CBC',)}
+        self.method_map = {1: ("HKDF-AES256-CBC",)}
 
     def __repr__(self):
         if self.method_index is not None:
-            return '<{} (Session {}, IV {}, {} bytes)>'.format(
+            return "<{} (Session {}, IV {}, {} bytes)>".format(
                 self.method_map[self.method_index][0], repr(self.session), repr(self.iv), len(self.encrypted)
             )
-        return '<Encrypted>'
+        return "<Encrypted>"
 
     def load(self, data):
         self.method_index = nunpack(data[0:2])
@@ -437,13 +437,13 @@ class OpcodeEncrypted(Opcode):
             aes_d = AES.new(aeskey, AES.MODE_CBC, self.iv)
             return aes_d.decrypt(self.encrypted)
 
-    def hkdf(self, length, ikm, salt=b'', info=b'', digestmod=None):
+    def hkdf(self, length, ikm, salt=b"", info=b"", digestmod=None):
         if digestmod is None:
             digestmod = hashlib.sha256
         prk = hmac.new(salt, ikm, digestmod).digest()
         hash_len = len(prk)
-        t = b''
-        okm = b''
+        t = b""
+        okm = b""
         for i in range(ceil(length / hash_len)):
             t = hmac.new(prk, t + info + bytes([1 + i]), digestmod).digest()
             okm += t
@@ -458,7 +458,7 @@ class OpcodeExtended(Opcode):
         self.segment_data_positions = {}
 
     def __repr__(self):
-        return '<Extended: {}>'.format(repr(sorted(self.segments.values(), key=lambda x: x.id)))
+        return "<Extended: {}>".format(repr(sorted(self.segments.values(), key=lambda x: x.id)))
 
     def load(self, data):
         self.segments = {}
@@ -495,7 +495,7 @@ class OpcodeExtended(Opcode):
     def dump(self, max_length=None):
         if (max_length is not None) and (max_length < 6):
             return None
-        out = b''
+        out = b""
         pos = 0
         for segment in self.segments.values():
             if max_length is None:
@@ -518,28 +518,28 @@ class OpcodeExtended(Opcode):
 
 class Packet:
     def __repr__(self):
-        return '<Packet (0x{}): {}>'.format(
-            ''.join(['{:02x}'.format(x) for x in self.message_id]),
+        return "<Packet (0x{}): {}>".format(
+            "".join(["{:02x}".format(x) for x in self.message_id]),
             repr(sorted(self.opcodes.values(), key=lambda x: x.id)),
         )
 
     def __init__(self):
-        self.message_id = b''
+        self.message_id = b""
         self.opcodes = {}
         self.min_length = 0
         self.max_length = 1024
         self.align_length = 0
-        self.padding_pattern = b'\x00'
+        self.padding_pattern = b"\x00"
         self.opcode_data_positions = {}
 
     def load(self, data):
         magic_number = data[0:2]
-        if magic_number != b'\x32\x50':
-            raise Exception('Invalid magic number')
+        if magic_number != b"\x32\x50":
+            raise Exception("Invalid magic number")
         checksum = nunpack(data[2:4])
         if checksum:
-            if twoping_checksum(data[0:2] + b'\x00\x00' + data[4:]) != checksum:
-                raise Exception('Invalid checksum')
+            if twoping_checksum(data[0:2] + b"\x00\x00" + data[4:]) != checksum:
+                raise Exception("Invalid checksum")
         self.message_id = data[4:10]
         opcode_flags = nunpack(data[10:12])
         self.opcodes = {}
@@ -607,7 +607,7 @@ class Packet:
             res_len = len(res)
             packet_length += res_len + 2
         opcode_flags = 0
-        opcode_data = b''
+        opcode_data = b""
         packet_length = 12
         for flag in sorted(opcode_datas.keys()):
             res = opcode_datas[flag]
@@ -619,7 +619,7 @@ class Packet:
             opcode_data += npack(res_len, 2)
             opcode_data += res
             packet_length += res_len + 2
-        out = bytearray(b'\x32\x50\x00\x00' + self.message_id + npack(opcode_flags, 2) + opcode_data)
+        out = bytearray(b"\x32\x50\x00\x00" + self.message_id + npack(opcode_flags, 2) + opcode_data)
         target_length = len(out)
         if len(out) < self.min_length:
             target_length = self.min_length

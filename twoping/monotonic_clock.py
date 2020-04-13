@@ -28,9 +28,9 @@ class BuiltinMonotonicCounter:
 
     def __init__(self):
         # Unix + CLOCK_MONOTONIC_RAW
-        if hasattr(time, 'clock_gettime') and hasattr(time, 'CLOCK_MONOTONIC_RAW'):
-            self.info = time.get_clock_info('monotonic')
-            self.info.implementation = 'clock_gettime(CLOCK_MONOTONIC_RAW)'
+        if hasattr(time, "clock_gettime") and hasattr(time, "CLOCK_MONOTONIC_RAW"):
+            self.info = time.get_clock_info("monotonic")
+            self.info.implementation = "clock_gettime(CLOCK_MONOTONIC_RAW)"
 
             def _clock():
                 return time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
@@ -40,7 +40,7 @@ class BuiltinMonotonicCounter:
             return
 
         # All other platforms
-        for mode in ('perf_counter', 'monotonic', 'clock'):
+        for mode in ("perf_counter", "monotonic", "clock"):
             try:
                 self.info = time.get_clock_info(mode)
             except ValueError:
@@ -57,7 +57,7 @@ class BuiltinMonotonicCounter:
 
 
 class SystemCounter:
-    info = types.SimpleNamespace(adjustable=True, implementation='time()', monotonic=False, resolution=1.0)
+    info = types.SimpleNamespace(adjustable=True, implementation="time()", monotonic=False, resolution=1.0)
 
     def clock(self):
         return time.time()
@@ -74,21 +74,21 @@ monotonic = _counter.clock
 
 
 def get_clock_info(clock):
-    if clock not in ('clock', 'monotonic'):
-        raise ValueError('unknown clock')
+    if clock not in ("clock", "monotonic"):
+        raise ValueError("unknown clock")
     return _counter.info
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) > 1:
         for _ in range(int(sys.argv[1])):
-            print('{:.50f}'.format(clock()))
+            print("{:.50f}".format(clock()))
     else:
-        print(get_clock_info('clock'))
+        print(get_clock_info("clock"))
         previous = 0.0
         for _ in range(10):
             current = clock()
             if current >= previous:
-                print('{:.50f}'.format(current))
+                print("{:.50f}".format(current))
             else:
-                print('{:.50f} (!!!)'.format(current))
+                print("{:.50f} (!!!)".format(current))

@@ -18,7 +18,7 @@ test: build lint
 	$(PYTHON) setup.py test
 
 black:
-	$(PYTHON) -mblack --line-length=120 --skip-string-normalization $(CURDIR)
+	$(PYTHON) -mblack --line-length=120 $(CURDIR)
 
 install: build
 	$(PYTHON) setup.py install

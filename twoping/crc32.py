@@ -55,19 +55,19 @@ class CRC32:
         return out
 
     def hexdigest(self):
-        return ''.join('{hex:02x}'.format(hex=x) for x in self.digest())
+        return "".join("{hex:02x}".format(hex=x) for x in self.digest())
 
 
 def new(buf=None):
     return CRC32(buf)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     files = sys.argv[1:]
     if len(files) == 0:
-        if hasattr(sys.stdin, 'buffer'):
+        if hasattr(sys.stdin, "buffer"):
             stdin = sys.stdin.buffer
         else:
             stdin = sys.stdin
@@ -77,11 +77,11 @@ if __name__ == '__main__':
         print(c.hexdigest())
     else:
         for file in files:
-            with open(file, 'rb') as f:
+            with open(file, "rb") as f:
                 c = new()
                 for buf in f.readlines():
                     c.update(buf)
                 if len(files) > 1:
-                    print('{}\t{}'.format(c.hexdigest(), file))
+                    print("{}\t{}".format(c.hexdigest(), file))
                 else:
                     print(c.hexdigest())
