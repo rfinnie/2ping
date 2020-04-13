@@ -16,8 +16,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-import platform
 import gettext
+import platform
 
 
 _ = gettext.translation('2ping', fallback=True).gettext
@@ -32,7 +32,7 @@ def twoping_checksum(d):
         d = bytes(d) + b'\x00'
 
     for i in range(0, len(d), 2):
-        checksum = checksum + (d[i] << 8) + d[i+1]
+        checksum = checksum + (d[i] << 8) + d[i + 1]
         checksum = ((checksum & 0xffff) + (checksum >> 16))
 
     checksum = ~checksum & 0xffff
@@ -74,7 +74,7 @@ def platform_info():
         linux_distribution = platform.linux_distribution()
         if linux_distribution[0]:
             out += ' ({})'.format(linux_distribution[0])
-    except:
+    except Exception:
         pass
     out += ' {}'.format(platform.machine())
     return out

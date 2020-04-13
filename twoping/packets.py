@@ -16,19 +16,19 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-import random
-import hmac
-import time
-from . import crc32
-from .utils import twoping_checksum, npack, nunpack
-from math import ceil
 import hashlib
+import hmac
+from math import ceil
+import random
+import time
 
 try:
     from Crypto.Cipher import AES
-    has_aes = True
-except ImportError:
-    has_aes = False
+except ImportError as e:
+    AES = e
+
+from . import crc32
+from .utils import npack, nunpack, twoping_checksum
 
 
 class Extended():
@@ -150,7 +150,7 @@ class ExtendedRandom(Extended):
             if max_length < 3:
                 return None
             if max_length < (len(random_data) - 2):
-                random_data = random_data[0:max_length-2]
+                random_data = random_data[0:max_length - 2]
         flags = 0
         if self.is_hwrng:
             flags = flags | 0x0001
@@ -177,8 +177,8 @@ class ExtendedBatteryLevels(Extended):
         self.batteries = {}
         pos = 2
         for i in range(nunpack(data[0:2])):
-            battery_id = nunpack(data[pos:pos+2])
-            battery_level = nunpack(data[pos+2:pos+4])
+            battery_id = nunpack(data[pos:pos + 2])
+            battery_level = nunpack(data[pos + 2:pos + 4])
             self.batteries[battery_id] = battery_level
             pos += 4
 
@@ -284,7 +284,7 @@ class OpcodeMessageIDList(Opcode):
         self.message_ids = []
         pos = 2
         for i in range(nunpack(data[0:2])):
-            self.message_ids.append(data[pos:pos+6])
+            self.message_ids.append(data[pos:pos + 6])
             pos += 6
 
     def dump(self, max_length=None):
@@ -425,7 +425,7 @@ class OpcodeEncrypted(Opcode):
         return None
 
     def encrypt(self, unencrypted, key):
-        if not has_aes:
+        if isinstance(AES, ImportError):
             return None
         if self.method_index is None:
             return None
@@ -439,7 +439,7 @@ class OpcodeEncrypted(Opcode):
             return None
 
     def decrypt(self, key):
-        if not has_aes:
+        if isinstance(AES, ImportError):
             return None
         if self.method_index is None:
             return None
@@ -456,7 +456,7 @@ class OpcodeEncrypted(Opcode):
         t = b''
         okm = b''
         for i in range(ceil(length / hash_len)):
-            t = hmac.new(prk, t + info + bytes([1+i]), digestmod).digest()
+            t = hmac.new(prk, t + info + bytes([1 + i]), digestmod).digest()
             okm += t
         return okm[:length]
 
@@ -486,9 +486,9 @@ class OpcodeExtended(Opcode):
         )
 
         while pos < len(data):
-            flag = nunpack(data[pos:pos+4])
+            flag = nunpack(data[pos:pos + 4])
             pos += 4
-            segment_data_length = nunpack(data[pos:pos+2])
+            segment_data_length = nunpack(data[pos:pos + 2])
             pos += 2
             self.segment_data_positions[flag] = (pos, segment_data_length)
             segment_handler = None
@@ -500,7 +500,7 @@ class OpcodeExtended(Opcode):
                 segment_handler = Extended
                 segment_handler.id = flag
             self.segments[flag] = segment_handler()
-            self.segments[flag].load(data[pos:(pos+segment_data_length)])
+            self.segments[flag].load(data[pos:(pos + segment_data_length)])
             pos += segment_data_length
 
     def dump(self, max_length=None):
@@ -572,7 +572,7 @@ class Packet():
         for flag in (2 ** x for x in range(16)):
             if not opcode_flags & flag:
                 continue
-            opcode_data_length = nunpack(data[pos:pos+2])
+            opcode_data_length = nunpack(data[pos:pos + 2])
             pos += 2
             self.opcode_data_positions[flag] = (pos, opcode_data_length)
             opcode_handler = None
@@ -584,7 +584,7 @@ class Packet():
                 opcode_handler = Opcode
                 opcode_handler.id = flag
             self.opcodes[flag] = opcode_handler()
-            self.opcodes[flag].load(data[pos:(pos+opcode_data_length)])
+            self.opcodes[flag].load(data[pos:(pos + opcode_data_length)])
             pos += opcode_data_length
 
     def dump(self):

@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 
 import unittest
-from twoping import packets
 
-try:
-    from Crypto.Cipher import AES
-    has_aes = True
-except ImportError:
-    has_aes = False
+from twoping import packets
 
 
 class TestPacketsOpcodes(unittest.TestCase):
@@ -84,35 +79,36 @@ class TestPacketsOpcodes(unittest.TestCase):
         self.assertEqual(opcode.dump(), data)
 
     def test_opcode_encrypted(self):
-        data = b'\x00\x01\xaa\xb1\xc0\x0f\x0f\x83\xd2\xc4x\xfe\xa1\xe2\x10by\xee"Rp\xf1\x93\xee\xe98G\xea\x11\xd1\xc9\x80=\xe3'
+        data = (b'\x00\x01\xaa\xb1\xc0\x0f\x0f\x83\xd2\xc4\x78\xfe\xa1\xe2\x10\x62\x79\xee\x22\x52\x70\xf1\x93'
+                b'\xee\xe9\x38\x47\xea\x11\xd1\xc9\x80\x3d\xe3')
         opcode = packets.OpcodeEncrypted()
         opcode.load(data)
         self.assertEqual(opcode.id, 0x0200)
         self.assertEqual(opcode.dump(), data)
 
     def test_opcode_extended(self):
-        data = b'\x32\x50\x56\x4e\x00\x12Test 2ping version'
+        data = b'\x32\x50\x56\x4e\x00\x12\x54\x65\x73\x74\x20\x32\x70\x69\x6e\x67\x20\x76\x65\x72\x73\x69\x6f\x6e'
         opcode = packets.OpcodeExtended()
         opcode.load(data)
         self.assertEqual(opcode.id, 0x8000)
         self.assertEqual(opcode.dump(), data)
 
     def test_extended_unknown(self):
-        data = b'Unknown extended data'
+        data = b'\x55\x6e\x6b\x6e\x6f\x77\x6e\x20\x65\x78\x74\x65\x6e\x64\x65\x64\x20\x64\x61\x74\x61'
         opcode = packets.Extended()
         opcode.load(data)
         self.assertEqual(opcode.id, None)
         self.assertEqual(opcode.dump(), data)
 
     def test_extended_version(self):
-        data = b'Test 2ping version'
+        data = b'\x54\x65\x73\x74\x20\x32\x70\x69\x6e\x67\x20\x76\x65\x72\x73\x69\x6f\x6e'
         opcode = packets.ExtendedVersion()
         opcode.load(data)
         self.assertEqual(opcode.id, 0x3250564e)
         self.assertEqual(opcode.dump(), data)
 
     def test_extended_notice(self):
-        data = b'Notice announcement'
+        data = b'\x4e\x6f\x74\x69\x63\x65\x20\x61\x6e\x6e\x6f\x75\x6e\x63\x65\x6d\x65\x6e\x74'
         opcode = packets.ExtendedNotice()
         opcode.load(data)
         self.assertEqual(opcode.id, 0xa837b44e)
@@ -177,13 +173,13 @@ class TestPacketsOpcodes(unittest.TestCase):
         self.assertEqual(opcode.id, 0x88a1f7c7)
         self.assertEqual(opcode.dump(), b'\x00\x02\x00\x00\xff\xff\x00\x01\xce\xa3')
 
-    @unittest.skipUnless(has_aes, 'PyCrypto required')
+    @unittest.skipIf(isinstance(packets.AES, ImportError), 'PyCrypto required')
     def test_encrypted_encrypt_decrypt(self):
         key = b'Secret key'
-        iv = b'2\xf0J/\xb3x\xe3\xf3s+J\x8c\x02t\xca\x0e'
-        minimal_packet_data = b'2P\xda\x0a\x0e\xa5[\xe2\x89\x1d\x00\x00\x00\x00\x00\x00'
+        iv = b'\x32\xf0\x4a\x2f\xb3\x78\xe3\xf3\x73\x2b\x4a\x8c\x02\x74\xca\x0e'
+        minimal_packet_data = b'\x32\x50\xda\x0a\x0e\xa5\x5b\xe2\x89\x1d\x00\x00\x00\x00\x00\x00'
         opcode = packets.OpcodeEncrypted()
-        opcode.session = b'z\xe3\xcb\xdfeK\x86\x96'
+        opcode.session = b'\x7a\xe3\xcb\xdf\x65\x4b\x86\x96'
         opcode.iv = iv
         opcode.method_index = 1
         opcode.encrypt(minimal_packet_data, key)
@@ -199,26 +195,30 @@ class TestPacketsReference(unittest.TestCase):
     def test_reference_1a(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x01'
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xae\x00\x00\x00\x00\xa0\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xae\x00\x00\x00\x00\xa0\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_2a(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x01'
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_2b(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xb0\x01'
         packet.opcodes[packets.OpcodeInReplyTo.id] = packets.OpcodeInReplyTo()
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xa0\x01'
-        self.assertEqual(packet.dump(), b'\x32\x50\x7d\xa4\x00\x00\x00\x00\xb0\x01\x00\x02\x00\x06\x00\x00\x00\x00\xa0\x01')
+        expected = b'\x32\x50\x7d\xa4\x00\x00\x00\x00\xb0\x01\x00\x02\x00\x06\x00\x00\x00\x00\xa0\x01'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_3a(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x01'
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_3b(self):
         packet = packets.Packet()
@@ -226,7 +226,8 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
         packet.opcodes[packets.OpcodeInReplyTo.id] = packets.OpcodeInReplyTo()
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xa0\x01'
-        self.assertEqual(packet.dump(), b'\x32\x50\x7d\xa3\x00\x00\x00\x00\xb0\x01\x00\x03\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x01')
+        expected = b'\x32\x50\x7d\xa3\x00\x00\x00\x00\xb0\x01\x00\x03\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x01'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_3c(self):
         packet = packets.Packet()
@@ -235,13 +236,16 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xb0\x01'
         packet.opcodes[packets.OpcodeRTTEnclosed.id] = packets.OpcodeRTTEnclosed()
         packet.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = 12345
-        self.assertEqual(packet.dump(), b'\x32\x50\x4d\x62\x00\x00\x00\x00\xa0\x02\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x01\x00\x04\x00\x00\x30\x39')
+        expected = (b'\x32\x50\x4d\x62\x00\x00\x00\x00\xa0\x02\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x01\x00\x04'
+                    b'\x00\x00\x30\x39')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_4a(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x01'
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_4b(self):
         packet = packets.Packet()
@@ -249,7 +253,9 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
         packet.opcodes[packets.OpcodeInvestigate.id] = packets.OpcodeInvestigate()
         packet.opcodes[packets.OpcodeInvestigate.id].message_ids.append(b'\x00\x00\x00\x00\xa0\x01')
-        self.assertEqual(packet.dump(), b'\x32\x50\x8d\x81\x00\x00\x00\x00\xa0\x02\x00\x21\x00\x00\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01')
+        expected = (b'\x32\x50\x8d\x81\x00\x00\x00\x00\xa0\x02\x00\x21\x00\x00\x00\x08\x00\x01\x00\x00\x00\x00'
+                    b'\xa0\x01')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_4c(self):
         packet = packets.Packet()
@@ -259,7 +265,9 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xa0\x02'
         packet.opcodes[packets.OpcodeInvestigationSeen.id] = packets.OpcodeInvestigationSeen()
         packet.opcodes[packets.OpcodeInvestigationSeen.id].message_ids.append(b'\x00\x00\x00\x00\xa0\x01')
-        self.assertEqual(packet.dump(), b'\x32\x50\xdd\x8e\x00\x00\x00\x00\xb0\x02\x00\x0b\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x02\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01')
+        expected = (b'\x32\x50\xdd\x8e\x00\x00\x00\x00\xb0\x02\x00\x0b\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x02'
+                    b'\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_4d(self):
         packet = packets.Packet()
@@ -268,13 +276,16 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xb0\x02'
         packet.opcodes[packets.OpcodeRTTEnclosed.id] = packets.OpcodeRTTEnclosed()
         packet.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = 12345
-        self.assertEqual(packet.dump(), b'\x32\x50\x4d\x60\x00\x00\x00\x00\xa0\x03\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x02\x00\x04\x00\x00\x30\x39')
+        expected = (b'\x32\x50\x4d\x60\x00\x00\x00\x00\xa0\x03\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x02\x00\x04'
+                    b'\x00\x00\x30\x39')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_5a(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x01'
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_5b(self):
         packet = packets.Packet()
@@ -282,7 +293,9 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
         packet.opcodes[packets.OpcodeInvestigate.id] = packets.OpcodeInvestigate()
         packet.opcodes[packets.OpcodeInvestigate.id].message_ids.append(b'\x00\x00\x00\x00\xa0\x01')
-        self.assertEqual(packet.dump(), b'\x32\x50\x8d\x81\x00\x00\x00\x00\xa0\x02\x00\x21\x00\x00\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01')
+        expected = (b'\x32\x50\x8d\x81\x00\x00\x00\x00\xa0\x02\x00\x21\x00\x00\x00\x08\x00\x01\x00\x00\x00\x00'
+                    b'\xa0\x01')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_5c(self):
         packet = packets.Packet()
@@ -292,7 +305,9 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xa0\x02'
         packet.opcodes[packets.OpcodeInvestigationUnseen.id] = packets.OpcodeInvestigationUnseen()
         packet.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids.append(b'\x00\x00\x00\x00\xa0\x01')
-        self.assertEqual(packet.dump(), b'\x32\x50\xdd\x87\x00\x00\x00\x00\xb0\x01\x00\x13\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x02\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01')
+        expected = (b'\x32\x50\xdd\x87\x00\x00\x00\x00\xb0\x01\x00\x13\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x02'
+                    b'\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_5d(self):
         packet = packets.Packet()
@@ -301,25 +316,30 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xb0\x01'
         packet.opcodes[packets.OpcodeRTTEnclosed.id] = packets.OpcodeRTTEnclosed()
         packet.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = 12345
-        self.assertEqual(packet.dump(), b'\x32\x50\x4d\x61\x00\x00\x00\x00\xa0\x03\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x01\x00\x04\x00\x00\x30\x39')
+        expected = (b'\x32\x50\x4d\x61\x00\x00\x00\x00\xa0\x03\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x01\x00\x04'
+                    b'\x00\x00\x30\x39')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6a(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x01'
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xad\x00\x00\x00\x00\xa0\x01\x00\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6b(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x02'
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xac\x00\x00\x00\x00\xa0\x02\x00\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xac\x00\x00\x00\x00\xa0\x02\x00\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6c(self):
         packet = packets.Packet()
         packet.message_id = b'\x00\x00\x00\x00\xa0\x03'
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
-        self.assertEqual(packet.dump(), b'\x32\x50\x2d\xab\x00\x00\x00\x00\xa0\x03\x00\x01\x00\x00')
+        expected = b'\x32\x50\x2d\xab\x00\x00\x00\x00\xa0\x03\x00\x01\x00\x00'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6d(self):
         packet = packets.Packet()
@@ -327,7 +347,8 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
         packet.opcodes[packets.OpcodeInReplyTo.id] = packets.OpcodeInReplyTo()
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xa0\x03'
-        self.assertEqual(packet.dump(), b'\x32\x50\x7d\xa0\x00\x00\x00\x00\xb0\x02\x00\x03\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x03')
+        expected = b'\x32\x50\x7d\xa0\x00\x00\x00\x00\xb0\x02\x00\x03\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x03'
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6e(self):
         packet = packets.Packet()
@@ -336,7 +357,9 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b'\x00\x00\x00\x00\xb0\x02'
         packet.opcodes[packets.OpcodeRTTEnclosed.id] = packets.OpcodeRTTEnclosed()
         packet.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = 12823
-        self.assertEqual(packet.dump(), b'\x32\x50\x4b\x81\x00\x00\x00\x00\xa0\x04\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x02\x00\x04\x00\x00\x32\x17')
+        expected = (b'\x32\x50\x4b\x81\x00\x00\x00\x00\xa0\x04\x00\x06\x00\x06\x00\x00\x00\x00\xb0\x02\x00\x04'
+                    b'\x00\x00\x32\x17')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6f(self):
         packet = packets.Packet()
@@ -345,7 +368,9 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInvestigate.id] = packets.OpcodeInvestigate()
         packet.opcodes[packets.OpcodeInvestigate.id].message_ids.append(b'\x00\x00\x00\x00\xa0\x01')
         packet.opcodes[packets.OpcodeInvestigate.id].message_ids.append(b'\x00\x00\x00\x00\xa0\x02')
-        self.assertEqual(packet.dump(), b'\x32\x50\xed\x6f\x00\x00\x00\x00\xa0\x0a\x00\x21\x00\x00\x00\x0e\x00\x02\x00\x00\x00\x00\xa0\x01\x00\x00\x00\x00\xa0\x02')
+        expected = (b'\x32\x50\xed\x6f\x00\x00\x00\x00\xa0\x0a\x00\x21\x00\x00\x00\x0e\x00\x02\x00\x00\x00\x00'
+                    b'\xa0\x01\x00\x00\x00\x00\xa0\x02')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6g(self):
         packet = packets.Packet()
@@ -359,7 +384,10 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids.append(b'\x00\x00\x00\x00\xa0\x02')
         packet.opcodes[packets.OpcodeInvestigate.id] = packets.OpcodeInvestigate()
         packet.opcodes[packets.OpcodeInvestigate.id].message_ids.append(b'\x00\x00\x00\x00\xb0\x02')
-        self.assertEqual(packet.dump(), b'\x32\x50\x8d\x3b\x00\x00\x00\x00\xb0\x06\x00\x3b\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x0a\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x02\x00\x08\x00\x01\x00\x00\x00\x00\xb0\x02')
+        expected = (b'\x32\x50\x8d\x3b\x00\x00\x00\x00\xb0\x06\x00\x3b\x00\x00\x00\x06\x00\x00\x00\x00\xa0\x0a'
+                    b'\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x01\x00\x08\x00\x01\x00\x00\x00\x00\xa0\x02\x00\x08'
+                    b'\x00\x01\x00\x00\x00\x00\xb0\x02')
+        self.assertEqual(packet.dump(), expected)
 
     def test_reference_6h(self):
         packet = packets.Packet()
@@ -370,7 +398,9 @@ class TestPacketsReference(unittest.TestCase):
         packet.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = 13112
         packet.opcodes[packets.OpcodeInvestigationSeen.id] = packets.OpcodeInvestigationSeen()
         packet.opcodes[packets.OpcodeInvestigationSeen.id].message_ids.append(b'\x00\x00\x00\x00\xb0\x02')
-        self.assertEqual(packet.dump(), b'\x32\x50\x9a\x41\x00\x00\x00\x00\xa0\x0b\x00\x0e\x00\x06\x00\x00\x00\x00\xb0\x06\x00\x04\x00\x00\x33\x38\x00\x08\x00\x01\x00\x00\x00\x00\xb0\x02')
+        expected = (b'\x32\x50\x9a\x41\x00\x00\x00\x00\xa0\x0b\x00\x0e\x00\x06\x00\x00\x00\x00\xb0\x06\x00\x04'
+                    b'\x00\x00\x33\x38\x00\x08\x00\x01\x00\x00\x00\x00\xb0\x02')
+        self.assertEqual(packet.dump(), expected)
 
 
 if __name__ == '__main__':

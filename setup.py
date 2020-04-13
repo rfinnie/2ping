@@ -2,7 +2,9 @@
 
 import os
 import sys
+
 from setuptools import setup
+
 
 assert(sys.version_info > (3, 4))
 

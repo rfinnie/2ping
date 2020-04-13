@@ -1,12 +1,20 @@
-PYTHON := python3
+FIND := find
 PANDOC := pandoc
+PYTHON := python3
 
 all: build
 
 build:
 	$(PYTHON) setup.py build
 
-test: build
+lint:
+	# TODO: remove C901 once complexity is reduced
+	$(FIND) setup.py tests twoping -name '*.py' -print0 | xargs \
+		-0 $(PYTHON) -mflake8 --config=/dev/null \
+		--ignore=C901,E203,E231,W503 --max-line-length=120 \
+		--max-complexity=10
+
+test: build lint
 	$(PYTHON) setup.py test
 
 install: build

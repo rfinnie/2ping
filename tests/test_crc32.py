@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import unittest
-from twoping import crc32
 import hmac
+import unittest
+
+from twoping import crc32
 
 
 class TestCRC32(unittest.TestCase):

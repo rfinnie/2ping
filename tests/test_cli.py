@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 
-import unittest
+import locale
 import os
+import random
+import signal
 import subprocess
 import time
-import signal
-import random
-import locale
-from twoping import monotonic_clock
+import unittest
 
-try:
-    from Crypto.Cipher import AES
-    has_aes = True
-except ImportError:
-    has_aes = False
+from twoping import monotonic_clock, packets
 
 
 @unittest.skipUnless(hasattr(os, 'fork'), 'CLI tests require os.fork()')
@@ -146,7 +141,7 @@ class TestCLIHMACCRC32(BaseTestCLI):
         self.run_listener_client(self.listener_opts)
 
 
-@unittest.skipUnless(has_aes, 'PyCrypto required')
+@unittest.skipIf(isinstance(packets.AES, ImportError), 'PyCrypto required')
 class TestCLIEncryptAES256(BaseTestCLI):
     listener_opts = ['--encrypt-method=hkdf-aes256-cbc', '--auth=S49HVbnJd3fBdDzdMVVw']
 

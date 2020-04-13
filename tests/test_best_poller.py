@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import unittest
-from twoping import best_poller
 import socket
+import unittest
+
+from twoping import best_poller
 
 
 class TestBestPoller(unittest.TestCase):

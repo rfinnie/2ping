@@ -18,19 +18,23 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-import random
-import socket
-import math
-import signal
-import sys
 import errno
+import math
+import random
+import signal
+import socket
+import sys
 import time
-from . import __version__
-from . import packets
-from . import monotonic_clock
-from . import best_poller
-from .args import parse_args
-from .utils import _, _pl, lazy_div, npack, nunpack, platform_info, twoping_checksum
+
+try:
+    import dns.resolver as dns_resolver
+except ImportError as e:
+    dns_resolver = e
+
+try:
+    import netifaces
+except ImportError as e:
+    netifaces = e
 
 try:
     random_sys = random.SystemRandom()
@@ -39,17 +43,10 @@ except AttributeError:
     random_sys = random
     has_sysrandom = False
 
-try:
-    import dns.resolver
-    has_dns = True
-except ImportError:
-    has_dns = False
+from . import __version__, best_poller, monotonic_clock, packets
+from .args import parse_args
+from .utils import _, _pl, lazy_div, npack, nunpack, platform_info, twoping_checksum
 
-try:
-    import netifaces
-    has_netifaces = True
-except ImportError:
-    has_netifaces = False
 
 assert(sys.version_info > (3, 4))
 
@@ -164,8 +161,9 @@ class TwoPing():
             self.next_stats = now + self.args.stats
 
         self.old_age_interval = 60.0
-        # On Windows, KeyboardInterrupt during select() will not be trapped until a socket event or timeout, so we should set
-        # the timeout to a short value.
+        # On Windows, KeyboardInterrupt during select() will not be trapped
+        # until a socket event or timeout, so we should set the timeout to
+        # a short value.
         if sys.platform.startswith(('win32', 'cygwin')):
             self.old_age_interval = 1.0
 
@@ -174,7 +172,8 @@ class TwoPing():
         if not socket.has_ipv6:
             self.has_ipv6 = False
         else:
-            # BSD jails seem to have has_ipv6 = True, but will throw "Protocol not supported" on bind.  Test for this.
+            # BSD jails seem to have has_ipv6 = True, but will throw
+            # "Protocol not supported" on bind.  Test for this.
             try:
                 socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
             except socket.error as e:
@@ -339,7 +338,7 @@ class TwoPing():
             packet_in.opcodes[packets.OpcodeHMAC.id].key = self.args.auth.encode('UTF-8')
             test_data = bytearray(data)
             test_data[2:4] = b'\x00\x00'
-            test_data[test_begin:(test_begin+test_length)] = bytes(test_length)
+            test_data[test_begin:(test_begin + test_length)] = bytes(test_length)
             test_hash = packet_in.opcodes[packets.OpcodeHMAC.id].hash
             test_hash_calculated = packet_in.calculate_hash(packet_in.opcodes[packets.OpcodeHMAC.id], test_data)
             if test_hash_calculated != test_hash:
@@ -381,7 +380,8 @@ class TwoPing():
                         self.print_out('\x07', end='', flush=True)
                     if packets.OpcodeRTTEnclosed.id in packet_in.opcodes:
                         self.print_out(
-                            _('{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms peertime={peerms:0.03f} ms').format(
+                            _(('{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms'
+                               'peertime={peerms:0.03f} ms')).format(
                                 bytes=len(data),
                                 address=peer_state.peer_tuple[1][0],
                                 seq=ping_position,
@@ -399,8 +399,8 @@ class TwoPing():
                             )
                         )
                     if (
-                        (packets.OpcodeExtended.id in packet_in.opcodes) and
-                        (packets.ExtendedNotice.id in packet_in.opcodes[packets.OpcodeExtended.id].segments)
+                        (packets.OpcodeExtended.id in packet_in.opcodes)
+                        and (packets.ExtendedNotice.id in packet_in.opcodes[packets.OpcodeExtended.id].segments)
                     ):
                         notice = packet_in.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text
                         self.print_out('  ' + _('Peer notice: {notice}').format(notice=notice))
@@ -443,11 +443,15 @@ class TwoPing():
                 for message_id in packet_in.opcodes[packets.OpcodeInvestigate.id].message_ids:
                     if nunpack(message_id) in peer_state.seen_messages:
                         if packets.OpcodeInvestigationSeen.id not in packet_out.opcodes:
-                            packet_out.opcodes[packets.OpcodeInvestigationSeen.id] = packets.OpcodeInvestigationSeen()
+                            packet_out.opcodes[packets.OpcodeInvestigationSeen.id] = (
+                                packets.OpcodeInvestigationSeen()
+                            )
                         packet_out.opcodes[packets.OpcodeInvestigationSeen.id].message_ids.append(message_id)
                     else:
                         if packets.OpcodeInvestigationUnseen.id not in packet_out.opcodes:
-                            packet_out.opcodes[packets.OpcodeInvestigationUnseen.id] = packets.OpcodeInvestigationUnseen()
+                            packet_out.opcodes[packets.OpcodeInvestigationUnseen.id] = (
+                                packets.OpcodeInvestigationUnseen()
+                            )
                         packet_out.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids.append(message_id)
 
             # If the packet_in is ReplyRequested but not InReplyTo, it is a second leg.  Unless 3-way ping was
@@ -476,10 +480,18 @@ class TwoPing():
             # If enabled, encrypt the packet and wrap it in a stub packet.
             if self.args.encrypt:
                 encrypted_packet = packets.Packet()
-                encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = packets.OpcodeEncrypted()
-                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = self.args.encrypt_method_index
-                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
-                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(dump_out, self.args.encrypt.encode('UTF-8'))
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = (
+                    packets.OpcodeEncrypted()
+                )
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = (
+                    self.args.encrypt_method_index
+                )
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = (
+                    encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
+                )
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(
+                    dump_out, self.args.encrypt.encode('UTF-8')
+                )
                 sock_out = encrypted_packet.dump()
             else:
                 sock_out = dump_out
@@ -623,7 +635,9 @@ class TwoPing():
                     continue
                 sock = socket.fromfd(fd, family, socket.SOCK_DGRAM)
                 self.systemd_socks.append(sock)
-                self.print_debug('Using systemd-supplied socket on fd {}: {}'.format(fd, (family, socket.SOCK_DGRAM, sock.getsockname())))
+                self.print_debug('Using systemd-supplied socket on fd {}: {}'.format(
+                    fd, (family, socket.SOCK_DGRAM, sock.getsockname()))
+                )
                 break
 
     def setup_listener(self):
@@ -642,14 +656,21 @@ class TwoPing():
                 self.sock_classes.append(SocketClass(sock))
             interface_addresses = []
         elif self.args.all_interfaces:
-            if not has_netifaces:
+            if isinstance(netifaces, ImportError):
                 raise socket.error('All interface addresses not available; please install netifaces')
             addrs = set()
             for iface in netifaces.interfaces():
                 iface_addrs = netifaces.ifaddresses(iface)
-                if (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)) and (netifaces.AF_INET in iface_addrs):
+                if (
+                    (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6))
+                    and (netifaces.AF_INET in iface_addrs)
+                ):
                     addrs.update([f['addr'] for f in iface_addrs[netifaces.AF_INET] if 'addr' in f])
-                if self.has_ipv6 and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6)) and (netifaces.AF_INET6 in iface_addrs):
+                if (
+                    self.has_ipv6
+                    and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6))
+                    and (netifaces.AF_INET6 in iface_addrs)
+                ):
                     addrs.update([f['addr'] for f in iface_addrs[netifaces.AF_INET6] if 'addr' in f])
             interface_addresses = list(addrs)
         elif self.args.interface_address:
@@ -687,15 +708,15 @@ class TwoPing():
 
     def setup_client(self):
         if self.args.srv:
-            if not has_dns:
+            if isinstance(dns_resolver, ImportError):
                 raise socket.error('DNS SRV lookups not available; please install dnspython')
             hosts = []
             for lookup in self.args.host:
                 lookup_hosts_found = 0
                 self.print_debug('SRV lookup: {}'.format(lookup))
                 try:
-                    res = dns.resolver.query('_{}._udp.{}'.format(self.args.srv_service, lookup), 'srv')
-                except dns.exception.DNSException as e:
+                    res = dns_resolver.query('_{}._udp.{}'.format(self.args.srv_service, lookup), 'srv')
+                except dns_resolver.dns.exception.DNSException as e:
                     raise socket.error('{}: {}'.format(lookup, repr(e)))
                 for rdata in res:
                     self.print_debug('SRV result for {}: {}'.format(
@@ -916,8 +937,8 @@ class TwoPing():
         rtt_avg = lazy_div(float(stats_class.rtt_total), stats_class.rtt_count)
         rtt_ewma = stats_class.rtt_ewma / 8.0
         rtt_mdev = math.sqrt(
-            lazy_div(stats_class.rtt_total_sq, stats_class.rtt_count) -
-            (lazy_div(stats_class.rtt_total, stats_class.rtt_count) ** 2)
+            lazy_div(stats_class.rtt_total_sq, stats_class.rtt_count)
+            - (lazy_div(stats_class.rtt_total, stats_class.rtt_count) ** 2)
         )
         if self.args.listen:
             hostname = _('Listener')
@@ -926,12 +947,12 @@ class TwoPing():
         if short:
             self.print_out('\x0d', end='', flush=True, file=sys.stderr)
             self.print_out(_pl(
-                '{hostname}: {transmitted}/{received} ping, {loss}% loss ' +
-                '({outbound}/{inbound}/{undetermined} out/in/undet), min/avg/ewma/max/mdev = ' +
-                '{min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms',
-                '{hostname}: {transmitted}/{received} pings, {loss}% loss ' +
-                '({outbound}/{inbound}/{undetermined} out/in/undet), min/avg/ewma/max/mdev = ' +
-                '{min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms',
+                ('{hostname}: {transmitted}/{received} ping, {loss}% loss '
+                 '({outbound}/{inbound}/{undetermined} out/in/undet), min/avg/ewma/max/mdev = '
+                 '{min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms'),
+                ('{hostname}: {transmitted}/{received} pings, {loss}% loss '
+                 '({outbound}/{inbound}/{undetermined} out/in/undet), min/avg/ewma/max/mdev = '
+                 '{min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms'),
                 stats_class.pings_received
             ).format(
                 hostname=hostname,
@@ -964,7 +985,7 @@ class TwoPing():
                 loss=int(lost_pct),
                 avg=rtt_avg,
             ) + (
-                '|rta={avg:0.06f}ms;{avgwarn:0.06f};{avgcrit:0.06f};0.000000 ' +
+                '|rta={avg:0.06f}ms;{avgwarn:0.06f};{avgcrit:0.06f};0.000000 '
                 'pl={loss}%;{losswarn};{losscrit};0'
             ).format(
                 avg=rtt_avg,
@@ -988,10 +1009,10 @@ class TwoPing():
                 time=self.stats_time(time_end - time_start),
             ))
             self.print_out(_pl(
-                '{outbound} outbound ping loss ({outboundpct}%), {inbound} inbound ({inboundpct}%), ' +
-                '{undetermined} undetermined ({undeterminedpct}%)',
-                '{outbound} outbound ping losses ({outboundpct}%), {inbound} inbound ({inboundpct}%), ' +
-                '{undetermined} undetermined ({undeterminedpct}%)',
+                ('{outbound} outbound ping loss ({outboundpct}%), {inbound} inbound ({inboundpct}%), '
+                 '{undetermined} undetermined ({undeterminedpct}%)'),
+                ('{outbound} outbound ping losses ({outboundpct}%), {inbound} inbound ({inboundpct}%), '
+                 '{undetermined} undetermined ({undeterminedpct}%)'),
                 stats_class.lost_outbound
             ).format(
                 outbound=stats_class.lost_outbound,
@@ -1001,7 +1022,7 @@ class TwoPing():
                 undetermined=lost_undetermined,
                 undeterminedpct=int(undetermined_pct),
             ))
-            self.print_out(_('rtt min/avg/ewma/max/mdev = {min:0.03f}/{avg:0.03f}/' +
+            self.print_out(_('rtt min/avg/ewma/max/mdev = {min:0.03f}/{avg:0.03f}/'
                              '{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms').format(
                 min=stats_class.rtt_min,
                 avg=rtt_avg,
@@ -1046,15 +1067,29 @@ class TwoPing():
         if (not self.args.no_send_version) or (self.args.notice):
             packet_out.opcodes[packets.OpcodeExtended.id] = packets.OpcodeExtended()
         if not self.args.no_send_version:
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id] = packets.ExtendedVersion()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id].text = version_string
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id] = (
+                packets.ExtendedVersion()
+            )
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id].text = (
+                version_string
+            )
         if self.args.send_time:
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedWallClock.id] = packets.ExtendedWallClock()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedWallClock.id].time_us = int(time.time() * 1000000)
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedWallClock.id] = (
+                packets.ExtendedWallClock()
+            )
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedWallClock.id].time_us = (
+                int(time.time() * 1000000)
+            )
         if self.args.send_monotonic_clock:
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id] = packets.ExtendedMonotonicClock()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].generation = self.fake_time_generation
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].time_us = int((clock() - self.time_start + self.fake_time_epoch) * 1000000)
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id] = (
+                packets.ExtendedMonotonicClock()
+            )
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].generation = (
+                self.fake_time_generation
+            )
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].time_us = (
+                int((clock() - self.time_start + self.fake_time_epoch) * 1000000)
+            )
         if self.args.send_random:
             random_data = bytes([random_sys.randint(0, 255) for x in range(self.args.send_random)])
             packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id] = packets.ExtendedRandom()
@@ -1098,7 +1133,9 @@ class TwoPing():
                 for table_key_name in tuple(table.keys()):
                     if now > (table[table_key_name][0] + max_time):
                         del(table[table_key_name])
-                        self.print_debug('Cleanup: Removed {} {} {}'.format(repr(peer_tuple), table_name, table_key_name))
+                        self.print_debug('Cleanup: Removed {} {} {}'.format(
+                            repr(peer_tuple), table_name, table_key_name
+                        ))
 
     def new_socket(self, family, type, bind):
         sock = socket.socket(family, type)
@@ -1185,9 +1222,9 @@ class TwoPing():
                         raise
 
                 if (
-                    self.args.count and
-                    (sock_class.pings_transmitted >= self.args.count) and
-                    (sock_class.pings_transmitted == sock_class.pings_received)
+                    self.args.count
+                    and (sock_class.pings_transmitted >= self.args.count)
+                    and (sock_class.pings_transmitted == sock_class.pings_received)
                 ):
                     sock_class.shutdown_time = now
 

@@ -16,9 +16,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-import sys
-import os
 import argparse
+import os
+import sys
+
 from . import __version__
 from .utils import _
 
@@ -282,7 +283,7 @@ def parse_args(argv=None):
             parser.error(_('Pattern must be 16 bytes or less'))
         args.pattern_bytes = b''
         for i in range(int(len(args.pattern) / 2)):
-            a = args.pattern[(i*2):(i*2+2)]
+            a = args.pattern[(i * 2):(i * 2 + 2)]
             try:
                 b = int(a, 16)
             except ValueError as e:
@@ -302,7 +303,7 @@ def parse_args(argv=None):
 
     if args.encrypt:
         try:
-            from Crypto.Cipher import AES
+            from Crypto.Cipher import AES  # noqa: F401
         except ImportError:
             parser.error(_('Python crypto module required for encryption'))
 
