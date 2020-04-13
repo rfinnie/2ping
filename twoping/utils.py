@@ -19,6 +19,11 @@
 import gettext
 import platform
 
+try:
+    import distro
+except ImportError as e:
+    distro = e
+
 
 _ = gettext.translation("2ping", fallback=True).gettext
 _pl = gettext.translation("2ping", fallback=True).ngettext
@@ -69,12 +74,21 @@ def nunpack(b):
 
 
 def platform_info():
-    out = platform.system()
-    try:
-        linux_distribution = platform.linux_distribution()
-        if linux_distribution[0]:
-            out += " ({})".format(linux_distribution[0])
-    except Exception:
-        pass
-    out += " {}".format(platform.machine())
-    return out
+    platform_name = platform.system()
+    platform_machine = platform.machine()
+    platform_info = "{} {}".format(platform_name, platform_machine)
+    distro_name = ""
+    distro_version = ""
+    distro_info = ""
+    if not isinstance(distro, ImportError):
+        if hasattr(distro, "name"):
+            distro_name = distro.name()
+        if hasattr(distro, "version"):
+            distro_version = distro.version()
+    if distro_name:
+        distro_info = distro_name
+        if distro_version:
+            distro_info += " " + distro_version
+        return "{} ({})".format(platform_info, distro_info)
+    else:
+        return platform_info
