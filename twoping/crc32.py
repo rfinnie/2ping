@@ -24,7 +24,7 @@ import copy
 digest_size = 4
 
 
-class CRC32():
+class CRC32:
     digest_size = 4
     block_size = 64
     _crc = 0
@@ -43,10 +43,10 @@ class CRC32():
         self._crc = 0
 
     def digest(self):
-        i = self._crc & 0xffffffff
+        i = self._crc & 0xFFFFFFFF
         out = bytearray()
         while i >= 256:
-            out.insert(0, i & 0xff)
+            out.insert(0, i & 0xFF)
             i = i >> 8
         out.insert(0, i)
         out_len = len(out)
@@ -64,6 +64,7 @@ def new(buf=None):
 
 if __name__ == '__main__':
     import sys
+
     files = sys.argv[1:]
     if len(files) == 0:
         if hasattr(sys.stdin, 'buffer'):

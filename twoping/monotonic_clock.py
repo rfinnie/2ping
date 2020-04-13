@@ -23,7 +23,7 @@ import time
 import types
 
 
-class BuiltinMonotonicCounter():
+class BuiltinMonotonicCounter:
     clock = None
 
     def __init__(self):
@@ -56,13 +56,8 @@ class BuiltinMonotonicCounter():
         raise NotImplementedError()
 
 
-class SystemCounter():
-    info = types.SimpleNamespace(
-        adjustable=True,
-        implementation='time()',
-        monotonic=False,
-        resolution=1.0,
-    )
+class SystemCounter:
+    info = types.SimpleNamespace(adjustable=True, implementation='time()', monotonic=False, resolution=1.0)
 
     def clock(self):
         return time.time()

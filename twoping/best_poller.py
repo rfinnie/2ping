@@ -22,7 +22,7 @@ import errno
 import select
 
 
-class EpollPoller():
+class EpollPoller:
     poller_type = 'epoll'
 
     def __init__(self):
@@ -40,7 +40,7 @@ class EpollPoller():
         if fileno not in self.f_dict:
             return
         self.poller.unregister(fileno)
-        del(self.f_dict[fileno])
+        del self.f_dict[fileno]
 
     def close(self):
         return self.poller.close()
@@ -59,7 +59,7 @@ class EpollPoller():
         return res
 
 
-class KqueuePoller():
+class KqueuePoller:
     poller_type = 'kqueue'
 
     def __init__(self):
@@ -71,9 +71,7 @@ class KqueuePoller():
         fileno = f.fileno()
         if fileno not in self.f_dict:
             self.kevents[fileno] = select.kevent(
-                fileno,
-                filter=select.KQ_FILTER_READ,
-                flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
+                fileno, filter=select.KQ_FILTER_READ, flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE
             )
         self.f_dict[fileno] = f
 
@@ -81,8 +79,8 @@ class KqueuePoller():
         fileno = f.fileno()
         if fileno not in self.f_dict:
             return
-        del(self.kevents[fileno])
-        del(self.f_dict[fileno])
+        del self.kevents[fileno]
+        del self.f_dict[fileno]
 
     def close(self):
         return self.poller.close()
@@ -101,7 +99,7 @@ class KqueuePoller():
         return res
 
 
-class PollPoller():
+class PollPoller:
     poller_type = 'poll'
 
     def __init__(self):
@@ -119,7 +117,7 @@ class PollPoller():
         if fileno not in self.f_dict:
             return
         self.poller.unregister(fileno)
-        del(self.f_dict[fileno])
+        del self.f_dict[fileno]
 
     def close(self):
         return self.poller.close()
@@ -138,7 +136,7 @@ class PollPoller():
         return res
 
 
-class SelectPoller():
+class SelectPoller:
     poller_type = 'select'
 
     def __init__(self):
@@ -151,19 +149,14 @@ class SelectPoller():
         fileno = f.fileno()
         if fileno not in self.f_dict:
             return
-        del(self.f_dict[fileno])
+        del self.f_dict[fileno]
 
     def close(self):
         pass
 
     def poll(self, timeout):
         try:
-            return select.select(
-                self.f_dict.values(),
-                [],
-                [],
-                timeout
-            )[0]
+            return select.select(self.f_dict.values(), [], [], timeout)[0]
         except (select.error, IOError, OSError) as e:
             if e.args[0] not in (errno.EINTR,):
                 raise
@@ -188,9 +181,7 @@ def best_poller():
 
 def available_pollers():
     available = []
-    for poller in [
-        EpollPoller, KqueuePoller, PollPoller, SelectPoller
-    ]:
+    for poller in [EpollPoller, KqueuePoller, PollPoller, SelectPoller]:
         try:
             available.append(poller())
         except AttributeError:

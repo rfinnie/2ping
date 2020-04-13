@@ -33,12 +33,12 @@ def twoping_checksum(d):
 
     for i in range(0, len(d), 2):
         checksum = checksum + (d[i] << 8) + d[i + 1]
-        checksum = ((checksum & 0xffff) + (checksum >> 16))
+        checksum = (checksum & 0xFFFF) + (checksum >> 16)
 
-    checksum = ~checksum & 0xffff
+    checksum = ~checksum & 0xFFFF
 
     if checksum == 0:
-        checksum = 0xffff
+        checksum = 0xFFFF
 
     return checksum
 
@@ -52,7 +52,7 @@ def lazy_div(n, d):
 def npack(i, minimum=1):
     out = bytearray()
     while i >= 256:
-        out.insert(0, i & 0xff)
+        out.insert(0, i & 0xFF)
         i = i >> 8
     out.insert(0, i)
     out_len = len(out)

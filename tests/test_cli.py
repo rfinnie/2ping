@@ -55,7 +55,7 @@ class BaseTestCLI(unittest.TestCase):
             os.dup2(devnull_f.fileno(), 2)
             os.execv(self.twoping_binary, opts)
         time.sleep(self.settle_time)
-        return((child_pid, port))
+        return (child_pid, port)
 
     def run_listener_client(self, client_opts, listener_opts=None):
         if listener_opts is None:
@@ -81,11 +81,7 @@ class TestCLIStandard(BaseTestCLI):
     def test_notice(self):
         self.run_listener_client(['--notice=Notice text'])
 
-    @unittest.skipUnless(
-        (
-            locale.getlocale()[1] == 'UTF-8'
-        ), 'UTF-8 environment required'
-    )
+    @unittest.skipUnless((locale.getlocale()[1] == 'UTF-8'), 'UTF-8 environment required')
     def test_notice_utf8(self):
         self.run_listener_client(['--notice=UTF-8 \u2603'])
 

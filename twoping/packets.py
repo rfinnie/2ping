@@ -31,7 +31,7 @@ from . import crc32
 from .utils import npack, nunpack, twoping_checksum
 
 
-class Extended():
+class Extended:
     id = None
 
     def __init__(self):
@@ -69,21 +69,21 @@ class ExtendedText(Extended):
 
 
 class ExtendedVersion(ExtendedText):
-    id = 0x3250564e
+    id = 0x3250564E
 
     def __repr__(self):
         return '<Version: {}>'.format(self.text)
 
 
 class ExtendedNotice(ExtendedText):
-    id = 0xa837b44e
+    id = 0xA837B44E
 
     def __repr__(self):
         return '<Notice: {}>'.format(self.text)
 
 
 class ExtendedWallClock(Extended):
-    id = 0x64f69319
+    id = 0x64F69319
 
     def __init__(self):
         self.time_us = 0
@@ -101,7 +101,7 @@ class ExtendedWallClock(Extended):
 
 
 class ExtendedMonotonicClock(Extended):
-    id = 0x771d8dfb
+    id = 0x771D8DFB
 
     def __init__(self):
         self.generation = 0
@@ -121,7 +121,7 @@ class ExtendedMonotonicClock(Extended):
 
 
 class ExtendedRandom(Extended):
-    id = 0x2ff6ad68
+    id = 0x2FF6AD68
 
     def __init__(self):
         self.is_hwrng = False
@@ -130,10 +130,7 @@ class ExtendedRandom(Extended):
 
     def __repr__(self):
         return '<Random: {} ({}), HWRNG {}, OS {}>'.format(
-            repr(self.random_data),
-            len(self.random_data),
-            repr(self.is_hwrng),
-            repr(self.is_os),
+            repr(self.random_data), len(self.random_data), repr(self.is_hwrng), repr(self.is_os)
         )
 
     def load(self, data):
@@ -150,7 +147,7 @@ class ExtendedRandom(Extended):
             if max_length < 3:
                 return None
             if max_length < (len(random_data) - 2):
-                random_data = random_data[0:max_length - 2]
+                random_data = random_data[0 : max_length - 2]
         flags = 0
         if self.is_hwrng:
             flags = flags | 0x0001
@@ -160,7 +157,7 @@ class ExtendedRandom(Extended):
 
 
 class ExtendedBatteryLevels(Extended):
-    id = 0x88a1f7c7
+    id = 0x88A1F7C7
 
     def __init__(self):
         self.batteries = {}
@@ -168,26 +165,24 @@ class ExtendedBatteryLevels(Extended):
     def __repr__(self):
         return '<Batteries ({}): [{}]>'.format(
             len(self.batteries),
-            ', '.join(
-                ['{}: {:0.03%}'.format(x, self.batteries[x] / 65535.0) for x in sorted(self.batteries)]
-            ),
+            ', '.join(['{}: {:0.03%}'.format(x, self.batteries[x] / 65535.0) for x in sorted(self.batteries)]),
         )
 
     def load(self, data):
         self.batteries = {}
         pos = 2
         for i in range(nunpack(data[0:2])):
-            battery_id = nunpack(data[pos:pos + 2])
-            battery_level = nunpack(data[pos + 2:pos + 4])
+            battery_id = nunpack(data[pos : pos + 2])
+            battery_level = nunpack(data[pos + 2 : pos + 4])
             self.batteries[battery_id] = battery_level
             pos += 4
 
     def dump(self, max_length=None):
-        if (max_length is not None):
-            if (max_length < 6):
+        if max_length is not None:
+            if max_length < 6:
                 return None
             batteries = {}
-            for i in sorted(self.batteries.keys())[0:int((max_length - 2) / 4)]:
+            for i in sorted(self.batteries.keys())[0 : int((max_length - 2) / 4)]:
                 batteries[i] = self.batteries[i]
         else:
             batteries = self.batteries
@@ -199,7 +194,7 @@ class ExtendedBatteryLevels(Extended):
         return out
 
 
-class Opcode():
+class Opcode:
     id = None
 
     def __init__(self):
@@ -284,14 +279,14 @@ class OpcodeMessageIDList(Opcode):
         self.message_ids = []
         pos = 2
         for i in range(nunpack(data[0:2])):
-            self.message_ids.append(data[pos:pos + 6])
+            self.message_ids.append(data[pos : pos + 6])
             pos += 6
 
     def dump(self, max_length=None):
-        if (max_length is not None):
-            if (max_length < 8):
+        if max_length is not None:
+            if max_length < 8:
                 return None
-            output_ids = self.message_ids[0:int((max_length - 2) / 6)]
+            output_ids = self.message_ids[0 : int((max_length - 2) / 6)]
         else:
             output_ids = self.message_ids
 
@@ -352,8 +347,7 @@ class OpcodeHMAC(Opcode):
     def __repr__(self):
         if self.digest_index is not None:
             return '<{}: 0x{}>'.format(
-                self.digest_map[self.digest_index][2],
-                ''.join(['{:02x}'.format(x) for x in self.hash]),
+                self.digest_map[self.digest_index][2], ''.join(['{:02x}'.format(x) for x in self.hash])
             )
         return '<HMAC>'
 
@@ -396,17 +390,12 @@ class OpcodeEncrypted(Opcode):
         self.session = b''
         self.iv = None
 
-        self.method_map = {
-            1: ('HKDF-AES256-CBC',),
-        }
+        self.method_map = {1: ('HKDF-AES256-CBC',)}
 
     def __repr__(self):
         if self.method_index is not None:
             return '<{} (Session {}, IV {}, {} bytes)>'.format(
-                self.method_map[self.method_index][0],
-                repr(self.session),
-                repr(self.iv),
-                len(self.encrypted),
+                self.method_map[self.method_index][0], repr(self.session), repr(self.iv), len(self.encrypted)
             )
         return '<Encrypted>'
 
@@ -486,9 +475,9 @@ class OpcodeExtended(Opcode):
         )
 
         while pos < len(data):
-            flag = nunpack(data[pos:pos + 4])
+            flag = nunpack(data[pos : pos + 4])
             pos += 4
-            segment_data_length = nunpack(data[pos:pos + 2])
+            segment_data_length = nunpack(data[pos : pos + 2])
             pos += 2
             self.segment_data_positions[flag] = (pos, segment_data_length)
             segment_handler = None
@@ -500,7 +489,7 @@ class OpcodeExtended(Opcode):
                 segment_handler = Extended
                 segment_handler.id = flag
             self.segments[flag] = segment_handler()
-            self.segments[flag].load(data[pos:(pos + segment_data_length)])
+            self.segments[flag].load(data[pos : (pos + segment_data_length)])
             pos += segment_data_length
 
     def dump(self, max_length=None):
@@ -527,11 +516,11 @@ class OpcodeExtended(Opcode):
         return out
 
 
-class Packet():
+class Packet:
     def __repr__(self):
         return '<Packet (0x{}): {}>'.format(
             ''.join(['{:02x}'.format(x) for x in self.message_id]),
-            repr(sorted(self.opcodes.values(), key=lambda x: x.id))
+            repr(sorted(self.opcodes.values(), key=lambda x: x.id)),
         )
 
     def __init__(self):
@@ -572,7 +561,7 @@ class Packet():
         for flag in (2 ** x for x in range(16)):
             if not opcode_flags & flag:
                 continue
-            opcode_data_length = nunpack(data[pos:pos + 2])
+            opcode_data_length = nunpack(data[pos : pos + 2])
             pos += 2
             self.opcode_data_positions[flag] = (pos, opcode_data_length)
             opcode_handler = None
@@ -584,7 +573,7 @@ class Packet():
                 opcode_handler = Opcode
                 opcode_handler.id = flag
             self.opcodes[flag] = opcode_handler()
-            self.opcodes[flag].load(data[pos:(pos + opcode_data_length)])
+            self.opcodes[flag].load(data[pos : (pos + opcode_data_length)])
             pos += opcode_data_length
 
     def dump(self):
