@@ -40,6 +40,8 @@ setup(
         "Topic :: System :: Networking",
         "Topic :: Utilities",
     ],
-    entry_points={"console_scripts": ["2ping = twoping.cli:main", "2ping6 = twoping.cli:main"]},
+    entry_points={
+        "console_scripts": ["2ping = twoping.cli:main", "2ping6 = twoping.cli:main"]
+    },
     test_suite="tests",
 )

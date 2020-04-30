@@ -71,7 +71,9 @@ class KqueuePoller:
         fileno = f.fileno()
         if fileno not in self.f_dict:
             self.kevents[fileno] = select.kevent(
-                fileno, filter=select.KQ_FILTER_READ, flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE
+                fileno,
+                filter=select.KQ_FILTER_READ,
+                flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
             )
         self.f_dict[fileno] = f
 

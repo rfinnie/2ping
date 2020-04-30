@@ -239,7 +239,9 @@ class TwoPing:
         self.print_debug("Peer address: {}".format(repr(peer_address)))
 
         # Simulate random packet loss.
-        if self.args.packet_loss_in and (random.random() < (self.args.packet_loss_in / 100.0)):
+        if self.args.packet_loss_in and (
+            random.random() < (self.args.packet_loss_in / 100.0)
+        ):
             return
         # Simulate data corruption
         if self.args.fuzz:
@@ -270,46 +272,76 @@ class TwoPing:
             if packets.OpcodeEncrypted.id not in packet_in.opcodes:
                 self.errors_received += 1
                 sock_class.errors_received += 1
-                self.print_out(_("Encryption required but not provided by {address}").format(address=peer_address[0]))
+                self.print_out(
+                    _("Encryption required but not provided by {address}").format(
+                        address=peer_address[0]
+                    )
+                )
                 return
-            if packet_in.opcodes[packets.OpcodeEncrypted.id].method_index != self.args.encrypt_method_index:
+            if (
+                packet_in.opcodes[packets.OpcodeEncrypted.id].method_index
+                != self.args.encrypt_method_index
+            ):
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
-                    _("Encryption method mismatch from {address} (expected {expected}, got {got})").format(
+                    _(
+                        "Encryption method mismatch from {address} (expected {expected}, got {got})"
+                    ).format(
                         address=peer_address[0],
                         expected=self.args.encrypt_method_index,
                         got=packet_in.opcodes[packets.OpcodeEncrypted.id].method_index,
                     )
                 )
                 return
-            data = packet_in.opcodes[packets.OpcodeEncrypted.id].decrypt(self.args.encrypt.encode("UTF-8"))
+            data = packet_in.opcodes[packets.OpcodeEncrypted.id].decrypt(
+                self.args.encrypt.encode("UTF-8")
+            )
             encrypted_packet_in = packet_in
             packet_in = packets.Packet()
             packet_in.load(data)
             if peer_state.encrypted_session_id is None:
-                peer_state.encrypted_session_id = encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
-            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session != peer_state.encrypted_session_id:
+                peer_state.encrypted_session_id = encrypted_packet_in.opcodes[
+                    packets.OpcodeEncrypted.id
+                ].session
+            if (
+                encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
+                != peer_state.encrypted_session_id
+            ):
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
-                    _("Encryption session mismatch from {address} (expected {expected}, got {got})").format(
+                    _(
+                        "Encryption session mismatch from {address} (expected {expected}, got {got})"
+                    ).format(
                         address=peer_address[0],
                         expected=repr(peer_state.encrypted_session_id),
-                        got=repr(encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session),
+                        got=repr(
+                            encrypted_packet_in.opcodes[
+                                packets.OpcodeEncrypted.id
+                            ].session
+                        ),
                     )
                 )
                 return
-            if encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv in peer_state.encrypted_session_ivs:
+            if (
+                encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv
+                in peer_state.encrypted_session_ivs
+            ):
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _("Repeated IV {iv} from {address}, discarding").format(
-                        iv=repr(encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv), address=peer_address[0]
+                        iv=repr(
+                            encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv
+                        ),
+                        address=peer_address[0],
                     )
                 )
                 return
-            peer_state.encrypted_session_ivs[encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv] = (time_begin,)
+            peer_state.encrypted_session_ivs[
+                encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv
+            ] = (time_begin,)
             if self.args.verbose:
                 self.print_out("DECR: {}".format(repr(packet_in)))
 
@@ -318,35 +350,54 @@ class TwoPing:
             if packets.OpcodeHMAC.id not in packet_in.opcodes:
                 self.errors_received += 1
                 sock_class.errors_received += 1
-                self.print_out(_("Auth required but not provided by {address}").format(address=peer_address[0]))
+                self.print_out(
+                    _("Auth required but not provided by {address}").format(
+                        address=peer_address[0]
+                    )
+                )
                 return
-            if packet_in.opcodes[packets.OpcodeHMAC.id].digest_index != self.args.auth_digest_index:
+            if (
+                packet_in.opcodes[packets.OpcodeHMAC.id].digest_index
+                != self.args.auth_digest_index
+            ):
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
-                    _("Auth digest type mismatch from {address} (expected {expected}, got {got})").format(
+                    _(
+                        "Auth digest type mismatch from {address} (expected {expected}, got {got})"
+                    ).format(
                         address=peer_address[0],
                         expected=self.args.auth_digest_index,
                         got=packet_in.opcodes[packets.OpcodeHMAC.id].digest_index,
                     )
                 )
                 return
-            (test_begin, test_length) = packet_in.opcode_data_positions[packets.OpcodeHMAC.id]
+            (test_begin, test_length) = packet_in.opcode_data_positions[
+                packets.OpcodeHMAC.id
+            ]
             test_begin += 2
             test_length -= 2
-            packet_in.opcodes[packets.OpcodeHMAC.id].key = self.args.auth.encode("UTF-8")
+            packet_in.opcodes[packets.OpcodeHMAC.id].key = self.args.auth.encode(
+                "UTF-8"
+            )
             test_data = bytearray(data)
             test_data[2:4] = b"\x00\x00"
             test_data[test_begin : (test_begin + test_length)] = bytes(test_length)
             test_hash = packet_in.opcodes[packets.OpcodeHMAC.id].hash
-            test_hash_calculated = packet_in.calculate_hash(packet_in.opcodes[packets.OpcodeHMAC.id], test_data)
+            test_hash_calculated = packet_in.calculate_hash(
+                packet_in.opcodes[packets.OpcodeHMAC.id], test_data
+            )
             if test_hash_calculated != test_hash:
                 self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
-                    _("Auth hash failed from {address} (expected {expected}, got {got})").format(
+                    _(
+                        "Auth hash failed from {address} (expected {expected}, got {got})"
+                    ).format(
                         address=peer_address[0],
-                        expected="".join("{hex:02x}".format(hex=x) for x in test_hash_calculated),
+                        expected="".join(
+                            "{hex:02x}".format(hex=x) for x in test_hash_calculated
+                        ),
                         got="".join("{hex:02x}".format(hex=x) for x in test_hash),
                     )
                 )
@@ -354,15 +405,25 @@ class TwoPing:
 
         # If this is in reply to one of our sent packets, it's a ping reply, so handle it specially.
         if packets.OpcodeInReplyTo.id in packet_in.opcodes:
-            replied_message_id = packet_in.opcodes[packets.OpcodeInReplyTo.id].message_id
+            replied_message_id = packet_in.opcodes[
+                packets.OpcodeInReplyTo.id
+            ].message_id
             replied_message_id_int = nunpack(replied_message_id)
             if replied_message_id_int in peer_state.sent_messages:
-                (sent_time, _unused, ping_position) = peer_state.sent_messages[replied_message_id_int]
+                (sent_time, _unused, ping_position) = peer_state.sent_messages[
+                    replied_message_id_int
+                ]
                 del peer_state.sent_messages[replied_message_id_int]
 
                 calculated_rtt = (time_begin - sent_time) * 1000
-                if self.args.ignore_peer_host_latency and packets.OpcodeHostLatency.id in packet_in.opcodes:
-                    calculated_rtt -= packet_in.opcodes[packets.OpcodeHostLatency.id].delay_us / 1000.0
+                if (
+                    self.args.ignore_peer_host_latency
+                    and packets.OpcodeHostLatency.id in packet_in.opcodes
+                ):
+                    calculated_rtt -= (
+                        packet_in.opcodes[packets.OpcodeHostLatency.id].delay_us
+                        / 1000.0
+                    )
                 # Peer host latency could be wildly innacurate; guard against negative RTT.
                 if calculated_rtt < 0:
                     calculated_rtt = 0
@@ -389,12 +450,19 @@ class TwoPing:
                                 address=peer_state.peer_tuple[1][0],
                                 seq=ping_position,
                                 ms=calculated_rtt,
-                                peerms=(packet_in.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us / 1000.0),
+                                peerms=(
+                                    packet_in.opcodes[
+                                        packets.OpcodeRTTEnclosed.id
+                                    ].rtt_us
+                                    / 1000.0
+                                ),
                             )
                         )
                     else:
                         self.print_out(
-                            _("{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms").format(
+                            _(
+                                "{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms"
+                            ).format(
                                 bytes=len(data),
                                 address=peer_state.peer_tuple[1][0],
                                 seq=ping_position,
@@ -402,18 +470,30 @@ class TwoPing:
                             )
                         )
                     if (packets.OpcodeExtended.id in packet_in.opcodes) and (
-                        packets.ExtendedNotice.id in packet_in.opcodes[packets.OpcodeExtended.id].segments
+                        packets.ExtendedNotice.id
+                        in packet_in.opcodes[packets.OpcodeExtended.id].segments
                     ):
-                        notice = packet_in.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text
-                        self.print_out("  " + _("Peer notice: {notice}").format(notice=notice))
-            peer_state.courtesy_messages[replied_message_id_int] = (time_begin, replied_message_id)
+                        notice = (
+                            packet_in.opcodes[packets.OpcodeExtended.id]
+                            .segments[packets.ExtendedNotice.id]
+                            .text
+                        )
+                        self.print_out(
+                            "  " + _("Peer notice: {notice}").format(notice=notice)
+                        )
+            peer_state.courtesy_messages[replied_message_id_int] = (
+                time_begin,
+                replied_message_id,
+            )
 
         # Check if any invesitgations results have come back.
         self.check_investigations(peer_state, packet_in)
 
         # Process courtesy expirations
         if packets.OpcodeCourtesyExpiration.id in packet_in.opcodes:
-            for message_id in packet_in.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids:
+            for message_id in packet_in.opcodes[
+                packets.OpcodeCourtesyExpiration.id
+            ].message_ids:
                 message_id_int = nunpack(message_id)
                 if message_id_int in peer_state.seen_messages:
                     del peer_state.seen_messages[message_id_int]
@@ -426,53 +506,87 @@ class TwoPing:
             # Basic packet configuration.
             packet_out = self.base_packet()
             packet_out.opcodes[packets.OpcodeInReplyTo.id] = packets.OpcodeInReplyTo()
-            packet_out.opcodes[packets.OpcodeInReplyTo.id].message_id = packet_in.message_id
+            packet_out.opcodes[
+                packets.OpcodeInReplyTo.id
+            ].message_id = packet_in.message_id
 
             # If we are matching packet sizes of the peer, adjust the minimum if it falls between min_packet_size
             # and max_packet_size.
             if not self.args.no_match_packet_size:
                 data_len = len(data)
-                if (data_len <= self.args.max_packet_size) and (data_len >= self.args.min_packet_size):
+                if (data_len <= self.args.max_packet_size) and (
+                    data_len >= self.args.min_packet_size
+                ):
                     packet_out.min_length = data_len
 
             # 3-way pings already have the first roundtrip calculated.
             if calculated_rtt is not None:
-                packet_out.opcodes[packets.OpcodeRTTEnclosed.id] = packets.OpcodeRTTEnclosed()
-                packet_out.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = int(calculated_rtt * 1000)
+                packet_out.opcodes[
+                    packets.OpcodeRTTEnclosed.id
+                ] = packets.OpcodeRTTEnclosed()
+                packet_out.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = int(
+                    calculated_rtt * 1000
+                )
 
             # Check for any investigations the peer requested.
             if packets.OpcodeInvestigate.id in packet_in.opcodes:
-                for message_id in packet_in.opcodes[packets.OpcodeInvestigate.id].message_ids:
+                for message_id in packet_in.opcodes[
+                    packets.OpcodeInvestigate.id
+                ].message_ids:
                     if nunpack(message_id) in peer_state.seen_messages:
                         if packets.OpcodeInvestigationSeen.id not in packet_out.opcodes:
-                            packet_out.opcodes[packets.OpcodeInvestigationSeen.id] = packets.OpcodeInvestigationSeen()
-                        packet_out.opcodes[packets.OpcodeInvestigationSeen.id].message_ids.append(message_id)
+                            packet_out.opcodes[
+                                packets.OpcodeInvestigationSeen.id
+                            ] = packets.OpcodeInvestigationSeen()
+                        packet_out.opcodes[
+                            packets.OpcodeInvestigationSeen.id
+                        ].message_ids.append(message_id)
                     else:
-                        if packets.OpcodeInvestigationUnseen.id not in packet_out.opcodes:
+                        if (
+                            packets.OpcodeInvestigationUnseen.id
+                            not in packet_out.opcodes
+                        ):
                             packet_out.opcodes[
                                 packets.OpcodeInvestigationUnseen.id
                             ] = packets.OpcodeInvestigationUnseen()
-                        packet_out.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids.append(message_id)
+                        packet_out.opcodes[
+                            packets.OpcodeInvestigationUnseen.id
+                        ].message_ids.append(message_id)
 
             # If the packet_in is ReplyRequested but not InReplyTo, it is a second leg.  Unless 3-way ping was
             # disabled, request a reply.
-            if (packets.OpcodeInReplyTo.id not in packet_in.opcodes) and (not self.args.no_3way):
-                packet_out.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
+            if (packets.OpcodeInReplyTo.id not in packet_in.opcodes) and (
+                not self.args.no_3way
+            ):
+                packet_out.opcodes[
+                    packets.OpcodeReplyRequested.id
+                ] = packets.OpcodeReplyRequested()
 
             # Send any investigations we would like to know about.
             self.start_investigations(peer_state, packet_out)
 
             # Any courtesy expirations we have waiting should be sent.
             if len(peer_state.courtesy_messages) > 0:
-                packet_out.opcodes[packets.OpcodeCourtesyExpiration.id] = packets.OpcodeCourtesyExpiration()
-                for (courtesy_time, courtesy_message_id) in peer_state.courtesy_messages.values():
-                    packet_out.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids.append(courtesy_message_id)
+                packet_out.opcodes[
+                    packets.OpcodeCourtesyExpiration.id
+                ] = packets.OpcodeCourtesyExpiration()
+                for (
+                    courtesy_time,
+                    courtesy_message_id,
+                ) in peer_state.courtesy_messages.values():
+                    packet_out.opcodes[
+                        packets.OpcodeCourtesyExpiration.id
+                    ].message_ids.append(courtesy_message_id)
 
             # Calculate the host latency as late as possible.
             if clock_info.monotonic:
-                packet_out.opcodes[packets.OpcodeHostLatency.id] = packets.OpcodeHostLatency()
+                packet_out.opcodes[
+                    packets.OpcodeHostLatency.id
+                ] = packets.OpcodeHostLatency()
                 time_send = clock()
-                packet_out.opcodes[packets.OpcodeHostLatency.id].delay_us = int((time_send - time_begin) * 1000000)
+                packet_out.opcodes[packets.OpcodeHostLatency.id].delay_us = int(
+                    (time_send - time_begin) * 1000000
+                )
 
             # Dump the packet.
             dump_out = packet_out.dump()
@@ -480,9 +594,15 @@ class TwoPing:
             # If enabled, encrypt the packet and wrap it in a stub packet.
             if self.args.encrypt:
                 encrypted_packet = packets.Packet()
-                encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = packets.OpcodeEncrypted()
-                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = self.args.encrypt_method_index
-                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = encrypted_packet_in.opcodes[
+                encrypted_packet.opcodes[
+                    packets.OpcodeEncrypted.id
+                ] = packets.OpcodeEncrypted()
+                encrypted_packet.opcodes[
+                    packets.OpcodeEncrypted.id
+                ].method_index = self.args.encrypt_method_index
+                encrypted_packet.opcodes[
+                    packets.OpcodeEncrypted.id
+                ].session = encrypted_packet_in.opcodes[
                     packets.OpcodeEncrypted.id
                 ].session
                 encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(
@@ -514,14 +634,18 @@ class TwoPing:
 
             # Any courtesy expirations which had room in the sent packet should be forgotten.
             if packets.OpcodeCourtesyExpiration.id in packet_out_examine.opcodes:
-                for courtesy_message_id in packet_out_examine.opcodes[packets.OpcodeCourtesyExpiration.id].message_ids:
+                for courtesy_message_id in packet_out_examine.opcodes[
+                    packets.OpcodeCourtesyExpiration.id
+                ].message_ids:
                     courtesy_message_id_int = nunpack(courtesy_message_id)
                     if courtesy_message_id_int in peer_state.courtesy_messages:
                         del peer_state.courtesy_messages[courtesy_message_id_int]
 
             if self.args.verbose:
                 if self.args.encrypt:
-                    self.print_out("SEND (encrypted): {}".format(repr(packet_out_examine)))
+                    self.print_out(
+                        "SEND (encrypted): {}".format(repr(packet_out_examine))
+                    )
                 else:
                     self.print_out("SEND: {}".format(repr(packet_out_examine)))
 
@@ -538,7 +662,9 @@ class TwoPing:
     def sock_sendto(self, sock_class, data, address):
         sock = sock_class.sock
         # Simulate random packet loss.
-        if self.args.packet_loss_out and (random.random() < (self.args.packet_loss_out / 100.0)):
+        if self.args.packet_loss_out and (
+            random.random() < (self.args.packet_loss_out / 100.0)
+        ):
             return
         # Send the packet.
         try:
@@ -569,7 +695,9 @@ class TwoPing:
 
         # Inbound
         if packets.OpcodeInvestigationSeen.id in packet_check.opcodes:
-            for message_id in packet_check.opcodes[packets.OpcodeInvestigationSeen.id].message_ids:
+            for message_id in packet_check.opcodes[
+                packets.OpcodeInvestigationSeen.id
+            ].message_ids:
                 message_id_int = nunpack(message_id)
                 if message_id_int not in peer_state.sent_messages:
                     continue
@@ -581,7 +709,9 @@ class TwoPing:
 
         # Outbound
         if packets.OpcodeInvestigationUnseen.id in packet_check.opcodes:
-            for message_id in packet_check.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids:
+            for message_id in packet_check.opcodes[
+                packets.OpcodeInvestigationUnseen.id
+            ].message_ids:
                 message_id_int = nunpack(message_id)
                 if message_id_int not in peer_state.sent_messages:
                     continue
@@ -601,14 +731,18 @@ class TwoPing:
                     self.print_out("<", end="", flush=True)
                 else:
                     self.print_out(
-                        _("Lost inbound packet from {address}: ping_seq={seq}").format(address=address, seq=ping_seq)
+                        _("Lost inbound packet from {address}: ping_seq={seq}").format(
+                            address=address, seq=ping_seq
+                        )
                     )
             else:
                 if self.args.flood:
                     self.print_out(">", end="", flush=True)
                 else:
                     self.print_out(
-                        _("Lost outbound packet to {address}: ping_seq={seq}").format(address=address, seq=ping_seq)
+                        _("Lost outbound packet to {address}: ping_seq={seq}").format(
+                            address=address, seq=ping_seq
+                        )
                     )
 
     def gather_systemd_socks(self):
@@ -625,7 +759,9 @@ class TwoPing:
         # so we only want to try this once (see above)
         for fd in systemd.daemon.listen_fds():
             for family in (socket.AF_INET6, socket.AF_INET):
-                if not systemd.daemon.is_socket_inet(fd, family=family, type=socket.SOCK_DGRAM):
+                if not systemd.daemon.is_socket_inet(
+                    fd, family=family, type=socket.SOCK_DGRAM
+                ):
                     continue
                 sock = socket.fromfd(fd, family, socket.SOCK_DGRAM)
                 self.systemd_socks.append(sock)
@@ -653,20 +789,34 @@ class TwoPing:
             interface_addresses = []
         elif self.args.all_interfaces:
             if isinstance(netifaces, ImportError):
-                raise socket.error("All interface addresses not available; please install netifaces")
+                raise socket.error(
+                    "All interface addresses not available; please install netifaces"
+                )
             addrs = set()
             for iface in netifaces.interfaces():
                 iface_addrs = netifaces.ifaddresses(iface)
                 if (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)) and (
                     netifaces.AF_INET in iface_addrs
                 ):
-                    addrs.update([f["addr"] for f in iface_addrs[netifaces.AF_INET] if "addr" in f])
+                    addrs.update(
+                        [
+                            f["addr"]
+                            for f in iface_addrs[netifaces.AF_INET]
+                            if "addr" in f
+                        ]
+                    )
                 if (
                     self.has_ipv6
                     and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6))
                     and (netifaces.AF_INET6 in iface_addrs)
                 ):
-                    addrs.update([f["addr"] for f in iface_addrs[netifaces.AF_INET6] if "addr" in f])
+                    addrs.update(
+                        [
+                            f["addr"]
+                            for f in iface_addrs[netifaces.AF_INET6]
+                            if "addr" in f
+                        ]
+                    )
             interface_addresses = list(addrs)
         elif self.args.interface_address:
             interface_addresses = self.args.interface_address
@@ -676,7 +826,11 @@ class TwoPing:
                 interface_addresses.append("::")
         for interface_address in interface_addresses:
             for l in socket.getaddrinfo(
-                interface_address, self.args.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP
+                interface_address,
+                self.args.port,
+                socket.AF_UNSPEC,
+                socket.SOCK_DGRAM,
+                socket.IPPROTO_UDP,
             ):
                 if l in bound_addresses:
                     continue
@@ -702,17 +856,23 @@ class TwoPing:
     def setup_client(self):
         if self.args.srv:
             if isinstance(dns_resolver, ImportError):
-                raise socket.error("DNS SRV lookups not available; please install dnspython")
+                raise socket.error(
+                    "DNS SRV lookups not available; please install dnspython"
+                )
             hosts = []
             for lookup in self.args.host:
                 lookup_hosts_found = 0
                 self.print_debug("SRV lookup: {}".format(lookup))
                 try:
-                    res = dns_resolver.query("_{}._udp.{}".format(self.args.srv_service, lookup), "srv")
+                    res = dns_resolver.query(
+                        "_{}._udp.{}".format(self.args.srv_service, lookup), "srv"
+                    )
                 except dns_resolver.dns.exception.DNSException as e:
                     raise socket.error("{}: {}".format(lookup, repr(e)))
                 for rdata in res:
-                    self.print_debug("SRV result for {}: {}".format(lookup, repr(rdata)))
+                    self.print_debug(
+                        "SRV result for {}: {}".format(lookup, repr(rdata))
+                    )
                     if (str(rdata.target), rdata.port) in hosts:
                         continue
                     hosts.append((str(rdata.target), rdata.port))
@@ -735,7 +895,12 @@ class TwoPing:
     def setup_client_host(self, hostname, port):
         host_info = None
         for l in socket.getaddrinfo(
-            hostname, port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP, socket.AI_CANONNAME
+            hostname,
+            port,
+            socket.AF_UNSPEC,
+            socket.SOCK_DGRAM,
+            socket.IPPROTO_UDP,
+            socket.AI_CANONNAME,
         ):
             if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
                 host_info = l
@@ -756,11 +921,17 @@ class TwoPing:
                 h = "::"
             else:
                 h = "0.0.0.0"
-        for l in socket.getaddrinfo(h, 0, host_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+        for l in socket.getaddrinfo(
+            h, 0, host_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP
+        ):
             bind_info = l
             break
         if bind_info is None:
-            raise socket.error(_("Cannot find suitable bind for {address}").format(address=host_info[4]))
+            raise socket.error(
+                _("Cannot find suitable bind for {address}").format(
+                    address=host_info[4]
+                )
+            )
         sock = self.new_socket(bind_info[0], bind_info[1], bind_info[4])
         sock_class = SocketClass(sock)
         sock_class.client_host = host_info
@@ -798,7 +969,9 @@ class TwoPing:
 
         # Fuzz the recalculated checksum itself, at a lower probability
         packet[2:4] = b"\x00\x00"
-        packet[2:4] = fuzz_bytearray(bytearray(npack(twoping_checksum(packet), 2)), fuzz_fraction / 10.0)
+        packet[2:4] = fuzz_bytearray(
+            bytearray(npack(twoping_checksum(packet), 2)), fuzz_fraction / 10.0
+        )
 
         return bytes(packet)
 
@@ -812,17 +985,27 @@ class TwoPing:
         peer_state.last_seen = clock()
 
         packet_out = self.base_packet()
-        packet_out.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
+        packet_out.opcodes[
+            packets.OpcodeReplyRequested.id
+        ] = packets.OpcodeReplyRequested()
         self.start_investigations(peer_state, packet_out)
         dump_out = packet_out.dump()
 
         # If enabled, encrypt the packet and wrap it in a stub packet.
         if self.args.encrypt:
             encrypted_packet = packets.Packet()
-            encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = packets.OpcodeEncrypted()
-            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = self.args.encrypt_method_index
-            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = sock_class.session
-            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(dump_out, self.args.encrypt.encode("UTF-8"))
+            encrypted_packet.opcodes[
+                packets.OpcodeEncrypted.id
+            ] = packets.OpcodeEncrypted()
+            encrypted_packet.opcodes[
+                packets.OpcodeEncrypted.id
+            ].method_index = self.args.encrypt_method_index
+            encrypted_packet.opcodes[
+                packets.OpcodeEncrypted.id
+            ].session = sock_class.session
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(
+                dump_out, self.args.encrypt.encode("UTF-8")
+            )
             sock_out = encrypted_packet.dump()
         else:
             sock_out = dump_out
@@ -873,7 +1056,14 @@ class TwoPing:
         self.is_reload = True
 
     def stats_time(self, seconds):
-        conversion = ((1000, "ms"), (60, "s"), (60, "m"), (24, "h"), (365, "d"), (None, "y"))
+        conversion = (
+            (1000, "ms"),
+            (60, "s"),
+            (60, "m"),
+            (24, "h"),
+            (365, "d"),
+            (None, "y"),
+        )
         out = ""
         rest = int(seconds * 1000)
         for (div, suffix) in conversion:
@@ -908,10 +1098,18 @@ class TwoPing:
         time_start = self.time_start
         pings_lost = stats_class.pings_transmitted - stats_class.pings_received
         lost_pct = lazy_div(pings_lost, stats_class.pings_transmitted) * 100
-        lost_undetermined = pings_lost - (stats_class.lost_outbound + stats_class.lost_inbound)
-        outbound_pct = lazy_div(stats_class.lost_outbound, stats_class.pings_transmitted) * 100
-        inbound_pct = lazy_div(stats_class.lost_inbound, stats_class.pings_transmitted) * 100
-        undetermined_pct = lazy_div(lost_undetermined, stats_class.pings_transmitted) * 100
+        lost_undetermined = pings_lost - (
+            stats_class.lost_outbound + stats_class.lost_inbound
+        )
+        outbound_pct = (
+            lazy_div(stats_class.lost_outbound, stats_class.pings_transmitted) * 100
+        )
+        inbound_pct = (
+            lazy_div(stats_class.lost_inbound, stats_class.pings_transmitted) * 100
+        )
+        undetermined_pct = (
+            lazy_div(lost_undetermined, stats_class.pings_transmitted) * 100
+        )
         rtt_avg = lazy_div(float(stats_class.rtt_total), stats_class.rtt_count)
         rtt_ewma = stats_class.rtt_ewma / 8.0
         rtt_mdev = math.sqrt(
@@ -954,19 +1152,23 @@ class TwoPing:
                 file=sys.stderr,
             )
         elif self.args.nagios:
-            if (lost_pct >= self.args.nagios_crit_loss) or (rtt_avg >= self.args.nagios_crit_rta):
+            if (lost_pct >= self.args.nagios_crit_loss) or (
+                rtt_avg >= self.args.nagios_crit_rta
+            ):
                 self.nagios_result = 2
                 nagios_result_text = "CRITICAL"
-            elif (lost_pct >= self.args.nagios_warn_loss) or (rtt_avg >= self.args.nagios_warn_rta):
+            elif (lost_pct >= self.args.nagios_warn_loss) or (
+                rtt_avg >= self.args.nagios_warn_rta
+            ):
                 self.nagios_result = 1
                 nagios_result_text = "WARNING"
             else:
                 self.nagios_result = 0
                 nagios_result_text = "OK"
             self.print_out(
-                _("2PING {result} - Packet loss = {loss}%, RTA = {avg:0.03f} ms").format(
-                    result=nagios_result_text, loss=int(lost_pct), avg=rtt_avg
-                )
+                _(
+                    "2PING {result} - Packet loss = {loss}%, RTA = {avg:0.03f} ms"
+                ).format(result=nagios_result_text, loss=int(lost_pct), avg=rtt_avg)
                 + (
                     "|rta={avg:0.06f}ms;{avgwarn:0.06f};{avgcrit:0.06f};0.000000 pl={loss}%;{losswarn};{losscrit};0"
                 ).format(
@@ -980,7 +1182,11 @@ class TwoPing:
             )
         else:
             self.print_out("")
-            self.print_out("--- {} ---".format(_("{hostname} 2ping statistics").format(hostname=hostname)))
+            self.print_out(
+                "--- {} ---".format(
+                    _("{hostname} 2ping statistics").format(hostname=hostname)
+                )
+            )
             self.print_out(
                 _pl(
                     "{transmitted} ping transmitted, {received} received, {loss}% ping loss, time {time}",
@@ -1016,14 +1222,23 @@ class TwoPing:
             self.print_out(
                 _(
                     "rtt min/avg/ewma/max/mdev = {min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms"
-                ).format(min=stats_class.rtt_min, avg=rtt_avg, ewma=rtt_ewma, max=stats_class.rtt_max, mdev=rtt_mdev)
+                ).format(
+                    min=stats_class.rtt_min,
+                    avg=rtt_avg,
+                    ewma=rtt_ewma,
+                    max=stats_class.rtt_max,
+                    mdev=rtt_mdev,
+                )
             )
             self.print_out(
                 _pl(
                     "{transmitted} raw packet transmitted, {received} received",
                     "{transmitted} raw packets transmitted, {received} received",
                     stats_class.packets_transmitted,
-                ).format(transmitted=stats_class.packets_transmitted, received=stats_class.packets_received)
+                ).format(
+                    transmitted=stats_class.packets_transmitted,
+                    received=stats_class.packets_received,
+                )
             )
 
     def run(self):
@@ -1057,14 +1272,16 @@ class TwoPing:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[
                 packets.ExtendedVersion.id
             ] = packets.ExtendedVersion()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedVersion.id].text = version_string
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedVersion.id
+            ].text = version_string
         if self.args.send_time:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[
                 packets.ExtendedWallClock.id
             ] = packets.ExtendedWallClock()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedWallClock.id].time_us = int(
-                time.time() * 1000000
-            )
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedWallClock.id
+            ].time_us = int(time.time() * 1000000)
         if self.args.send_monotonic_clock:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[
                 packets.ExtendedMonotonicClock.id
@@ -1072,22 +1289,42 @@ class TwoPing:
             packet_out.opcodes[packets.OpcodeExtended.id].segments[
                 packets.ExtendedMonotonicClock.id
             ].generation = self.fake_time_generation
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedMonotonicClock.id].time_us = int(
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedMonotonicClock.id
+            ].time_us = int(
                 (clock() - self.time_start + self.fake_time_epoch) * 1000000
             )
         if self.args.send_random:
-            random_data = bytes([random_sys.randint(0, 255) for x in range(self.args.send_random)])
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id] = packets.ExtendedRandom()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].is_hwrng = False
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].is_os = has_sysrandom
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedRandom.id].random_data = random_data
+            random_data = bytes(
+                [random_sys.randint(0, 255) for x in range(self.args.send_random)]
+            )
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedRandom.id
+            ] = packets.ExtendedRandom()
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedRandom.id
+            ].is_hwrng = False
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedRandom.id
+            ].is_os = has_sysrandom
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedRandom.id
+            ].random_data = random_data
         if self.args.notice:
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id] = packets.ExtendedNotice()
-            packet_out.opcodes[packets.OpcodeExtended.id].segments[packets.ExtendedNotice.id].text = self.args.notice
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedNotice.id
+            ] = packets.ExtendedNotice()
+            packet_out.opcodes[packets.OpcodeExtended.id].segments[
+                packets.ExtendedNotice.id
+            ].text = self.args.notice
         if self.args.auth:
             packet_out.opcodes[packets.OpcodeHMAC.id] = packets.OpcodeHMAC()
-            packet_out.opcodes[packets.OpcodeHMAC.id].key = self.args.auth.encode("UTF-8")
-            packet_out.opcodes[packets.OpcodeHMAC.id].digest_index = self.args.auth_digest_index
+            packet_out.opcodes[packets.OpcodeHMAC.id].key = self.args.auth.encode(
+                "UTF-8"
+            )
+            packet_out.opcodes[
+                packets.OpcodeHMAC.id
+            ].digest_index = self.args.auth_digest_index
         packet_out.padding_pattern = self.args.pattern_bytes
         packet_out.min_length = self.args.min_packet_size
         packet_out.max_length = self.args.max_packet_size
@@ -1119,7 +1356,9 @@ class TwoPing:
                     if now > (table[table_key_name][0] + max_time):
                         del table[table_key_name]
                         self.print_debug(
-                            "Cleanup: Removed {} {} {}".format(repr(peer_tuple), table_name, table_key_name)
+                            "Cleanup: Removed {} {} {}".format(
+                                repr(peer_tuple), table_name, table_key_name
+                            )
                         )
 
     def new_socket(self, family, type, bind):
@@ -1151,17 +1390,25 @@ class TwoPing:
                         # Scheduled to shutdown, do not send any more pings
                         continue
                     if now >= sock_class.next_send:
-                        if self.args.count and (sock_class.pings_transmitted >= self.args.count):
+                        if self.args.count and (
+                            sock_class.pings_transmitted >= self.args.count
+                        ):
                             sock_class.shutdown_time = now + self.args.interval
                             sock_class.next_send = now + self.args.interval
                             continue
-                        if (sock_class.pings_transmitted == 0) and (self.args.preload > 1):
+                        if (sock_class.pings_transmitted == 0) and (
+                            self.args.preload > 1
+                        ):
                             for i in range(self.args.preload):
-                                self.send_new_ping(sock_class, sock_class.client_host[4])
+                                self.send_new_ping(
+                                    sock_class, sock_class.client_host[4]
+                                )
                         else:
                             self.send_new_ping(sock_class, sock_class.client_host[4])
                         if self.args.adaptive and sock_class.rtt_ewma:
-                            sock_class.next_send = now + (sock_class.rtt_ewma / 8.0 / 1000.0)
+                            sock_class.next_send = now + (
+                                sock_class.rtt_ewma / 8.0 / 1000.0
+                            )
                         elif self.args.flood:
                             sock_class.next_send = now + 0.01
                         else:
@@ -1173,7 +1420,9 @@ class TwoPing:
                 if (not self.args.listen) and (sock_class.next_send < next_wakeup):
                     next_wakeup = sock_class.next_send
                     next_wakeup_reason = "send"
-                if sock_class.shutdown_time and (sock_class.shutdown_time < next_wakeup):
+                if sock_class.shutdown_time and (
+                    sock_class.shutdown_time < next_wakeup
+                ):
                     next_wakeup = sock_class.shutdown_time
                     next_wakeup_reason = "shutdown"
             if self.args.stats:
@@ -1197,7 +1446,9 @@ class TwoPing:
             if next_wakeup < now:
                 next_wakeup = now
                 next_wakeup_reason = "time travel"
-            self.print_debug("Next wakeup: {} ({})".format((next_wakeup - now), next_wakeup_reason))
+            self.print_debug(
+                "Next wakeup: {} ({})".format((next_wakeup - now), next_wakeup_reason)
+            )
 
             for sock_class in self.poller.poll(next_wakeup - now):
                 try:

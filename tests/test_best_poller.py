@@ -20,7 +20,9 @@ class TestBestPoller(unittest.TestCase):
         s2 = socket.socket()
         poller.register(s1)
         poller.register(s2)
-        self.assertEqual((poller.f_dict[s1.fileno()], poller.f_dict[s2.fileno()]), (s1, s2))
+        self.assertEqual(
+            (poller.f_dict[s1.fileno()], poller.f_dict[s2.fileno()]), (s1, s2)
+        )
         s1.close()
         s2.close()
 
@@ -39,7 +41,12 @@ class TestBestPoller(unittest.TestCase):
         self.assertTrue(
             isinstance(
                 best_poller.best_poller(),
-                (best_poller.EpollPoller, best_poller.KqueuePoller, best_poller.PollPoller, best_poller.SelectPoller),
+                (
+                    best_poller.EpollPoller,
+                    best_poller.KqueuePoller,
+                    best_poller.PollPoller,
+                    best_poller.SelectPoller,
+                ),
             )
         )
 

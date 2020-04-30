@@ -81,7 +81,9 @@ class TestCLIStandard(BaseTestCLI):
     def test_notice(self):
         self.run_listener_client(["--notice=Notice text"])
 
-    @unittest.skipUnless((locale.getlocale()[1] == "UTF-8"), "UTF-8 environment required")
+    @unittest.skipUnless(
+        (locale.getlocale()[1] == "UTF-8"), "UTF-8 environment required"
+    )
     def test_notice_utf8(self):
         self.run_listener_client(["--notice=UTF-8 \u2603"])
 
@@ -91,7 +93,9 @@ class TestCLIStandard(BaseTestCLI):
     def test_time(self):
         self.run_listener_client(["--send-time"])
 
-    @unittest.skipUnless(monotonic_clock.get_clock_info("clock").monotonic, "Monotonic clock required")
+    @unittest.skipUnless(
+        monotonic_clock.get_clock_info("clock").monotonic, "Monotonic clock required"
+    )
     def test_monotonic_clock(self):
         self.run_listener_client(["--send-monotonic-clock"])
 

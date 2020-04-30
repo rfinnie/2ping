@@ -57,7 +57,9 @@ class BuiltinMonotonicCounter:
 
 
 class SystemCounter:
-    info = types.SimpleNamespace(adjustable=True, implementation="time()", monotonic=False, resolution=1.0)
+    info = types.SimpleNamespace(
+        adjustable=True, implementation="time()", monotonic=False, resolution=1.0
+    )
 
     def clock(self):
         return time.time()
