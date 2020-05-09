@@ -14,7 +14,7 @@ lint:
 		--ignore=C901,E203,E231,W503 --max-line-length=120 \
 		--max-complexity=10
 
-test: build lint
+test: black lint build
 	$(PYTHON) setup.py test
 
 black:
@@ -27,8 +27,5 @@ clean:
 	$(PYTHON) setup.py clean
 	$(RM) -r build MANIFEST
 
-doc: README
+doc:
 	$(MAKE) -C doc
-
-README: README.md
-	$(PANDOC) -s -t plain -o $@ $<

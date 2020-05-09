@@ -10,13 +10,15 @@ assert sys.version_info > (3, 4)
 
 
 def read(filename):
-    return open(os.path.join(os.path.dirname(__file__), filename)).read()
+    with open(os.path.join(os.path.dirname(__file__), filename), encoding="utf-8") as f:
+        return f.read()
 
 
 setup(
     name="2ping",
     description="2ping a bi-directional ping utility",
-    long_description=read("README"),
+    long_description=read("README.md"),
+    # long_description_content_type="text/markdown",  # Safe to add circa 2023
     version="4.3",
     license="GPLv2+",
     platforms=["Unix"],

@@ -17,9 +17,10 @@ To install:
 
 Python 3 stdlib is the only requirement for base functionality, but 2ping can utilize the following modules if available:
 
-* [dnspython](https://pypi.python.org/pypi/dnspython) for --srv
-* [netifaces](https://pypi.python.org/pypi/netifaces) for --listen --all-interfaces
-* [pycrypto](https://pypi.python.org/pypi/pycrypto) for --encrypt
+* [distro](https://pypi.org/project/distro/) for system distribution detection
+* [dnspython](https://pypi.org/project/dnspython/) for --srv
+* [netifaces](https://pypi.org/project/netifaces/) for --listen --all-interfaces
+* [pycrypto](https://pypi.org/project/pycrypto/) for --encrypt
 
 ## Usage
 
@@ -37,7 +38,7 @@ Where "$LISTENER" is the name or IP address of the listener.
 
 2ping - A bi-directional ping utility
 
-Copyright (C) 2010-2018 [Ryan Finnie](https://www.finnie.org/)
+Copyright (C) 2010-2020 [Ryan Finnie](https://www.finnie.org/)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
