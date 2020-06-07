@@ -7,7 +7,7 @@
 2ping \- A bi\-directional ping utility
 .SH SYNOPSIS
 .PP
-2ping [\f[I]options\f[R]] \f[I]\[en]listen\f[R] | host/IP [host/IP
+2ping [\f[I]options\f[R]] \f[I]\-\-listen\f[R] | host/IP [host/IP
 [\&...]]
 .SH DESCRIPTION
 .PP
@@ -27,7 +27,7 @@ connect to the listener.
 The ends will begin pinging each other and displaying network
 statistics.
 If packet loss occurs, 2ping will wait a few seconds (default 10,
-configurable with \f[I]\[en]inquire\-wait\f[R]) before comparing notes
+configurable with \f[I]\-\-inquire\-wait\f[R]) before comparing notes
 between the two endpoints to determine which direction the packet loss
 is occurring.
 .PP
@@ -40,10 +40,10 @@ To get a short inline display of statistics without quitting, enter
 \f[C]ping\f[R]\-compatible options (long option names are
 \f[C]2ping\f[R]\-specific):
 .TP
-.B \[en]audible, \-a
+.B \-\-audible, \-a
 Audible ping.
 .TP
-.B \[en]adaptive, \-A
+.B \-\-adaptive, \-A
 Adaptive ping.
 Interpacket interval adapts to round\-trip time, so that effectively not
 more than one (or more, if preload is set) unanswered probe is present
@@ -51,10 +51,10 @@ in the network.
 On networks with low rtt this mode is essentially equivalent to flood
 mode.
 .TP
-.B \[en]count=\f[I]count\f[R], \-c \f[I]count\f[R]
+.B \-\-count=\f[I]count\f[R], \-c \f[I]count\f[R]
 Stop after sending \f[I]count\f[R] ping requests.
 .TP
-.B \[en]flood, \-f
+.B \-\-flood, \-f
 Flood ping.
 For every ping sent a period \[lq].\[rq] is printed, while for ever ping
 received a backspace is printed.
@@ -71,12 +71,12 @@ Due to the asynchronous nature of \f[C]2ping\f[R], successful responses
 (backspaces) may overwrite these loss and error characters.
 .RE
 .TP
-.B \[en]interval=\f[I]interval\f[R], \-i \f[I]interval\f[R]
+.B \-\-interval=\f[I]interval\f[R], \-i \f[I]interval\f[R]
 Wait \f[I]interval\f[R] seconds between sending each ping.
 The default is to wait for one second between each ping normally, or not
 to wait in flood mode.
 .TP
-.B \[en]interface\-address=\f[I]address\f[R], \-I \f[I]address\f[R]
+.B \-\-interface\-address=\f[I]address\f[R], \-I \f[I]address\f[R]
 Set source IP address.
 When in listener mode, this option may be specified multiple to bind to
 multiple IP addresses.
@@ -89,46 +89,46 @@ not a device name.
 Note that in listener mode, if the machine has an interface with
 multiple IP addresses and an request comes in via a sub IP, the reply
 still leaves via the interface\[cq]s main IP.
-So either this option or \f[I]\[en]all\-interfaces\f[R] must be used if
+So either this option or \f[I]\-\-all\-interfaces\f[R] must be used if
 you would like to respond via an interface\[cq]s sub\-IP.
 .RE
 .TP
-.B \[en]preload=\f[I]count\f[R], \-l \f[I]count\f[R]
+.B \-\-preload=\f[I]count\f[R], \-l \f[I]count\f[R]
 If specified, \f[C]2ping\f[R] sends that many packets not waiting for
 reply.
 .TP
-.B \[en]pattern=\f[I]hex_bytes\f[R], \-p \f[I]hex_bytes\f[R]
+.B \-\-pattern=\f[I]hex_bytes\f[R], \-p \f[I]hex_bytes\f[R]
 You may specify up to 16 \[lq]pad\[rq] bytes to fill out the packets you
 send.
 This is useful for diagnosing data\-dependent problems in a network.
-For example, \f[I]\[en]pattern=ff\f[R] will cause the sent packet pad
+For example, \f[I]\-\-pattern=ff\f[R] will cause the sent packet pad
 area to be filled with all ones.
 .RS
 .PP
 \f[C]2ping\f[R]\-specific notes: This pads the portion of the packet
 that does not contain the active payload data.
 If the active payload data is larger than the minimum packet size
-(\f[I]\[en]min\-packet\-size\f[R]), no padding will be sent.
+(\f[I]\-\-min\-packet\-size\f[R]), no padding will be sent.
 .RE
 .TP
-.B \[en]quiet, \-q
+.B \-\-quiet, \-q
 Quiet output.
 Nothing is displayed except the summary lines at startup time and when
 finished.
 .TP
-.B \[en]packetsize\-compat=\f[I]bytes\f[R], \-s \f[I]bytes\f[R]
+.B \-\-packetsize\-compat=\f[I]bytes\f[R], \-s \f[I]bytes\f[R]
 \f[C]ping\f[R] compatibility; this will set
-\f[I]\[en]min\-packet\-size\f[R] to this plus 8 bytes.
+\f[I]\-\-min\-packet\-size\f[R] to this plus 8 bytes.
 .TP
-.B \[en]verbose, \-v
+.B \-\-verbose, \-v
 Verbose output.
 In \f[C]2ping\f[R], this prints decodes of packets that are sent and
 received.
 .TP
-.B \[en]version, \-V
+.B \-\-version, \-V
 Show version and exit.
 .TP
-.B \[en]deadline=\f[I]seconds\f[R], \-w \f[I]seconds\f[R]
+.B \-\-deadline=\f[I]seconds\f[R], \-w \f[I]seconds\f[R]
 Specify a timeout, in seconds, before \f[C]2ping\f[R] exits regardless
 of how many pings have been sent or received.
 Due to blocking, this may occur up to one second after the deadline
@@ -136,21 +136,21 @@ specified.
 .PP
 \f[C]2ping\f[R]\-specific options:
 .TP
-.B \[en]help, \-h
+.B \-\-help, \-h
 Print a synposis and exit.
 .TP
-.B \[en]ipv4, \-4
+.B \-\-ipv4, \-4
 Limit binds to IPv4.
 In client mode, this forces resolution of dual\-homed hostnames to the
 IPv4 address.
-(Without \f[I]\[en]ipv4\f[R] or \f[I]\[en]ipv6\f[R], the first result
-will be used as specified by your operating system, usually the AAAA
-address on IPv6\-routable machines, or the A address on IPv4\-only
-machines.) In listener mode, this filters out any non\-IPv4
-\f[I]\[en]interface\-address\f[R] binds, either through hostname
+(Without \f[I]\-\-ipv4\f[R] or \f[I]\-\-ipv6\f[R], the first result will
+be used as specified by your operating system, usually the AAAA address
+on IPv6\-routable machines, or the A address on IPv4\-only machines.) In
+listener mode, this filters out any non\-IPv4
+\f[I]\-\-interface\-address\f[R] binds, either through hostname
 resolution or explicit passing.
 .TP
-.B \[en]ipv6, \-6
+.B \-\-ipv6, \-6
 Limit binds to IPv6.
 In client mode, this forces resolution of dual\-homed hostnames to the
 IPv6 address.
@@ -158,58 +158,58 @@ IPv6 address.
 as specified by your operating system, usually the AAAA address on
 IPv6\-routable machines, or the A address on IPv4\-only machines.) In
 listener mode, this filters out any non\-IPv6
-\f[I]\[en]interface\-address\f[R] binds, either through hostname
+\f[I]\-\-interface\-address\f[R] binds, either through hostname
 resolution or explicit passing.
 .TP
-.B \[en]all\-interfaces
+.B \-\-all\-interfaces
 In listener mode, listen on all possible interface addresses.
 If used, this will override any addresses given by
-\f[I]\[en]interface\-address\f[R].
+\f[I]\-\-interface\-address\f[R].
 This functionality requires the netifaces module to be installed.
 .TP
-.B \[en]auth=\f[I]key\f[R]
+.B \-\-auth=\f[I]key\f[R]
 Set a shared key, send cryptographic hashes with each packet, and
 require cryptographic hashes from peer packets signed with the same
 shared key.
 .TP
-.B \[en]auth\-digest=\f[I]digest\f[R]
-When \f[I]\[en]auth\f[R] is used, specify the digest type to compute the
+.B \-\-auth\-digest=\f[I]digest\f[R]
+When \f[I]\-\-auth\f[R] is used, specify the digest type to compute the
 cryptographic hash.
 Valid options are \f[C]hmac\-md5\f[R] (default), \f[C]hmac\-sha1\f[R],
 \f[C]hmac\-sha256\f[R] and \f[C]hmac\-sha512\f[R].
 .TP
-.B \[en]debug
+.B \-\-debug
 Print (lots of) debugging information.
 .TP
-.B \[en]encrypt=\f[I]key\f[R]
+.B \-\-encrypt=\f[I]key\f[R]
 Set a shared key, encrypt 2ping packets, and require encrypted packets
 from peers encrypted with the same shared key.
 Requires the PyCrypto module.
 .TP
-.B \[en]encrypt\-method=\f[I]method\f[R]
-When \f[I]\[en]encrypt\f[R] is used, specify the method used to encrypt
+.B \-\-encrypt\-method=\f[I]method\f[R]
+When \f[I]\-\-encrypt\f[R] is used, specify the method used to encrypt
 packets.
 Valid options are \f[C]hkdf\-aes256\-cbc\f[R] (default).
 .TP
-.B \[en]fuzz=\f[I]percent\f[R]
+.B \-\-fuzz=\f[I]percent\f[R]
 Simulate corruption of incoming packets, with a \f[I]percent\f[R]
 probability each bit will be flipped.
 After fuzzing, the packet checksum will be recalculated, and then the
 checksum itself will be fuzzed (but at a lower probability).
 .TP
-.B \[en]ignore\-peer\-host\-latency
+.B \-\-ignore\-peer\-host\-latency
 If a peer sends its host latency (the amount of time it spends between
 receiving a packet and sending out a reply), subtract it from RTT
 calculations.
 .TP
-.B \[en]inquire\-wait=\f[I]secs\f[R]
+.B \-\-inquire\-wait=\f[I]secs\f[R]
 Wait at least \f[I]secs\f[R] seconds before inquiring about a lost
 packet.
 Default is 10 seconds.
 UDP packets can arrive delayed or out of order, so it is best to give it
 some time before inquiring about a lost packet.
 .TP
-.B \[en]listen
+.B \-\-listen
 Start as a listener.
 The listener will not send out ping requests at regular intervals, and
 will instead wait for the far end to initiate ping requests.
@@ -217,30 +217,30 @@ A listener is required as the remote end for a client.
 When run as a listener, a SIGHUP will reload the configuration on all
 interfaces.
 .TP
-.B \[en]min\-packet\-size=\f[I]min\f[R]
+.B \-\-min\-packet\-size=\f[I]min\f[R]
 Set the minimum total payload size to \f[I]min\f[R] bytes, default 128.
 If the payload is smaller than \f[I]min\f[R] bytes, padding will be
 added to the end of the packet.
 .TP
-.B \[en]max\-packet\-size=\f[I]max\f[R]
+.B \-\-max\-packet\-size=\f[I]max\f[R]
 Set the maximum total payload size to \f[I]max\f[R] bytes, default 512,
 absolute minimum 64.
 If the payload is larger than \f[I]max\f[R] bytes, information will be
 rearranged and sent in future packets when possible.
 .TP
-.B \[en]nagios=\f[I]wrta\f[R],\f[I]wloss%\f[R],\f[I]crta\f[R],\f[I]closs%\f[R]
+.B \-\-nagios=\f[I]wrta\f[R],\f[I]wloss%\f[R],\f[I]crta\f[R],\f[I]closs%\f[R]
 Produce output suitable for use in a Nagios check.
-If \f[I]\[en]count\f[R] is not specified, defaults to 5 pings.
+If \f[I]\-\-count\f[R] is not specified, defaults to 5 pings.
 A warning condition (exit code 1) will be returned if average RTT
 exceeds \f[I]wrta\f[R] or ping loss exceeds \f[I]wloss%\f[R].
 A critical condition (exit code 2) will be returned if average RTT
 exceeds \f[I]crta\f[R] or ping loss exceeds \f[I]closs%\f[R].
 .TP
-.B \[en]no\-3way
+.B \-\-no\-3way
 Do not perform 3\-way pings.
-Used most often when combined with \f[I]\[en]listen\f[R], as the
-listener is usually the one to determine whether a ping reply should
-become a 3\-way ping.
+Used most often when combined with \f[I]\-\-listen\f[R], as the listener
+is usually the one to determine whether a ping reply should become a
+3\-way ping.
 .RS
 .PP
 Strictly speaking, a 3\-way ping is not necessary for determining
@@ -252,65 +252,65 @@ performance indicators, nor will the listener be able to determine
 directional packet loss that it detects.
 .RE
 .TP
-.B \[en]no\-match\-packet\-size
+.B \-\-no\-match\-packet\-size
 When sending replies, 2ping will try to match the packet size of the
 received packet by adding padding if necessary, but will not exceed
-\f[I]\[en]max\-packet\-size\f[R].
-\f[I]\[en]no\-match\-packet\-size\f[R] disables this behavior, always
-setting the minimum to \f[I]\[en]min\-packet\-size\f[R].
+\f[I]\-\-max\-packet\-size\f[R].
+\f[I]\-\-no\-match\-packet\-size\f[R] disables this behavior, always
+setting the minimum to \f[I]\-\-min\-packet\-size\f[R].
 .TP
-.B \[en]no\-send\-version
+.B \-\-no\-send\-version
 Do not send the current running version of 2ping with each packet.
 .TP
-.B \[en]notice=\f[I]text\f[R]
+.B \-\-notice=\f[I]text\f[R]
 Send arbitrary notice \f[I]text\f[R] with each packet.
 If the remote peer supports it, this may be displayed to the user.
 .TP
-.B \[en]packet\-loss=\f[I]out:in\f[R]
+.B \-\-packet\-loss=\f[I]out:in\f[R]
 Simulate random packet loss outbound and inbound.
 For example, \f[I]25:10\f[R] means a 25% chance of not sending a packet,
 and a 10% chance of ignoring a received packet.
 A single number without colon separation means use the same percentage
 for both outbound and inbound.
 .TP
-.B \[en]port=\f[I]port\f[R]
+.B \-\-port=\f[I]port\f[R]
 Use UDP port \f[I]port\f[R], either a numeric port number or a service
 name string.
-With \f[I]\[en]listen\f[R], this is the port to bind as, otherwise this
+With \f[I]\-\-listen\f[R], this is the port to bind as, otherwise this
 is the port to send to.
 Default is UDP port 15998.
 .TP
-.B \[en]send\-monotonic\-clock
+.B \-\-send\-monotonic\-clock
 Send a monotonic clock value with each packet.
 Peer time (if sent by the peer) can be viewed with
-\f[I]\[en]verbose\f[R].
+\f[I]\-\-verbose\f[R].
 Only supported if the system is capable of generating a monotonic clock.
 .TP
-.B \[en]send\-random=\f[I]bytes\f[R]
+.B \-\-send\-random=\f[I]bytes\f[R]
 Send random data to the peer, up to \f[I]bytes\f[R].
 The number of bytes will be limited by other factors, up to
-\f[I]\[en]max\-packet\-size\f[R].
+\f[I]\-\-max\-packet\-size\f[R].
 If this data is to be used for trusted purposes, it should be combined
-with \f[I]\[en]auth\f[R] for HMAC authentication.
+with \f[I]\-\-auth\f[R] for HMAC authentication.
 .TP
-.B \[en]send\-time
+.B \-\-send\-time
 Send the host time (wall clock) with each packet.
 Peer time (if sent by the peer) can be viewed with
-\f[I]\[en]verbose\f[R].
+\f[I]\-\-verbose\f[R].
 .TP
-.B \[en]srv
+.B \-\-srv
 In client mode, causes hostnames to be looked up via DNS SRV records.
 If the SRV query returns multiple record targets, they will all be
 pinged in parallel; priority and weight are not considered.
-The record\[cq]s port will be used instead of \f[I]\[en]port\f[R].
+The record\[cq]s port will be used instead of \f[I]\-\-port\f[R].
 This functionality requires the dnspython module to be installed.
 .TP
-.B \[en]srv\-service=\f[I]service\f[R]
-When combined with \f[I]\[en]srv\f[R], service name to be used for SRV
+.B \-\-srv\-service=\f[I]service\f[R]
+When combined with \f[I]\-\-srv\f[R], service name to be used for SRV
 lookups.
 Default service is \[lq]2ping\[rq].
 .TP
-.B \[en]stats=\f[I]interval\f[R]
+.B \-\-stats=\f[I]interval\f[R]
 Print a line of brief current statistics every \f[I]interval\f[R]
 seconds.
 The same line can be printed on demand by entering \[ha]\[rs] or sending
