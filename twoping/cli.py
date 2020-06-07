@@ -823,24 +823,28 @@ class TwoPing:
             if self.has_ipv6:
                 interface_addresses.append("::")
         for interface_address in interface_addresses:
-            for l in socket.getaddrinfo(
+            for addrinfo in socket.getaddrinfo(
                 interface_address,
                 self.args.port,
                 socket.AF_UNSPEC,
                 socket.SOCK_DGRAM,
                 socket.IPPROTO_UDP,
             ):
-                if l in bound_addresses:
+                if addrinfo in bound_addresses:
                     continue
-                if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
+                if (
+                    (addrinfo[0] == socket.AF_INET6)
+                    and (not self.args.ipv4)
+                    and self.has_ipv6
+                ):
                     pass
-                elif (l[0] == socket.AF_INET) and (not self.args.ipv6):
+                elif (addrinfo[0] == socket.AF_INET) and (not self.args.ipv6):
                     pass
                 else:
                     continue
-                sock = self.new_socket(l[0], l[1], l[4])
+                sock = self.new_socket(addrinfo[0], addrinfo[1], addrinfo[4])
                 self.sock_classes.append(SocketClass(sock))
-                bound_addresses.append(l)
+                bound_addresses.append(addrinfo)
         for sock_class in self.sock_classes:
             self.poller.register(sock_class)
             self.print_out(
@@ -892,7 +896,7 @@ class TwoPing:
 
     def setup_client_host(self, hostname, port):
         host_info = None
-        for l in socket.getaddrinfo(
+        for addrinfo in socket.getaddrinfo(
             hostname,
             port,
             socket.AF_UNSPEC,
@@ -900,11 +904,15 @@ class TwoPing:
             socket.IPPROTO_UDP,
             socket.AI_CANONNAME,
         ):
-            if (l[0] == socket.AF_INET6) and (not self.args.ipv4) and self.has_ipv6:
-                host_info = l
+            if (
+                (addrinfo[0] == socket.AF_INET6)
+                and (not self.args.ipv4)
+                and self.has_ipv6
+            ):
+                host_info = addrinfo
                 break
-            elif (l[0] == socket.AF_INET) and (not self.args.ipv6):
-                host_info = l
+            elif (addrinfo[0] == socket.AF_INET) and (not self.args.ipv6):
+                host_info = addrinfo
                 break
             else:
                 continue
@@ -919,10 +927,10 @@ class TwoPing:
                 h = "::"
             else:
                 h = "0.0.0.0"
-        for l in socket.getaddrinfo(
+        for addrinfo in socket.getaddrinfo(
             h, 0, host_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP
         ):
-            bind_info = l
+            bind_info = addrinfo
             break
         if bind_info is None:
             raise socket.error(
