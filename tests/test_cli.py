@@ -69,10 +69,7 @@ class BaseTestCLI(unittest.TestCase):
             client_base_opts.append("--count=1")
         if not ("--count=1" in client_opts):
             client_base_opts.append("--interval=5")
-        try:
-            subprocess.check_output(client_base_opts + client_opts)
-        except subprocess.CalledProcessError as e:
-            self.fail(e.output)
+        subprocess.check_output(client_base_opts + client_opts)
 
 
 class TestCLIStandard(BaseTestCLI):
