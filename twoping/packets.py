@@ -19,7 +19,6 @@
 import hashlib
 import hmac
 from math import ceil
-import random
 import time
 
 try:
@@ -28,7 +27,7 @@ except ImportError as e:
     AES = e
 
 from . import crc32
-from .utils import npack, nunpack, twoping_checksum
+from .utils import npack, nunpack, random, twoping_checksum
 
 
 class Extended:

@@ -18,7 +18,7 @@
 
 import gettext
 import platform
-import random
+import random as _pyrandom
 
 try:
     import distro
@@ -28,6 +28,13 @@ except ImportError as e:
 
 _ = gettext.translation("2ping", fallback=True).gettext
 _pl = gettext.translation("2ping", fallback=True).ngettext
+
+try:
+    random = _pyrandom.SystemRandom()
+    random_is_systemrandom = True
+except AttributeError:
+    random = _pyrandom
+    random_is_systemrandom = False
 
 
 def twoping_checksum(d):

@@ -1,13 +1,12 @@
 import locale
 import os
-import random
 import signal
 import sys
 import time
 import unittest
 import uuid
 
-from twoping import args, cli, packets
+from twoping import args, cli, packets, utils
 
 
 @unittest.skipUnless(hasattr(os, "fork"), "CLI tests require os.fork()")
@@ -46,7 +45,7 @@ class BaseTestCLI(unittest.TestCase):
         if self.port:
             port = self.port
         else:
-            port = random.randint(49152, 65535)
+            port = utils.random.randint(49152, 65535)
         opts = [
             "2ping",
             "--listen",
