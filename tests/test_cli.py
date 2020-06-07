@@ -2,26 +2,25 @@ import locale
 import os
 import random
 import signal
-import subprocess
+import sys
 import time
 import unittest
+import uuid
 
-from twoping import packets
+from twoping import args, cli, packets
 
 
 @unittest.skipUnless(hasattr(os, "fork"), "CLI tests require os.fork()")
 class BaseTestCLI(unittest.TestCase):
     bind_address = "127.0.0.1"
     port = None
-    settle_time = 3
     child_pid = 0
-    twoing_binary = "/usr/bin/2ping"
     listener_opts = []
+    canary_filename = None
+    canary_timeout = 10.0
 
     @classmethod
     def setUpClass(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.twoping_binary = os.path.join(os.path.split(dir_path)[0], "2ping")
         (self.child_pid, self.port) = self.fork_listener(self, self.listener_opts)
 
     @classmethod
@@ -29,7 +28,21 @@ class BaseTestCLI(unittest.TestCase):
         if self.child_pid:
             os.kill(self.child_pid, signal.SIGINT)
 
+    @classmethod
+    def listener_print(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def listener_client_print(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def listener_ready(self):
+        with open(self.canary_filename, "w"):
+            pass
+
     def fork_listener(self, extra_opts=None):
+        self.canary_filename = os.path.join("/tmp", str(uuid.uuid4()))
         if self.port:
             port = self.port
         else:
@@ -47,19 +60,30 @@ class BaseTestCLI(unittest.TestCase):
 
         child_pid = os.fork()
         if child_pid == 0:
-            devnull_f = open(os.devnull, "r")
-            os.dup2(devnull_f.fileno(), 0)
-            os.dup2(devnull_f.fileno(), 1)
-            os.dup2(devnull_f.fileno(), 2)
-            os.execv(self.twoping_binary, opts)
-        time.sleep(self.settle_time)
+            cli_args = args.parse_args(opts)
+            p = cli.TwoPing(cli_args)
+            p.print_out = self.listener_print
+            p.ready = self.listener_ready
+            sys.exit(int(p.run()))
+
+        begin_wait = time.monotonic()
+        found_canary = False
+        while time.monotonic() < begin_wait + self.canary_timeout:
+            if os.path.exists(self.canary_filename):
+                os.remove(self.canary_filename)
+                found_canary = True
+                break
+            time.sleep(0.25)
+        if not found_canary:
+            raise RuntimeError("Did not find listener start canary")
+
         return (child_pid, port)
 
     def run_listener_client(self, client_opts, listener_opts=None):
         if listener_opts is None:
             listener_opts = []
         client_base_opts = [
-            self.twoping_binary,
+            "2ping",
             self.bind_address,
             "--port={}".format(self.port),
             "--debug",
@@ -69,7 +93,10 @@ class BaseTestCLI(unittest.TestCase):
             client_base_opts.append("--count=1")
         if not ("--count=1" in client_opts):
             client_base_opts.append("--interval=5")
-        subprocess.check_output(client_base_opts + client_opts)
+        cli_args = args.parse_args(client_base_opts + client_opts)
+        p = cli.TwoPing(cli_args)
+        p.print_out = self.listener_client_print
+        self.assertEqual(int(p.run()), 0)
 
 
 class TestCLIStandard(BaseTestCLI):

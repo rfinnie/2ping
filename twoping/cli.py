@@ -1241,6 +1241,9 @@ class TwoPing:
                 )
             )
 
+    def ready(self):
+        pass
+
     def run(self):
         self.print_debug("Clock value: {:f}".format(clock()))
         self.print_debug("Poller: {}".format(self.poller.poller_type))
@@ -1258,6 +1261,7 @@ class TwoPing:
             self.print_out(str(e))
             return 1
 
+        self.ready()
         try:
             self.loop()
         except KeyboardInterrupt:
