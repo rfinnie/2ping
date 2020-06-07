@@ -37,15 +37,21 @@ except AttributeError:
     random_is_systemrandom = False
 
 
-def twoping_checksum(d):
+def twoping_checksum(packet):
+    """Calculate 2ping checksum on a 2ping packet
+
+    Packet may be bytes or bytearray, return is a 32-bit int.
+    Checksum is calculated as described by the 2ping protocol
+    specification.
+    """
     checksum = 0
 
-    if (len(d) % 2) == 1:
+    if (len(packet) % 2) == 1:
         # Convert from (possible) bytearray to bytes before appending
-        d = bytes(d) + b"\x00"
+        packet = bytes(packet) + b"\x00"
 
-    for i in range(0, len(d), 2):
-        checksum = checksum + (d[i] << 8) + d[i + 1]
+    for i in range(0, len(packet), 2):
+        checksum = checksum + (packet[i] << 8) + packet[i + 1]
         checksum = (checksum & 0xFFFF) + (checksum >> 16)
 
     checksum = ~checksum & 0xFFFF
@@ -57,12 +63,19 @@ def twoping_checksum(d):
 
 
 def lazy_div(n, d):
+    """Pretend we live in a world where n / 0 == 0"""
     if d == 0:
         return 0
     return n / d
 
 
 def npack(i, minimum=1):
+    """Pack int to network bytes
+
+    Takes an int and packs it to a network (big-endian) bytes.
+    If minimum is specified, bytes output is padded with zero'd bytes.
+    Minimum does not need to be aligned to 32-bits, 64-bits, etc.
+    """
     out = bytearray()
     while i >= 256:
         out.insert(0, i & 0xFF)
@@ -75,6 +88,11 @@ def npack(i, minimum=1):
 
 
 def nunpack(b):
+    """Unpack network bytes to int
+
+    Takes arbitrary length network (big-endian) bytes, and returns an
+    int.
+    """
     out = 0
     for x in b:
         out = (out << 8) + x
@@ -82,6 +100,7 @@ def nunpack(b):
 
 
 def platform_info():
+    """Return a string containing platform/OS information"""
     platform_name = platform.system()
     platform_machine = platform.machine()
     platform_info = "{} {}".format(platform_name, platform_machine)
@@ -103,6 +122,10 @@ def platform_info():
 
 
 def fuzz_bytearray(data, percent, start=0, end=None):
+    """Fuzz a bytearray in-place
+
+    Each bit has a <percent> chance of being flipped.
+    """
     if end is None:
         end = len(data)
     for p in range(start, end):
@@ -114,6 +137,14 @@ def fuzz_bytearray(data, percent, start=0, end=None):
 
 
 def fuzz_packet(packet, percent):
+    """Fuzz a dumped 2ping packet
+
+    Each bit in the opcode areas has a <percent> chance of being flipped.
+    Each bit in the magic number and checksum have a <percent> / 10
+    chance of being flipped.
+
+    Returns the fuzzed packet.
+    """
     packet = bytearray(packet)
 
     # Fuzz the entire packet

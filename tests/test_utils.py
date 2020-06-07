@@ -1,3 +1,4 @@
+import platform
 import unittest
 
 from twoping import packets, utils
@@ -61,6 +62,31 @@ class TestUtils(unittest.TestCase):
         data = packets.Packet().dump()
         data_fuzzed = utils.fuzz_packet(data, 0)
         self.assertEqual(data, data_fuzzed)
+
+    def test_lazy_div(self):
+        self.assertEqual(utils.lazy_div(10, 5), 10 / 5)
+        self.assertEqual(utils.lazy_div(5, 0), 0)
+        self.assertEqual(utils.lazy_div(0, 0), 0)
+
+    def test_npack(self):
+        self.assertEqual(utils.npack(1), b"\x01")
+        self.assertEqual(utils.npack(1234), b"\x04\xd2")
+        self.assertEqual(utils.npack(123456), b"\x01\xe2\x40")
+
+    def test_npack_minimum(self):
+        self.assertEqual(utils.npack(1, 2), b"\x00\x01")
+        self.assertEqual(utils.npack(1234, 2), b"\x04\xd2")
+        self.assertEqual(utils.npack(123456, 4), b"\x00\x01\xe2\x40")
+
+    def test_nunpack(self):
+        self.assertEqual(utils.nunpack(b"\x01"), 1)
+        self.assertEqual(utils.nunpack(b"\x04\xd2"), 1234)
+        self.assertEqual(utils.nunpack(b"\x00\x00\x04\xd2"), 1234)
+        self.assertEqual(utils.nunpack(b"\x01\xe2\x40"), 123456)
+        self.assertEqual(utils.nunpack(b"\x00\x01\xe2\x40"), 123456)
+
+    def test_platform_info(self):
+        self.assertIn(platform.system(), utils.platform_info())
 
 
 if __name__ == "__main__":
