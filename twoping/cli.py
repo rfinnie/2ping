@@ -442,7 +442,7 @@ class TwoPing:
                         self.print_out(
                             _(
                                 (
-                                    "{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms"
+                                    "{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms "
                                     "peertime={peerms:0.03f} ms"
                                 )
                             ).format(
