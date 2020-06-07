@@ -187,12 +187,6 @@ class TwoPing:
             return
         self.print_out(*args, **kwargs)
 
-    def shutdown(self):
-        self.print_stats()
-        if self.args.nagios:
-            sys.exit(self.nagios_result)
-        sys.exit(0)
-
     def handle_socket_error(self, e, sock_class, peer_address=None):
         sock = sock_class.sock
         # Errors from the last send() can be trapped via IP_RECVERR (Linux only).
@@ -1263,8 +1257,11 @@ class TwoPing:
         try:
             self.loop()
         except KeyboardInterrupt:
-            self.shutdown()
-            return
+            pass
+        self.print_stats()
+        if self.args.nagios:
+            return self.nagios_result
+        return 0
 
     def base_packet(self):
         packet_out = packets.Packet()
@@ -1437,7 +1434,7 @@ class TwoPing:
             if self.args.deadline:
                 time_deadline = self.time_start + self.args.deadline
                 if now >= time_deadline:
-                    self.shutdown()
+                    return
                 if time_deadline < next_wakeup:
                     next_wakeup = time_deadline
                     next_wakeup_reason = "deadline"
@@ -1473,7 +1470,7 @@ class TwoPing:
                     all_shutdown = False
                     break
             if all_shutdown:
-                self.shutdown()
+                return
 
             if self.is_reload:
                 self.is_reload = False
@@ -1488,4 +1485,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(int(main()))
