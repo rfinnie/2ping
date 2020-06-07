@@ -9,12 +9,12 @@ install:
   - pip install dnspython
   - pip install netifaces
   - pip install pycrypto
-  - python -c 'import sys; sys.exit(1 if sys.version_info[0:2] == (3, 5) else 0)' || pip install black
+  - python -c 'import sys; sys.exit(0 if sys.version_info[0:2] == (3, 5) else 1)' || pip install black
   - pip install flake8
   - pip install .
 script:
   - make lint
-  - python -c 'import sys; sys.exit(1 if sys.version_info[0:2] == (3, 5) else 0)' || black --check
+  - python -c 'import sys; sys.exit(0 if sys.version_info[0:2] == (3, 5) else 1)' || black --check
   - python setup.py test
   - python setup.py check
   - python setup.py sdist
