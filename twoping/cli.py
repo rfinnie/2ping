@@ -170,7 +170,7 @@ class TwoPing:
             # BSD jails seem to have has_ipv6 = True, but will throw
             # "Protocol not supported" on bind.  Test for this.
             try:
-                socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+                socket.socket(socket.AF_INET6, socket.SOCK_DGRAM).close()
             except socket.error as e:
                 if e.errno == errno.EPROTONOSUPPORT:
                     self.has_ipv6 = False
@@ -730,6 +730,13 @@ class TwoPing:
                         )
                     )
 
+    def close_socks(self, close_systemd=True):
+        for sock_class in self.sock_classes:
+            self.poller.unregister(sock_class)
+            if (not close_systemd) and (sock_class.sock not in self.systemd_socks):
+                continue
+            sock_class.sock.close()
+
     def gather_systemd_socks(self):
         # If we've done this before, don't re-attempt
         if len(self.systemd_socks) > 0:
@@ -759,11 +766,8 @@ class TwoPing:
 
     def setup_listener(self):
         # If called idempotently, destroy all listeners first
-        for sock_class in self.sock_classes:
-            self.poller.unregister(sock_class)
-            # Do not close systemd-supplied sockets
-            if sock_class.sock not in self.systemd_socks:
-                sock_class.sock.close()
+        # Do not close systemd-supplied sockets, as they cannot be reopened
+        self.close_socks(close_systemd=False)
 
         self.sock_classes = []
         bound_addresses = []
@@ -1258,7 +1262,9 @@ class TwoPing:
             self.loop()
         except KeyboardInterrupt:
             pass
+
         self.print_stats()
+        self.close_socks()
         if self.args.nagios:
             return self.nagios_result
         return 0
