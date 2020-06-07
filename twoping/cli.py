@@ -46,8 +46,6 @@ from .args import parse_args
 from .utils import _, _pl, lazy_div, npack, nunpack, platform_info, twoping_checksum
 
 
-assert sys.version_info > (3, 4)
-
 version_string = "2ping {} - {}".format(__version__, platform_info())
 clock = time.monotonic
 

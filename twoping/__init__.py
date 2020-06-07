@@ -16,4 +16,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+import sys
+
+
+assert sys.version_info > (3, 5)
+
+
 __version__ = "4.3"
