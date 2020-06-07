@@ -59,7 +59,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 
     `2ping`-specific notes: This option only takes an IP address, not a device name.
     Note that in listener mode, if the machine has an interface with multiple IP addresses and an request comes in via a sub IP, the reply still leaves via the interface's main IP.
-    So either this option or *\-\-all-interfaces* must be used if you would like to respond via an interface's sub-IP.
+    So either this option -- or (preferred) listening on all IPs individually via the Python "netifaces" module -- must be used if you would like to respond via an interface's sub-IP.
 
 \-\-preload=*count*, -l *count*
 :   If specified, `2ping` sends that many packets not waiting for reply.
@@ -108,9 +108,8 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
     In listener mode, this filters out any non-IPv6 *\-\-interface-address* binds, either through hostname resolution or explicit passing.
 
 \-\-all-interfaces
-:   In listener mode, listen on all possible interface addresses.
-    If used, this will override any addresses given by *\-\-interface-address*.
-    This functionality requires the netifaces module to be installed.
+:   Deprecated.
+    In listener mode, all addresses will be listened to by default if the Python "netifaces" module is installed, unless overridden by one or more *\-\-interface-address* invocations.
 
 \-\-auth=*key*
 :   Set a shared key, send cryptographic hashes with each packet, and require cryptographic hashes from peer packets signed with the same shared key.

@@ -19,7 +19,7 @@ Python 3 stdlib is the only requirement for base functionality, but 2ping can ut
 
 * [distro](https://pypi.org/project/distro/) for system distribution detection
 * [dnspython](https://pypi.org/project/dnspython/) for --srv
-* [netifaces](https://pypi.org/project/netifaces/) for --listen --all-interfaces
+* [netifaces](https://pypi.org/project/netifaces/) for listening on all addresses in --listen mode
 * [pycrypto](https://pypi.org/project/pycrypto/) for --encrypt
 
 ## Usage

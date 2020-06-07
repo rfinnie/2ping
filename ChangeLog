@@ -1,4 +1,7 @@
 2ping 4.4 (XXXX-XX-XX)
+ * If the Python "netifaces" module is installed (preferred), --listen
+   will now listen on all addresses by default, as opposed to requiring
+   --all-interfaces previously
  * Add --ignore-peer-host-latency, do not send host latency unless the
    clock is monotonic
  * Add support for systemd-supplied sockets

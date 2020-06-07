@@ -787,11 +787,9 @@ class TwoPing:
             for sock in self.systemd_socks:
                 self.sock_classes.append(SocketClass(sock))
             interface_addresses = []
-        elif self.args.all_interfaces:
-            if isinstance(netifaces, ImportError):
-                raise socket.error(
-                    "All interface addresses not available; please install netifaces"
-                )
+        elif self.args.interface_address:
+            interface_addresses = self.args.interface_address
+        elif not isinstance(netifaces, ImportError):
             addrs = set()
             for iface in netifaces.interfaces():
                 iface_addrs = netifaces.ifaddresses(iface)
@@ -818,8 +816,13 @@ class TwoPing:
                         ]
                     )
             interface_addresses = list(addrs)
-        elif self.args.interface_address:
-            interface_addresses = self.args.interface_address
+        elif self.args.all_interfaces:
+            # --all-interfaces is pretty much deprecated; this section is
+            # only triggered if it's explicitly passed but netifaces is not
+            # installed.
+            raise socket.error(
+                "All interface addresses not available; please install netifaces"
+            )
         else:
             interface_addresses = ["0.0.0.0"]
             if self.has_ipv6:

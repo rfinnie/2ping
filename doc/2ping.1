@@ -89,8 +89,9 @@ not a device name.
 Note that in listener mode, if the machine has an interface with
 multiple IP addresses and an request comes in via a sub IP, the reply
 still leaves via the interface\[cq]s main IP.
-So either this option or \f[I]\-\-all\-interfaces\f[R] must be used if
-you would like to respond via an interface\[cq]s sub\-IP.
+So either this option \[en] or (preferred) listening on all IPs
+individually via the Python \[lq]netifaces\[rq] module \[en] must be
+used if you would like to respond via an interface\[cq]s sub\-IP.
 .RE
 .TP
 .B \-\-preload=\f[I]count\f[R], \-l \f[I]count\f[R]
@@ -162,10 +163,10 @@ listener mode, this filters out any non\-IPv6
 resolution or explicit passing.
 .TP
 .B \-\-all\-interfaces
-In listener mode, listen on all possible interface addresses.
-If used, this will override any addresses given by
-\f[I]\-\-interface\-address\f[R].
-This functionality requires the netifaces module to be installed.
+Deprecated.
+In listener mode, all addresses will be listened to by default if the
+Python \[lq]netifaces\[rq] module is installed, unless overridden by one
+or more \f[I]\-\-interface\-address\f[R] invocations.
 .TP
 .B \-\-auth=\f[I]key\f[R]
 Set a shared key, send cryptographic hashes with each packet, and

@@ -127,11 +127,7 @@ def parse_args(argv=None):
     )
 
     # 2ping options
-    parser.add_argument(
-        "--all-interfaces",
-        action="store_true",
-        help=_("listen on all possible interface IPs"),
-    )
+    parser.add_argument("--all-interfaces", action="store_true", help=_("deprecated"))
     parser.add_argument(
         "--auth", type=str, help=_("HMAC authentication key"), metavar="KEY"
     )
