@@ -22,4 +22,4 @@ import sys
 assert sys.version_info > (3, 5)
 
 
-__version__ = "4.3"
+__version__ = "4.4"

@@ -1,5 +1,5 @@
 Name:           2ping
-Version:        4.3
+Version:        4.4
 Release:        1%{?dist}
 Summary:        Bi-directional ping utility
 License:        GPLv2+
@@ -11,7 +11,7 @@ BuildRequires:  python3-setuptools
 %{?python_provide:%python_provide python3-%{name}}
 
 %description
-2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP SYN, 
+2ping is a bi-directional ping utility. It uses 3-way pings (akin to TCP SYN,
 SYN/ACK, ACK) and after-the-fact state comparison between a 2ping listener and
 a 2ping client to determine which direction packet loss occurs.
 

@@ -19,7 +19,7 @@ setup(
     description="2ping a bi-directional ping utility",
     long_description=read("README.md"),
     # long_description_content_type="text/markdown",  # Safe to add circa 2023
-    version="4.3",
+    version="4.4",
     license="GPLv2+",
     platforms=["Unix"],
     author="Ryan Finnie",
