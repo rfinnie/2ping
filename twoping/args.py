@@ -233,7 +233,7 @@ def parse_args(argv=None):
         help=_("service name for SRV lookups"),
     )
     parser.add_argument(
-        "--ignore-peer-host-latency",
+        "--subtract-peer-host-latency",
         action="store_true",
         help=_("subtract peer host latency from RTT calculations, if sent"),
     )

@@ -4,8 +4,7 @@
  * If the Python "netifaces" module is installed (preferred), --listen
    will now listen on all addresses by default, as opposed to requiring
    --all-interfaces previously
- * Add --ignore-peer-host-latency, do not send host latency unless the
-   clock is monotonic
+ * Add --subtract-peer-host-latency
  * Add support for systemd-supplied sockets
  * Remove deprecated/removed linux_distribution, use distro if available
  * Code/documentation cleanups, 2ping protocol 4.1

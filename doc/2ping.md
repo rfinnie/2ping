@@ -133,9 +133,6 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 :   Simulate corruption of incoming packets, with a *percent* probability each bit will be flipped.
     After fuzzing, the packet checksum will be recalculated, and then the checksum itself will be fuzzed (but at a lower probability).
 
-\-\-ignore-peer-host-latency
-:   If a peer sends its host latency (the amount of time it spends between receiving a packet and sending out a reply), subtract it from RTT calculations.
-
 \-\-inquire-wait=*secs*
 :   Wait at least *secs* seconds before inquiring about a lost packet.
     Default is 10 seconds.
@@ -216,6 +213,9 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 \-\-stats=*interval*
 :   Print a line of brief current statistics every *interval* seconds.
     The same line can be printed on demand by entering \^\\ or sending the QUIT signal to the 2ping process.
+
+\-\-subtract-peer-host-latency
+:   If a peer sends its host latency (the amount of time it spends between receiving a packet and sending out a reply), subtract it from RTT calculations.
 
 # BUGS
 

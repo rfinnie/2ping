@@ -198,11 +198,6 @@ probability each bit will be flipped.
 After fuzzing, the packet checksum will be recalculated, and then the
 checksum itself will be fuzzed (but at a lower probability).
 .TP
-.B \-\-ignore\-peer\-host\-latency
-If a peer sends its host latency (the amount of time it spends between
-receiving a packet and sending out a reply), subtract it from RTT
-calculations.
-.TP
 .B \-\-inquire\-wait=\f[I]secs\f[R]
 Wait at least \f[I]secs\f[R] seconds before inquiring about a lost
 packet.
@@ -315,6 +310,11 @@ Print a line of brief current statistics every \f[I]interval\f[R]
 seconds.
 The same line can be printed on demand by entering \[ha]\[rs] or sending
 the QUIT signal to the 2ping process.
+.TP
+.B \-\-subtract\-peer\-host\-latency
+If a peer sends its host latency (the amount of time it spends between
+receiving a packet and sending out a reply), subtract it from RTT
+calculations.
 .SH BUGS
 .PP
 None known, many assumed.

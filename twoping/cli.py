@@ -411,7 +411,7 @@ class TwoPing:
 
                 calculated_rtt = (time_begin - sent_time) * 1000
                 if (
-                    self.args.ignore_peer_host_latency
+                    self.args.subtract_peer_host_latency
                     and packets.OpcodeHostLatency.id in packet_in.opcodes
                 ):
                     calculated_rtt -= (
