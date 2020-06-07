@@ -1,6 +1,6 @@
 import unittest
 
-from twoping import utils
+from twoping import packets, utils
 
 
 class TestUtils(unittest.TestCase):
@@ -39,6 +39,28 @@ class TestUtils(unittest.TestCase):
                 i = i - 1
                 if i == 0:
                     i = 65535
+
+    def test_fuzz_bytearray(self):
+        data = packets.Packet().dump()
+        data_fuzzed = bytearray(data)
+        utils.fuzz_bytearray(data_fuzzed, 100)
+        self.assertNotEqual(data, bytes(data_fuzzed))
+
+    def test_fuzz_bytearray_zero(self):
+        data = packets.Packet().dump()
+        data_fuzzed = bytearray(data)
+        utils.fuzz_bytearray(data_fuzzed, 0)
+        self.assertEqual(data, bytes(data_fuzzed))
+
+    def test_fuzz_packet(self):
+        data = packets.Packet().dump()
+        data_fuzzed = utils.fuzz_packet(data, 100)
+        self.assertNotEqual(data, data_fuzzed)
+
+    def test_fuzz_packet_zero(self):
+        data = packets.Packet().dump()
+        data_fuzzed = utils.fuzz_packet(data, 0)
+        self.assertEqual(data, data_fuzzed)
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@
 
 import gettext
 import platform
+import random
 
 try:
     import distro
@@ -92,3 +93,33 @@ def platform_info():
         return "{} ({})".format(platform_info, distro_info)
     else:
         return platform_info
+
+
+def fuzz_bytearray(data, percent, start=0, end=None):
+    if end is None:
+        end = len(data)
+    for p in range(start, end):
+        xor_byte = 0
+        for i in range(8):
+            if random.random() < (percent / 100.0):
+                xor_byte = xor_byte + (2 ** i)
+        data[p] = data[p] ^ xor_byte
+
+
+def fuzz_packet(packet, percent):
+    packet = bytearray(packet)
+
+    # Fuzz the entire packet
+    fuzz_bytearray(packet, percent, 4)
+
+    # Fuzz the magic number, at a lower probability
+    fuzz_bytearray(packet, percent / 10.0, 0, 2)
+
+    # Recalculate the checksum
+    packet[2:4] = b"\x00\x00"
+    packet[2:4] = npack(twoping_checksum(packet), 2)
+
+    # Fuzz the recalculated checksum itself, at a lower probability
+    fuzz_bytearray(packet, percent / 10.0, 2, 4)
+
+    return bytes(packet)

@@ -43,7 +43,7 @@ except AttributeError:
 
 from . import __version__, best_poller, packets
 from .args import parse_args
-from .utils import _, _pl, lazy_div, npack, nunpack, platform_info, twoping_checksum
+from .utils import _, _pl, fuzz_packet, lazy_div, nunpack, platform_info
 
 
 version_string = "2ping {} - {}".format(__version__, platform_info())
@@ -231,7 +231,7 @@ class TwoPing:
             return
         # Simulate data corruption
         if self.args.fuzz:
-            data = self.fuzz_packet(data)
+            data = fuzz_packet(data, self.args.fuzz)
 
         # Per-packet options.
         self.packets_received += 1
@@ -947,33 +947,6 @@ class TwoPing:
                     max=self.args.max_packet_size,
                 )
             )
-
-    def fuzz_packet(self, packet):
-        def fuzz_bytearray(data, pct):
-            for p in range(len(data)):
-                xor_byte = 0
-                for i in range(8):
-                    if random.random() < pct:
-                        xor_byte = xor_byte + (2 ** i)
-                data[p] = data[p] ^ xor_byte
-            return data
-
-        packet = bytearray(packet)
-        fuzz_fraction = self.args.fuzz / 100.0
-
-        # Fuzz the entire packet
-        packet[4:] = fuzz_bytearray(packet[4:], fuzz_fraction)
-
-        # Fuzz the magic number, at a lower probability
-        packet[0:2] = fuzz_bytearray(packet[0:2], fuzz_fraction / 10.0)
-
-        # Fuzz the recalculated checksum itself, at a lower probability
-        packet[2:4] = b"\x00\x00"
-        packet[2:4] = fuzz_bytearray(
-            bytearray(npack(twoping_checksum(packet), 2)), fuzz_fraction / 10.0
-        )
-
-        return bytes(packet)
 
     def send_new_ping(self, sock_class, peer_address):
         sock = sock_class.sock
