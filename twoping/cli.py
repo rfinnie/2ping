@@ -44,6 +44,7 @@ from .utils import (
     platform_info,
     random,
     random_is_systemrandom,
+    stats_time,
 )
 
 
@@ -1029,33 +1030,6 @@ class TwoPing:
         self.print_debug("Received SIGHUP, scheduling reload")
         self.is_reload = True
 
-    def stats_time(self, seconds):
-        conversion = (
-            (1000, "ms"),
-            (60, "s"),
-            (60, "m"),
-            (24, "h"),
-            (365, "d"),
-            (None, "y"),
-        )
-        out = ""
-        rest = int(seconds * 1000)
-        for (div, suffix) in conversion:
-            if div is None:
-                if out:
-                    out = " " + out
-                out = "{}{}{}".format(rest, suffix, out)
-                break
-            p = rest % div
-            rest = int(rest / div)
-            if p > 0:
-                if out:
-                    out = " " + out
-                out = "{}{}{}".format(p, suffix, out)
-            if rest == 0:
-                break
-        return out
-
     def print_stats(self, short=False):
         time_end = clock()
         if self.args.listen:
@@ -1170,7 +1144,7 @@ class TwoPing:
                     transmitted=stats_class.pings_transmitted,
                     received=stats_class.pings_received,
                     loss=int(lost_pct),
-                    time=self.stats_time(time_end - time_start),
+                    time=stats_time(time_end - time_start),
                 )
             )
             self.print_out(

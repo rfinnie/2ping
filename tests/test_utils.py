@@ -88,6 +88,11 @@ class TestUtils(unittest.TestCase):
     def test_platform_info(self):
         self.assertIn(platform.system(), utils.platform_info())
 
+    def test_stats_time(self):
+        self.assertEqual(utils.stats_time(123.45), "2m 3s 450ms")
+        self.assertEqual(utils.stats_time(0.45678), "456ms")
+        self.assertEqual(utils.stats_time(123456789000), "3914y 288d 30m")
+
 
 if __name__ == "__main__":
     unittest.main()

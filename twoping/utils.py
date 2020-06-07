@@ -161,3 +161,33 @@ def fuzz_packet(packet, percent):
     fuzz_bytearray(packet, percent / 10.0, 2, 4)
 
     return bytes(packet)
+
+
+def stats_time(seconds):
+    """Convert seconds to ms/s/m/h/d/y time string"""
+
+    conversion = (
+        (1000, "ms"),
+        (60, "s"),
+        (60, "m"),
+        (24, "h"),
+        (365, "d"),
+        (None, "y"),
+    )
+    out = ""
+    rest = int(seconds * 1000)
+    for (div, suffix) in conversion:
+        if div is None:
+            if out:
+                out = " " + out
+            out = "{}{}{}".format(rest, suffix, out)
+            break
+        p = rest % div
+        rest = int(rest / div)
+        if p > 0:
+            if out:
+                out = " " + out
+            out = "{}{}{}".format(p, suffix, out)
+        if rest == 0:
+            break
+    return out
