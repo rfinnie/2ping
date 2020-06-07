@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # 2ping - A bi-directional ping utility
 # Copyright (C) 2010-2020 Ryan Finnie
 #
