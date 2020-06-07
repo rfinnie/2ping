@@ -43,7 +43,7 @@ except AttributeError:
     random_sys = random
     has_sysrandom = False
 
-from . import __version__, best_poller, monotonic_clock, packets
+from . import __version__, best_poller, packets
 from .args import parse_args
 from .utils import _, _pl, lazy_div, npack, nunpack, platform_info, twoping_checksum
 
@@ -51,8 +51,7 @@ from .utils import _, _pl, lazy_div, npack, nunpack, platform_info, twoping_chec
 assert sys.version_info > (3, 4)
 
 version_string = "2ping {} - {}".format(__version__, platform_info())
-clock = monotonic_clock.clock
-clock_info = monotonic_clock.get_clock_info("clock")
+clock = time.monotonic
 
 
 class SocketClass:
@@ -183,9 +182,6 @@ class TwoPing:
                     raise
 
         self.is_reload = False
-
-        if self.args.send_monotonic_clock and (not clock_info.monotonic):
-            self.args.send_monotonic_clock = False
 
     def print_out(self, *args, **kwargs):
         print(*args, **kwargs)
@@ -579,14 +575,13 @@ class TwoPing:
                     ].message_ids.append(courtesy_message_id)
 
             # Calculate the host latency as late as possible.
-            if clock_info.monotonic:
-                packet_out.opcodes[
-                    packets.OpcodeHostLatency.id
-                ] = packets.OpcodeHostLatency()
-                time_send = clock()
-                packet_out.opcodes[packets.OpcodeHostLatency.id].delay_us = int(
-                    (time_send - time_begin) * 1000000
-                )
+            packet_out.opcodes[
+                packets.OpcodeHostLatency.id
+            ] = packets.OpcodeHostLatency()
+            time_send = clock()
+            packet_out.opcodes[packets.OpcodeHostLatency.id].delay_us = int(
+                (time_send - time_begin) * 1000000
+            )
 
             # Dump the packet.
             dump_out = packet_out.dump()
@@ -1245,7 +1240,7 @@ class TwoPing:
             )
 
     def run(self):
-        self.print_debug("Clock: {}, value: {:f}".format(clock_info, clock()))
+        self.print_debug("Clock value: {:f}".format(clock()))
         self.print_debug("Poller: {}".format(self.poller.poller_type))
         if hasattr(signal, "SIGQUIT"):
             signal.signal(signal.SIGQUIT, self.sigquit_handler)

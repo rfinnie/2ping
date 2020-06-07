@@ -1,4 +1,6 @@
 2ping 4.4 (XXXX-XX-XX)
+ * Minimum Python version changed from 3.4 to 3.5
+ * Monotonic clock is always used
  * If the Python "netifaces" module is installed (preferred), --listen
    will now listen on all addresses by default, as opposed to requiring
    --all-interfaces previously

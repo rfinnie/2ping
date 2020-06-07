@@ -8,7 +8,7 @@ import subprocess
 import time
 import unittest
 
-from twoping import monotonic_clock, packets
+from twoping import packets
 
 
 @unittest.skipUnless(hasattr(os, "fork"), "CLI tests require os.fork()")
@@ -93,9 +93,6 @@ class TestCLIStandard(BaseTestCLI):
     def test_time(self):
         self.run_listener_client(["--send-time"])
 
-    @unittest.skipUnless(
-        monotonic_clock.get_clock_info("clock").monotonic, "Monotonic clock required"
-    )
     def test_monotonic_clock(self):
         self.run_listener_client(["--send-monotonic-clock"])
 

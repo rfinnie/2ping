@@ -6,7 +6,7 @@ import sys
 from setuptools import setup
 
 
-assert sys.version_info > (3, 4)
+assert sys.version_info > (3, 5)
 
 
 def read(filename):

@@ -193,7 +193,6 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 \-\-send-monotonic-clock
 :   Send a monotonic clock value with each packet.
     Peer time (if sent by the peer) can be viewed with *\-\-verbose*.
-    Only supported if the system is capable of generating a monotonic clock.
 
 \-\-send-random=*bytes*
 :   Send random data to the peer, up to *bytes*.
