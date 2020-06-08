@@ -1,4 +1,6 @@
 MANIFEST
+*.snap
+2ping_*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
