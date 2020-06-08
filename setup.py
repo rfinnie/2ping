@@ -6,6 +6,7 @@ import sys
 from setuptools import setup
 
 
+__version__ = "4.4.1"
 assert sys.version_info > (3, 5)
 
 
@@ -19,7 +20,7 @@ setup(
     description="2ping a bi-directional ping utility",
     long_description=read("README.md"),
     # long_description_content_type="text/markdown",  # Safe to add circa 2023
-    version="4.4",
+    version=__version__,
     license="GPLv2+",
     platforms=["Unix"],
     author="Ryan Finnie",

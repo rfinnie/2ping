@@ -1,5 +1,5 @@
 name: 2ping
-version: '4.4'
+version: '4.4.1'
 summary: 2ping bi-directional ping utility
 description: |
   2ping is a bi-directional ping utility. It uses 3-way pings (akin to
