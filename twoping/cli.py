@@ -18,6 +18,7 @@
 
 import errno
 import math
+import selectors
 import signal
 import socket
 import sys
@@ -33,7 +34,7 @@ try:
 except ImportError as e:
     netifaces = e
 
-from . import __version__, best_poller, packets
+from . import __version__, packets
 from .args import parse_args
 from .utils import (
     _,
@@ -135,7 +136,7 @@ class TwoPing:
 
         self.sock_classes = []
         self.systemd_socks = []
-        self.poller = best_poller.best_poller()
+        self.poller = selectors.DefaultSelector()
 
         self.pings_transmitted = 0
         self.pings_received = 0
@@ -842,7 +843,7 @@ class TwoPing:
                 self.sock_classes.append(SocketClass(sock))
                 bound_addresses.append(addrinfo)
         for sock_class in self.sock_classes:
-            self.poller.register(sock_class)
+            self.poller.register(sock_class, selectors.EVENT_READ)
             self.print_out(
                 _("2PING listener ({address}): {min} to {max} bytes of data.").format(
                     address=sock_class.sock.getsockname()[0],
@@ -939,7 +940,7 @@ class TwoPing:
         sock_class.client_host = host_info
         sock_class.session = bytes([random.randint(0, 255) for x in range(8)])
         self.sock_classes.append(sock_class)
-        self.poller.register(sock_class)
+        self.poller.register(sock_class, selectors.EVENT_READ)
         if not self.args.nagios:
             self.print_out(
                 _("2PING {hostname} ({address}): {min} to {max} bytes of data.").format(
@@ -1194,7 +1195,7 @@ class TwoPing:
 
     def run(self):
         self.print_debug("Clock value: {:f}".format(clock()))
-        self.print_debug("Poller: {}".format(self.poller.poller_type))
+        self.print_debug("Poller: {}".format(self.poller))
         if hasattr(signal, "SIGQUIT"):
             signal.signal(signal.SIGQUIT, self.sigquit_handler)
         if hasattr(signal, "SIGHUP"):
@@ -1407,7 +1408,8 @@ class TwoPing:
                 "Next wakeup: {} ({})".format((next_wakeup - now), next_wakeup_reason)
             )
 
-            for sock_class in self.poller.poll(next_wakeup - now):
+            for key, mask in self.poller.select(timeout=(next_wakeup - now)):
+                sock_class = key.fileobj
                 try:
                     self.process_incoming_packet(sock_class)
                 except Exception as e:
