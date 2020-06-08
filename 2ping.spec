@@ -22,11 +22,21 @@ a 2ping client to determine which direction packet loss occurs.
 
 %install
 %py3_install
+install -Dp -m 0644 2ping.service %{buildroot}/%{_unitdir}/2ping.service
 install -Dp -m 0644 doc/2ping.1 %{buildroot}/%{_mandir}/man1/2ping.1
 install -Dp -m 0644 doc/2ping.1 %{buildroot}/%{_mandir}/man1/2ping6.1
 
 %check
 %{__python3} setup.py test
+
+%post
+%systemd_post 2ping.service
+
+%preun
+%systemd_preun 2ping.service
+
+%postun
+%systemd_postun_with_restart 2ping.service
 
 %files
 %doc ChangeLog README.md
@@ -36,3 +46,4 @@ install -Dp -m 0644 doc/2ping.1 %{buildroot}/%{_mandir}/man1/2ping6.1
 %{_bindir}/%{name}6
 %{_mandir}/man1/%{name}.1*
 %{_mandir}/man1/%{name}6.1*
+%{_unitdir}/2ping.service

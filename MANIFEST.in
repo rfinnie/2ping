@@ -4,6 +4,7 @@ include Makefile
 include *.md
 include doc/*
 include 2ping
+include 2ping.service
 include 2ping.spec
 include 2ping6
 include 2ping.bash_completion
