@@ -1,10 +1,9 @@
 import locale
 import os
-import signal
+import subprocess
 import sys
 import time
 import unittest
-import uuid
 
 from twoping import args, cli, packets, utils
 
@@ -13,41 +12,33 @@ from twoping import args, cli, packets, utils
 class BaseTestCLI(unittest.TestCase):
     bind_address = "127.0.0.1"
     port = None
-    child_pid = 0
+    settle_time = 3
     listener_opts = []
-    canary_filename = None
-    canary_timeout = 10.0
+    listener_process = None
 
     @classmethod
     def setUpClass(self):
-        (self.child_pid, self.port) = self.fork_listener(self, self.listener_opts)
+        (self.listener_process, self.port) = self.fork_listener(
+            self, self.listener_opts
+        )
 
     @classmethod
     def tearDownClass(self):
-        if self.child_pid:
-            os.kill(self.child_pid, signal.SIGINT)
-
-    @classmethod
-    def listener_print(self, *args, **kwargs):
-        pass
+        if self.listener_process:
+            self.listener_process.terminate()
 
     @classmethod
     def listener_client_print(self, *args, **kwargs):
         pass
 
-    @classmethod
-    def listener_ready(self):
-        with open(self.canary_filename, "w"):
-            pass
-
     def fork_listener(self, extra_opts=None):
-        self.canary_filename = os.path.join("/tmp", str(uuid.uuid4()))
         if self.port:
             port = self.port
         else:
             port = utils.random.randint(49152, 65535)
         opts = [
-            "2ping",
+            sys.executable,
+            "-mtwoping.cli",
             "--listen",
             "--quiet",
             "--no-3way",
@@ -57,26 +48,14 @@ class BaseTestCLI(unittest.TestCase):
         if extra_opts:
             opts += extra_opts
 
-        child_pid = os.fork()
-        if child_pid == 0:
-            cli_args = args.parse_args(opts)
-            p = cli.TwoPing(cli_args)
-            p.print_out = self.listener_print
-            p.ready = self.listener_ready
-            sys.exit(int(p.run()))
-
-        begin_wait = time.monotonic()
-        found_canary = False
-        while time.monotonic() < begin_wait + self.canary_timeout:
-            if os.path.exists(self.canary_filename):
-                os.remove(self.canary_filename)
-                found_canary = True
-                break
-            time.sleep(0.25)
-        if not found_canary:
-            raise RuntimeError("Did not find listener start canary")
-
-        return (child_pid, port)
+        listener_process = subprocess.Popen(
+            opts,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        time.sleep(self.settle_time)
+        return (listener_process, port)
 
     def run_listener_client(self, client_opts, listener_opts=None):
         if listener_opts is None:
