@@ -654,15 +654,8 @@ class TwoPing:
                 else:
                     self.print_out("SEND: {}".format(repr(packet_out_examine)))
 
-        if (not self.args.listen) and (packets.OpcodeInReplyTo.id in packet_in.opcodes):
-            if self.args.flood:
-                # If we're in flood mode and this is a ping reply, send a new ping ASAP.
-                sock_class.next_send = time_begin
-            elif self.args.adaptive and sock_class.rtt_ewma:
-                # Adaptive gets recalculated immediately after the reply.
-                next_send = time_begin + (sock_class.rtt_ewma / 8.0 / 1000.0)
-                if next_send < sock_class.next_send:
-                    sock_class.next_send = next_send
+        if sock_class.next_send and (packets.OpcodeInReplyTo.id in packet_in.opcodes):
+            self.schedule_next_send(sock_class, reply_received=True)
 
     def sock_sendto(self, sock_class, data, address):
         sock = sock_class.sock
@@ -996,6 +989,7 @@ class TwoPing:
             proto=host_info[2],
         ):
             sock_class.client_host = host_info
+            sock_class.next_send = self.time_start
             self.poller.register(sock_class, selectors.EVENT_READ)
             self.sock_classes.append(sock_class)
 
@@ -1279,6 +1273,12 @@ class TwoPing:
                 )
 
         self.ready()
+
+        if (not self.args.listen) and (self.args.preload > 1):
+            for sock_class in self.sock_classes:
+                for i in range(self.args.preload - 1):
+                    self.send_new_ping(sock_class, sock_class.client_host[4])
+
         try:
             self.loop()
         except KeyboardInterrupt:
@@ -1410,105 +1410,126 @@ class TwoPing:
         self.print_debug("Bound to: {}".format(addrinfo))
         return sock
 
+    def get_next_wakeup(self):
+        now = clock()
+        events = [(self.next_cleanup, "cleanup")]
+        for sock_class in self.sock_classes:
+            if sock_class.next_send:
+                events.append((sock_class.next_send, "send ({})".format(sock_class)))
+            if sock_class.shutdown_time:
+                events.append(
+                    (sock_class.shutdown_time, "shutdown ({})".format(sock_class))
+                )
+        if self.args.stats:
+            events.append((self.next_stats, "stats"))
+        if self.args.deadline:
+            events.append((self.time_start + self.args.deadline, "deadline"))
+
+        next_wakeup = now + self.old_age_interval
+        next_wakeup_reason = "old age"
+        for wakeup, reason in events:
+            if wakeup < next_wakeup:
+                next_wakeup = wakeup
+                next_wakeup_reason = reason
+        if next_wakeup < now:
+            next_wakeup = now
+            next_wakeup_reason = "time travel ({})".format(next_wakeup_reason)
+
+        return next_wakeup, next_wakeup_reason
+
+    def schedule_next_send(self, sock_class, reply_received=False):
+        now = clock()
+        if self.args.adaptive and sock_class.rtt_ewma:
+            # Adaptive gets recalculated immediately.
+            sock_class.next_send = now + (sock_class.rtt_ewma / 8.0 / 1000.0)
+        elif self.args.flood:
+            if reply_received:
+                # If we're in flood mode and a ping reply was received, send a new ping ASAP.
+                sock_class.next_send = now
+            else:
+                # Send has just happened, give it a short time for reply.
+                sock_class.next_send = now + 0.01
+        elif not reply_received:
+            sock_class.next_send = now + self.args.interval
+
+    def loop_client_send(self):
+        now = clock()
+        for sock_class in self.sock_classes:
+            if not sock_class.next_send:
+                # Not scheduled to send
+                continue
+            if sock_class.shutdown_time:
+                # Scheduled to shutdown, do not send any more pings
+                continue
+            if now < sock_class.next_send:
+                # Not yet time
+                continue
+
+            if self.args.count and (sock_class.pings_transmitted >= self.args.count):
+                sock_class.shutdown_time = now + self.args.interval
+                sock_class.next_send = 0
+                continue
+            self.send_new_ping(sock_class, sock_class.client_host[4])
+            self.schedule_next_send(sock_class)
+
+    def loop_poller(self, next_wakeup):
+        timeout = next_wakeup - clock()
+        for key, mask in self.poller.select(timeout=(0 if timeout < 0 else timeout)):
+            sock_class = key.fileobj
+            try:
+                self.process_incoming_packet(sock_class)
+            except Exception as e:
+                self.print_out(_("Exception: {error}").format(error=str(e)))
+                if self.args.debug:
+                    raise
+
+            if (
+                self.args.count
+                and (sock_class.pings_transmitted >= self.args.count)
+                and (sock_class.pings_transmitted == sock_class.pings_received)
+            ):
+                sock_class.shutdown_time = clock()
+
+    def loop_is_shutdown(self):
+        now = clock()
+        for sock_class in self.sock_classes:
+            if not sock_class.shutdown_time:
+                return False
+            if sock_class.shutdown_time >= now:
+                return False
+        return True
+
     def loop(self):
         while True:
+            self.loop_client_send()
+            next_wakeup, next_wakeup_reason = self.get_next_wakeup()
+            self.print_debug(
+                "Next wakeup: {} ({})".format(
+                    (next_wakeup - clock()), next_wakeup_reason
+                )
+            )
+            self.loop_poller(next_wakeup)
+
             now = clock()
+
+            if self.args.stats and now >= self.next_stats:
+                self.print_stats(short=True)
+                self.next_stats = now + self.args.stats
+
+            if self.args.deadline and now >= (self.time_start + self.args.deadline):
+                for sock_class in self.sock_classes:
+                    sock_class.shutdown_time = now
+
             if now >= self.next_cleanup:
                 self.scheduled_cleanup()
                 self.next_cleanup = now + 60.0
-            if not self.args.listen:
-                for sock_class in self.sock_classes:
-                    if sock_class.shutdown_time:
-                        # Scheduled to shutdown, do not send any more pings
-                        continue
-                    if now >= sock_class.next_send:
-                        if self.args.count and (
-                            sock_class.pings_transmitted >= self.args.count
-                        ):
-                            sock_class.shutdown_time = now + self.args.interval
-                            sock_class.next_send = now + self.args.interval
-                            continue
-                        if (sock_class.pings_transmitted == 0) and (
-                            self.args.preload > 1
-                        ):
-                            for i in range(self.args.preload):
-                                self.send_new_ping(
-                                    sock_class, sock_class.client_host[4]
-                                )
-                        else:
-                            self.send_new_ping(sock_class, sock_class.client_host[4])
-                        if self.args.adaptive and sock_class.rtt_ewma:
-                            sock_class.next_send = now + (
-                                sock_class.rtt_ewma / 8.0 / 1000.0
-                            )
-                        elif self.args.flood:
-                            sock_class.next_send = now + 0.01
-                        else:
-                            sock_class.next_send = now + self.args.interval
-
-            next_wakeup = now + self.old_age_interval
-            next_wakeup_reason = "old age"
-            for sock_class in self.sock_classes:
-                if (not self.args.listen) and (sock_class.next_send < next_wakeup):
-                    next_wakeup = sock_class.next_send
-                    next_wakeup_reason = "send"
-                if sock_class.shutdown_time and (
-                    sock_class.shutdown_time < next_wakeup
-                ):
-                    next_wakeup = sock_class.shutdown_time
-                    next_wakeup_reason = "shutdown"
-            if self.args.stats:
-                if now >= self.next_stats:
-                    self.print_stats(short=True)
-                    self.next_stats = now + self.args.stats
-                if self.next_stats < next_wakeup:
-                    next_wakeup = self.next_stats
-                    next_wakeup_reason = "stats"
-            if self.args.deadline:
-                time_deadline = self.time_start + self.args.deadline
-                if now >= time_deadline:
-                    return
-                if time_deadline < next_wakeup:
-                    next_wakeup = time_deadline
-                    next_wakeup_reason = "deadline"
-            if self.next_cleanup < next_wakeup:
-                next_wakeup = self.next_cleanup
-                next_wakeup_reason = "cleanup"
-
-            if next_wakeup < now:
-                next_wakeup = now
-                next_wakeup_reason = "time travel"
-            self.print_debug(
-                "Next wakeup: {} ({})".format((next_wakeup - now), next_wakeup_reason)
-            )
-
-            for key, mask in self.poller.select(timeout=(next_wakeup - now)):
-                sock_class = key.fileobj
-                try:
-                    self.process_incoming_packet(sock_class)
-                except Exception as e:
-                    self.print_out(_("Exception: {error}").format(error=str(e)))
-                    if self.args.debug:
-                        raise
-
-                if (
-                    self.args.count
-                    and (sock_class.pings_transmitted >= self.args.count)
-                    and (sock_class.pings_transmitted == sock_class.pings_received)
-                ):
-                    sock_class.shutdown_time = now
-
-            all_shutdown = True
-            for sock_class in self.sock_classes:
-                if (not sock_class.shutdown_time) or (sock_class.shutdown_time >= now):
-                    all_shutdown = False
-                    break
-            if all_shutdown:
-                return
 
             if self.is_reload:
                 self.is_reload = False
                 self.setup_sockets()
+
+            if self.loop_is_shutdown():
+                return
 
 
 def main():
