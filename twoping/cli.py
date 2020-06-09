@@ -34,6 +34,11 @@ try:
 except ImportError as e:
     netifaces = e
 
+try:
+    import systemd.daemon as systemd_daemon
+except ImportError as e:
+    systemd_daemon = e
+
 from . import __version__, packets
 from .args import parse_args
 from .utils import (
@@ -59,6 +64,8 @@ class SocketClass:
 
         # Used during client mode for the host tuple to send UDP packets to.
         self.client_host = None
+        # (family, type, proto, canonname, sockaddr) of the bound socket
+        self.bind_addrinfo = None
 
         # Dict of PeerState instances, indexed by peer tuple
         self.peer_states = {}
@@ -82,7 +89,18 @@ class SocketClass:
 
         self.shutdown_time = 0
         self.nagios_result = 0
-        self.session = b""
+        self.session = bytes([random.randint(0, 255) for x in range(8)])
+
+        # Systemd sockets must be handled specially
+        self.is_systemd = False
+
+    def __repr__(self):
+        attrs = ["fd {}".format(self.fileno())]
+        if self.bind_addrinfo:
+            attrs.append(str(self.bind_addrinfo))
+        if self.is_systemd:
+            attrs.append("systemd")
+        return "<SocketClass: {}>".format(", ".join(attrs))
 
     def fileno(self):
         return self.sock.fileno()
@@ -135,7 +153,6 @@ class TwoPing:
         self.fake_time_generation = random.randint(0, 65535)
 
         self.sock_classes = []
-        self.systemd_socks = []
         self.poller = selectors.DefaultSelector()
 
         self.pings_transmitted = 0
@@ -733,81 +750,143 @@ class TwoPing:
                         )
                     )
 
-    def close_socks(self, close_systemd=True):
+    def close_socks(self, close_systemd=False, exclude=None):
+        new_sock_classes = []
         for sock_class in self.sock_classes:
-            self.poller.unregister(sock_class)
-            if (not close_systemd) and (sock_class.sock not in self.systemd_socks):
+            if (not close_systemd) and sock_class.is_systemd:
+                new_sock_classes.append(sock_class)
                 continue
+            if exclude is not None and sock_class in exclude:
+                new_sock_classes.append(sock_class)
+                continue
+            self.print_debug("Removing socket: {}".format(sock_class))
+            self.poller.unregister(sock_class)
             sock_class.sock.close()
+        self.sock_classes = new_sock_classes
 
     def gather_systemd_socks(self):
-        # If we've done this before, don't re-attempt
-        if len(self.systemd_socks) > 0:
-            return
+        # Do nothing if systemd.daemon is not available
+        if isinstance(systemd_daemon, ImportError):
+            return []
 
-        try:
-            import systemd.daemon
-        except ImportError:
-            return
+        # If we've done this before, don't re-attempt
+        systemd_sock_classes = [
+            sock_class for sock_class in self.sock_classes if sock_class.is_systemd
+        ]
+        if systemd_sock_classes:
+            return systemd_sock_classes
 
         # Note that listen_fds() defaults to unset_environment=True
         # so we only want to try this once (see above)
-        for fd in systemd.daemon.listen_fds():
+        sock_classes = []
+        for fd in systemd_daemon.listen_fds():
             for family in (socket.AF_INET6, socket.AF_INET):
-                if not systemd.daemon.is_socket_inet(
+                if not systemd_daemon.is_socket_inet(
                     fd, family=family, type=socket.SOCK_DGRAM
                 ):
                     continue
                 sock = socket.fromfd(fd, family, socket.SOCK_DGRAM)
-                self.systemd_socks.append(sock)
+                sock_class = SocketClass(sock)
+                sock_class.is_systemd = True
+                sock_classes.append(sock_class)
                 self.print_debug(
                     "Using systemd-supplied socket on fd {}: {}".format(
                         fd, (family, socket.SOCK_DGRAM, sock.getsockname())
                     )
                 )
-                break
 
-    def setup_listener(self):
-        # If called idempotently, destroy all listeners first
-        # Do not close systemd-supplied sockets, as they cannot be reopened
-        self.close_socks(close_systemd=False)
+        return sock_classes
 
-        self.sock_classes = []
-        bound_addresses = []
-        self.gather_systemd_socks()
-        if len(self.systemd_socks) > 0:
-            for sock in self.systemd_socks:
-                self.sock_classes.append(SocketClass(sock))
+    def setup_interface_address(
+        self,
+        interface_address,
+        port=0,
+        family=socket.AF_UNSPEC,
+        type=socket.SOCK_DGRAM,
+        proto=socket.IPPROTO_UDP,
+    ):
+        sock_classes = []
+        for addrinfo in socket.getaddrinfo(
+            interface_address, port, family, type, proto
+        ):
+            if (
+                (addrinfo[0] == socket.AF_INET6)
+                and (not self.args.ipv4)
+                and self.has_ipv6
+            ):
+                pass
+            elif (addrinfo[0] == socket.AF_INET) and (not self.args.ipv6):
+                pass
+            else:
+                continue
+
+            found_existing = False
+            for sock_class in self.sock_classes:
+                if addrinfo == sock_class.bind_addrinfo:
+                    sock_classes.append(sock_class)
+                    found_existing = True
+            if found_existing:
+                continue
+
+            sock = self.new_socket(addrinfo)
+            sock_class = SocketClass(sock)
+            sock_class.bind_addrinfo = addrinfo
+            sock_classes.append(sock_class)
+
+        return sock_classes
+
+    def get_system_addresses(self):
+        if isinstance(netifaces, ImportError):
+            return []
+
+        addrs = set()
+        for iface in netifaces.interfaces():
+            iface_addrs = netifaces.ifaddresses(iface)
+            if (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)) and (
+                netifaces.AF_INET in iface_addrs
+            ):
+                addrs.update(
+                    [
+                        (f["addr"], netifaces.AF_INET)
+                        for f in iface_addrs[netifaces.AF_INET]
+                        if "addr" in f
+                    ]
+                )
+            if (
+                self.has_ipv6
+                and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6))
+                and (netifaces.AF_INET6 in iface_addrs)
+            ):
+                addrs.update(
+                    [
+                        (f["addr"], netifaces.AF_INET6)
+                        for f in iface_addrs[netifaces.AF_INET6]
+                        if "addr" in f
+                    ]
+                )
+
+        return list(addrs)
+
+    def setup_sockets(self):
+        if self.args.listen:
+            self.setup_sockets_listener()
+        else:
+            self.setup_sockets_client()
+
+    def setup_sockets_listener(self):
+        systemd_sock_classes = self.gather_systemd_socks()
+
+        if systemd_sock_classes:
+            # Existing systemd socks, do nothing
             interface_addresses = []
         elif self.args.interface_address:
-            interface_addresses = self.args.interface_address
+            # Addresses supplied by user
+            interface_addresses = [
+                (addr, socket.AF_UNSPEC) for addr in self.args.interface_address
+            ]
         elif not isinstance(netifaces, ImportError):
-            addrs = set()
-            for iface in netifaces.interfaces():
-                iface_addrs = netifaces.ifaddresses(iface)
-                if (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)) and (
-                    netifaces.AF_INET in iface_addrs
-                ):
-                    addrs.update(
-                        [
-                            f["addr"]
-                            for f in iface_addrs[netifaces.AF_INET]
-                            if "addr" in f
-                        ]
-                    )
-                if (
-                    self.has_ipv6
-                    and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6))
-                    and (netifaces.AF_INET6 in iface_addrs)
-                ):
-                    addrs.update(
-                        [
-                            f["addr"]
-                            for f in iface_addrs[netifaces.AF_INET6]
-                            if "addr" in f
-                        ]
-                    )
-            interface_addresses = list(addrs)
+            # Addresses provided by netifaces
+            interface_addresses = self.get_system_addresses()
         elif self.args.all_interfaces:
             # --all-interfaces is pretty much deprecated; this section is
             # only triggered if it's explicitly passed but netifaces is not
@@ -816,43 +895,30 @@ class TwoPing:
                 "All interface addresses not available; please install netifaces"
             )
         else:
-            interface_addresses = ["0.0.0.0"]
+            # Last resort
+            interface_addresses = [("0.0.0.0", socket.AF_INET)]
             if self.has_ipv6:
-                interface_addresses.append("::")
-        for interface_address in interface_addresses:
-            for addrinfo in socket.getaddrinfo(
-                interface_address,
-                self.args.port,
-                socket.AF_UNSPEC,
-                socket.SOCK_DGRAM,
-                socket.IPPROTO_UDP,
-            ):
-                if addrinfo in bound_addresses:
-                    continue
-                if (
-                    (addrinfo[0] == socket.AF_INET6)
-                    and (not self.args.ipv4)
-                    and self.has_ipv6
-                ):
-                    pass
-                elif (addrinfo[0] == socket.AF_INET) and (not self.args.ipv6):
-                    pass
-                else:
-                    continue
-                sock = self.new_socket(addrinfo[0], addrinfo[1], addrinfo[4])
-                self.sock_classes.append(SocketClass(sock))
-                bound_addresses.append(addrinfo)
-        for sock_class in self.sock_classes:
-            self.poller.register(sock_class, selectors.EVENT_READ)
-            self.print_out(
-                _("2PING listener ({address}): {min} to {max} bytes of data.").format(
-                    address=sock_class.sock.getsockname()[0],
-                    min=self.args.min_packet_size,
-                    max=self.args.max_packet_size,
-                )
+                interface_addresses.append(("::", socket.AF_INET6))
+
+        interface_sock_classes = []
+        for interface_address, interface_family in interface_addresses:
+            interface_sock_classes += self.setup_interface_address(
+                interface_address, port=self.args.port, family=interface_family
             )
 
-    def setup_client(self):
+        new_sock_classes = systemd_sock_classes + interface_sock_classes
+        for sock_class in new_sock_classes:
+            if sock_class not in self.sock_classes:
+                self.poller.register(sock_class, selectors.EVENT_READ)
+
+        self.close_socks(exclude=new_sock_classes)
+        self.sock_classes = new_sock_classes
+
+    def setup_sockets_client(self):
+        # Unlike the listener, client socket setup is only done once.
+        if self.sock_classes:
+            return
+
         if self.args.srv:
             if isinstance(dns_resolver, ImportError):
                 raise socket.error(
@@ -882,7 +948,7 @@ class TwoPing:
             hosts = [(x, self.args.port) for x in self.args.host]
         for (hostname, port) in hosts:
             try:
-                self.setup_client_host(hostname, port)
+                self.setup_sockets_client_host(hostname, port)
             except socket.error as e:
                 eargs = list(e.args)
                 if len(eargs) == 1:
@@ -891,7 +957,7 @@ class TwoPing:
                     eargs[1] = "{}: {}".format(hostname, eargs[1])
                 raise socket.error(*eargs)
 
-    def setup_client_host(self, hostname, port):
+    def setup_sockets_client_host(self, hostname, port):
         host_info = None
         for addrinfo in socket.getaddrinfo(
             hostname,
@@ -916,40 +982,22 @@ class TwoPing:
         if host_info is None:
             raise socket.error("Name or service not known")
 
-        bind_info = None
         if self.args.interface_address:
-            h = self.args.interface_address[-1]
+            interface_address = self.args.interface_address[-1]
+        elif host_info[0] == socket.AF_INET6:
+            interface_address = "::"
         else:
-            if host_info[0] == socket.AF_INET6:
-                h = "::"
-            else:
-                h = "0.0.0.0"
-        for addrinfo in socket.getaddrinfo(
-            h, 0, host_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP
+            interface_address = "0.0.0.0"
+
+        for sock_class in self.setup_interface_address(
+            interface_address,
+            family=host_info[0],
+            type=host_info[1],
+            proto=host_info[2],
         ):
-            bind_info = addrinfo
-            break
-        if bind_info is None:
-            raise socket.error(
-                _("Cannot find suitable bind for {address}").format(
-                    address=host_info[4]
-                )
-            )
-        sock = self.new_socket(bind_info[0], bind_info[1], bind_info[4])
-        sock_class = SocketClass(sock)
-        sock_class.client_host = host_info
-        sock_class.session = bytes([random.randint(0, 255) for x in range(8)])
-        self.sock_classes.append(sock_class)
-        self.poller.register(sock_class, selectors.EVENT_READ)
-        if not self.args.nagios:
-            self.print_out(
-                _("2PING {hostname} ({address}): {min} to {max} bytes of data.").format(
-                    hostname=host_info[3],
-                    address=host_info[4][0],
-                    min=self.args.min_packet_size,
-                    max=self.args.max_packet_size,
-                )
-            )
+            sock_class.client_host = host_info
+            self.poller.register(sock_class, selectors.EVENT_READ)
+            self.sock_classes.append(sock_class)
 
     def send_new_ping(self, sock_class, peer_address):
         sock = sock_class.sock
@@ -1202,13 +1250,33 @@ class TwoPing:
             signal.signal(signal.SIGHUP, self.sighup_handler)
 
         try:
-            if self.args.listen:
-                self.setup_listener()
-            else:
-                self.setup_client()
+            self.setup_sockets()
         except (socket.error, socket.gaierror) as e:
             self.print_out(str(e))
             return 1
+
+        for sock_class in self.sock_classes:
+            if self.args.listen:
+                self.print_out(
+                    _(
+                        "2PING listener ({address}): {min} to {max} bytes of data."
+                    ).format(
+                        address=sock_class.sock.getsockname()[0],
+                        min=self.args.min_packet_size,
+                        max=self.args.max_packet_size,
+                    )
+                )
+            elif not self.args.nagios:
+                self.print_out(
+                    _(
+                        "2PING {hostname} ({address}): {min} to {max} bytes of data."
+                    ).format(
+                        hostname=sock_class.client_host[3],
+                        address=sock_class.client_host[4][0],
+                        min=self.args.min_packet_size,
+                        max=self.args.max_packet_size,
+                    )
+                )
 
         self.ready()
         try:
@@ -1217,7 +1285,7 @@ class TwoPing:
             pass
 
         self.print_stats()
-        self.close_socks()
+        self.close_socks(close_systemd=True)
         if self.args.nagios:
             return self.nagios_result
         return 0
@@ -1292,6 +1360,7 @@ class TwoPing:
 
     def scheduled_cleanup(self):
         self.print_debug("Cleanup")
+        self.setup_sockets()
         for sock_class in self.sock_classes:
             self.scheduled_cleanup_sock_class(sock_class)
 
@@ -1319,8 +1388,13 @@ class TwoPing:
                             )
                         )
 
-    def new_socket(self, family, type, bind):
-        sock = socket.socket(family, type)
+    def new_socket(self, addrinfo):
+        family = addrinfo[0]
+        type = addrinfo[1]
+        proto = addrinfo[2]
+        bind = addrinfo[4]
+
+        sock = socket.socket(family, type, proto)
         try:
             import IN
 
@@ -1333,7 +1407,7 @@ class TwoPing:
             except (AttributeError, socket.error):
                 pass
         sock.bind(bind)
-        self.print_debug("Bound to: {}".format(repr((family, type, bind))))
+        self.print_debug("Bound to: {}".format(addrinfo))
         return sock
 
     def loop(self):
@@ -1434,8 +1508,7 @@ class TwoPing:
 
             if self.is_reload:
                 self.is_reload = False
-                if self.args.listen:
-                    self.setup_listener()
+                self.setup_sockets()
 
 
 def main():
