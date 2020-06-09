@@ -155,20 +155,6 @@ class TwoPing:
         self.sock_classes = []
         self.poller = selectors.DefaultSelector()
 
-        self.pings_transmitted = 0
-        self.pings_received = 0
-        self.packets_transmitted = 0
-        self.packets_received = 0
-        self.lost_outbound = 0
-        self.lost_inbound = 0
-        self.errors_received = 0
-        self.rtt_total = 0
-        self.rtt_total_sq = 0
-        self.rtt_count = 0
-        self.rtt_min = 0
-        self.rtt_max = 0
-        self.rtt_ewma = 0
-
         # Scheduled events
         self.next_cleanup = now + 60.0
         self.next_stats = 0
@@ -210,7 +196,6 @@ class TwoPing:
     def handle_socket_error(self, e, sock_class, peer_address=None):
         sock = sock_class.sock
         # Errors from the last send() can be trapped via IP_RECVERR (Linux only).
-        self.errors_received += 1
         sock_class.errors_received += 1
         error_string = str(e)
         try:
@@ -254,7 +239,6 @@ class TwoPing:
             data = fuzz_packet(data, self.args.fuzz)
 
         # Per-packet options.
-        self.packets_received += 1
         sock_class.packets_received += 1
         calculated_rtt = None
 
@@ -276,7 +260,6 @@ class TwoPing:
         # Decrypt packet if needed.
         if self.args.encrypt:
             if packets.OpcodeEncrypted.id not in packet_in.opcodes:
-                self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _("Encryption required but not provided by {address}").format(
@@ -288,7 +271,6 @@ class TwoPing:
                 packet_in.opcodes[packets.OpcodeEncrypted.id].method_index
                 != self.args.encrypt_method_index
             ):
-                self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _(
@@ -314,7 +296,6 @@ class TwoPing:
                 encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
                 != peer_state.encrypted_session_id
             ):
-                self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _(
@@ -334,7 +315,6 @@ class TwoPing:
                 encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv
                 in peer_state.encrypted_session_ivs
             ):
-                self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _("Repeated IV {iv} from {address}, discarding").format(
@@ -354,7 +334,6 @@ class TwoPing:
         # Verify HMAC if required.
         if self.args.auth:
             if packets.OpcodeHMAC.id not in packet_in.opcodes:
-                self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _("Auth required but not provided by {address}").format(
@@ -366,7 +345,6 @@ class TwoPing:
                 packet_in.opcodes[packets.OpcodeHMAC.id].digest_index
                 != self.args.auth_digest_index
             ):
-                self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _(
@@ -394,7 +372,6 @@ class TwoPing:
                 packet_in.opcodes[packets.OpcodeHMAC.id], test_data
             )
             if test_hash_calculated != test_hash:
-                self.errors_received += 1
                 sock_class.errors_received += 1
                 self.print_out(
                     _(
@@ -434,7 +411,6 @@ class TwoPing:
                 if calculated_rtt < 0:
                     calculated_rtt = 0
 
-                self.pings_received += 1
                 sock_class.pings_received += 1
                 self.update_rtts(sock_class, calculated_rtt)
                 if self.args.quiet:
@@ -619,12 +595,10 @@ class TwoPing:
 
             # Send the packet.
             self.sock_sendto(sock_class, sock_out, peer_address)
-            self.packets_transmitted += 1
             sock_class.packets_transmitted += 1
 
             # If ReplyRequested is set, we care about its arrival.
             if packets.OpcodeReplyRequested.id in packet_out.opcodes:
-                self.pings_transmitted += 1
                 sock_class.pings_transmitted += 1
                 peer_state.ping_position += 1
                 peer_state.sent_messages[nunpack(packet_out.message_id)] = (
@@ -702,7 +676,6 @@ class TwoPing:
                 (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id_int]
                 found[ping_seq] = ("inbound", peer_state.peer_tuple[1][0])
                 del peer_state.sent_messages[message_id_int]
-                self.lost_inbound += 1
                 peer_state.sock_class.lost_inbound += 1
 
         # Outbound
@@ -716,7 +689,6 @@ class TwoPing:
                 (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id_int]
                 found[ping_seq] = ("outbound", peer_state.peer_tuple[1][0])
                 del peer_state.sent_messages[message_id_int]
-                self.lost_outbound += 1
                 peer_state.sock_class.lost_outbound += 1
 
         if self.args.quiet:
@@ -1030,9 +1002,7 @@ class TwoPing:
 
         now = clock()
         self.sock_sendto(sock_class, sock_out, peer_address)
-        self.packets_transmitted += 1
         sock_class.packets_transmitted += 1
-        self.pings_transmitted += 1
         sock_class.pings_transmitted += 1
         peer_state.ping_position += 1
         peer_state.sent_messages[nunpack(packet_out.message_id)] = (
@@ -1053,7 +1023,7 @@ class TwoPing:
                 self.print_out("SEND: {}".format(repr(packet_out_examine)))
 
     def update_rtts(self, sock_class, rtt):
-        for c in (self, sock_class):
+        for c in (sock_class,):
             c.rtt_total += rtt
             c.rtt_total_sq += rtt ** 2
             c.rtt_count += 1
@@ -1075,17 +1045,11 @@ class TwoPing:
 
     def print_stats(self, short=False):
         time_end = clock()
-        if self.args.listen:
-            self.print_stats_sock(time_end, short=short, sock_class=None)
-        else:
-            for sock_class in self.sock_classes:
-                self.print_stats_sock(time_end, short=short, sock_class=sock_class)
+        for sock_class in self.sock_classes:
+            self.print_stats_sock(sock_class, time_end, short=short)
 
-    def print_stats_sock(self, time_end, short=False, sock_class=None):
-        if sock_class is not None:
-            stats_class = sock_class
-        else:
-            stats_class = self
+    def print_stats_sock(self, sock_class, time_end, short=False):
+        stats_class = sock_class
         time_start = self.time_start
         pings_lost = stats_class.pings_transmitted - stats_class.pings_received
         lost_pct = lazy_div(pings_lost, stats_class.pings_transmitted) * 100
@@ -1108,7 +1072,7 @@ class TwoPing:
             - (lazy_div(stats_class.rtt_total, stats_class.rtt_count) ** 2)
         )
         if self.args.listen:
-            hostname = _("Listener")
+            hostname = sock_class.sock.getsockname()[0]
         else:
             hostname = sock_class.client_host[3]
         if short:
