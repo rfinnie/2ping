@@ -1,5 +1,4 @@
 import locale
-import os
 import subprocess
 import sys
 import time
@@ -8,7 +7,6 @@ import unittest
 from twoping import args, cli, packets, utils
 
 
-@unittest.skipUnless(hasattr(os, "fork"), "CLI tests require os.fork()")
 class BaseTestCLI(unittest.TestCase):
     bind_address = "127.0.0.1"
     port = None
