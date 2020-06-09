@@ -21,6 +21,7 @@ Python 3 stdlib is the only requirement for base functionality, but 2ping can ut
 * [dnspython](https://pypi.org/project/dnspython/) for --srv
 * [netifaces](https://pypi.org/project/netifaces/) for listening on all addresses in --listen mode
 * [pycrypto](https://pypi.org/project/pycrypto/) for --encrypt
+* [systemd](https://pypi.org/project/systemd/) for using systemd-supplied sockets
 
 ## Usage
 
