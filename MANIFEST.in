@@ -11,3 +11,4 @@ include 2ping.bash_completion
 include tests/*.py
 include wireshark/*
 include snapcraft.yaml
+include requirements.txt

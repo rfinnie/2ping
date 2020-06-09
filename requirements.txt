@@ -1,0 +1,4 @@
+distro
+dnspython
+netifaces
+pycrypto
