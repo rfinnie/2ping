@@ -14,11 +14,14 @@ lint:
 		--ignore=C901,E203,E231,W503 --max-line-length=120 \
 		--max-complexity=10
 
-test: black lint build
+test: black-check lint build
 	$(PYTHON) setup.py test
 
 black:
 	$(PYTHON) -mblack $(CURDIR)
+
+black-check:
+	$(PYTHON) -mblack --check $(CURDIR)
 
 install: build
 	$(PYTHON) setup.py install
