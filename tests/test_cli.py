@@ -1,5 +1,6 @@
 import locale
 import unittest
+import unittest.mock
 
 from twoping import args, cli, packets, utils
 
@@ -7,10 +8,6 @@ from twoping import args, cli, packets, utils
 class TestCLI(unittest.TestCase):
     bind_address = "127.0.0.1"
     port = None
-
-    @classmethod
-    def _client_print(self, *args, **kwargs):
-        pass
 
     def _client(self, test_args):
         if self.port is None:
@@ -32,7 +29,7 @@ class TestCLI(unittest.TestCase):
             base_args.append("--interval=5")
         cli_args = args.parse_args(base_args + test_args)
         p = cli.TwoPing(cli_args)
-        p.print_out = self._client_print
+        p.print_out = unittest.mock.Mock()
         self.assertEqual(int(p.run()), 0)
 
     def test_adaptive(self):
