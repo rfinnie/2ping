@@ -407,6 +407,10 @@ class TwoPing:
                 else:
                     if self.args.audible:
                         self.print_out("\x07", end="", flush=True)
+                    if peer_state.peer_tuple[1]:
+                        address = peer_state.peer_tuple[1][0]
+                    else:
+                        address = sock_class
                     if packets.OpcodeRTTEnclosed.id in packet_in.opcodes:
                         self.print_out(
                             _(
@@ -416,7 +420,7 @@ class TwoPing:
                                 )
                             ).format(
                                 bytes=len(data),
-                                address=peer_state.peer_tuple[1][0],
+                                address=address,
                                 seq=ping_position,
                                 ms=calculated_rtt,
                                 peerms=(
@@ -433,7 +437,7 @@ class TwoPing:
                                 "{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms"
                             ).format(
                                 bytes=len(data),
-                                address=peer_state.peer_tuple[1][0],
+                                address=address,
                                 seq=ping_position,
                                 ms=calculated_rtt,
                             )
@@ -618,7 +622,7 @@ class TwoPing:
         if sock_class.next_send and (packets.OpcodeInReplyTo.id in packet_in.opcodes):
             self.schedule_next_send(sock_class, reply_received=True)
 
-    def sock_sendto(self, sock_class, data, address):
+    def sock_sendto(self, sock_class, data, address=None):
         sock = sock_class.sock
         # Simulate random packet loss.
         if self.args.packet_loss_out and (
@@ -627,7 +631,10 @@ class TwoPing:
             return
         # Send the packet.
         try:
-            sock.sendto(data, address)
+            if address:
+                sock.sendto(data, address)
+            else:
+                sock.send(data)
         except socket.error as e:
             self.handle_socket_error(e, sock_class, peer_address=address)
 
@@ -840,10 +847,10 @@ class TwoPing:
         return list(addrs)
 
     def setup_sockets(self):
+        if self.args.host:
+            self.setup_sockets_client()
         if self.args.listen:
             self.setup_sockets_listener()
-        else:
-            self.setup_sockets_client()
 
     def setup_sockets_listener(self):
         systemd_sock_classes = self.gather_systemd_socks()
@@ -883,8 +890,11 @@ class TwoPing:
             if sock_class not in self.sock_classes:
                 self.poller.register(sock_class, selectors.EVENT_READ)
 
-        self.close_socks(exclude=new_sock_classes)
-        self.sock_classes = new_sock_classes
+        client_sock_classes = [
+            sock_class for sock_class in self.sock_classes if sock_class.next_send
+        ]
+        self.close_socks(exclude=(new_sock_classes + client_sock_classes))
+        self.sock_classes = new_sock_classes + client_sock_classes
 
     def setup_sockets_client(self):
         # Unlike the listener, client socket setup is only done once.
@@ -972,9 +982,11 @@ class TwoPing:
             self.poller.register(sock_class, selectors.EVENT_READ)
             self.sock_classes.append(sock_class)
 
-    def send_new_ping(self, sock_class, peer_address):
+    def send_new_ping(self, sock_class, peer_address=None):
         sock = sock_class.sock
         socket_address = sock.getsockname()
+        if not peer_address and sock_class.client_host:
+            peer_address = sock_class.client_host[4]
         peer_tuple = (socket_address, peer_address, sock.type)
         if peer_tuple not in sock_class.peer_states:
             sock_class.peer_states[peer_tuple] = PeerState(peer_tuple, sock_class)
@@ -1078,10 +1090,13 @@ class TwoPing:
             lazy_div(stats_class.rtt_total_sq, stats_class.rtt_count)
             - (lazy_div(stats_class.rtt_total, stats_class.rtt_count) ** 2)
         )
-        if self.args.listen:
-            hostname = sock_class.sock.getsockname()[0]
-        else:
+        sockname = sock_class.sock.getsockname()
+        if sock_class.client_host:
             hostname = sock_class.client_host[3]
+        elif sockname:
+            hostname = sockname[0]
+        else:
+            hostname = sock_class
         if short:
             self.print_out("\x0d", end="", flush=True, file=sys.stderr)
             self.print_out(
@@ -1221,34 +1236,35 @@ class TwoPing:
             return 1
 
         for sock_class in self.sock_classes:
-            if self.args.listen:
-                self.print_out(
-                    _(
-                        "2PING listener ({address}): {min} to {max} bytes of data."
-                    ).format(
-                        address=sock_class.sock.getsockname()[0],
-                        min=self.args.min_packet_size,
-                        max=self.args.max_packet_size,
-                    )
+            if self.args.nagios:
+                continue
+            sockname = sock_class.sock.getsockname()
+            if sock_class.client_host:
+                host_display = "{} ({})".format(
+                    sock_class.client_host[3], sock_class.client_host[4][0]
                 )
-            elif not self.args.nagios:
-                self.print_out(
-                    _(
-                        "2PING {hostname} ({address}): {min} to {max} bytes of data."
-                    ).format(
-                        hostname=sock_class.client_host[3],
-                        address=sock_class.client_host[4][0],
-                        min=self.args.min_packet_size,
-                        max=self.args.max_packet_size,
-                    )
+            elif sock_class.next_send:
+                host_display = "{}".format(sock_class)
+            elif sockname:
+                host_display = "listener ({})".format(sockname[0])
+            else:
+                host_display = "listener ({})".format(sock_class)
+            self.print_out(
+                _("2PING {host}: {min} to {max} bytes of data.").format(
+                    host=host_display,
+                    min=self.args.min_packet_size,
+                    max=self.args.max_packet_size,
                 )
+            )
 
         self.ready()
 
-        if (not self.args.listen) and (self.args.preload > 1):
+        if self.args.preload > 1:
             for sock_class in self.sock_classes:
+                if not sock_class.next_send:
+                    continue
                 for i in range(self.args.preload - 1):
-                    self.send_new_ping(sock_class, sock_class.client_host[4])
+                    self.send_new_ping(sock_class)
 
         try:
             self.loop()
@@ -1440,7 +1456,7 @@ class TwoPing:
                 sock_class.shutdown_time = now + self.args.interval
                 sock_class.next_send = 0
                 continue
-            self.send_new_ping(sock_class, sock_class.client_host[4])
+            self.send_new_ping(sock_class)
             self.schedule_next_send(sock_class)
 
     def loop_poller(self, next_wakeup):
