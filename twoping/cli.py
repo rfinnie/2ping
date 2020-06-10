@@ -220,23 +220,10 @@ class TwoPing:
 
     def process_incoming_packet(self, sock_class):
         sock = sock_class.sock
-        try:
-            (data, peer_address) = sock.recvfrom(16384)
-        except socket.error as e:
-            self.handle_socket_error(e, sock_class)
-            return
+        data, peer_address = self.sock_recvfrom(sock_class)
         socket_address = sock.getsockname()
         self.print_debug("Socket address: {}".format(repr(socket_address)))
         self.print_debug("Peer address: {}".format(repr(peer_address)))
-
-        # Simulate random packet loss.
-        if self.args.packet_loss_in and (
-            random.random() < (self.args.packet_loss_in / 100.0)
-        ):
-            return
-        # Simulate data corruption
-        if self.args.fuzz:
-            data = fuzz_packet(data, self.args.fuzz)
 
         # Per-packet options.
         sock_class.packets_received += 1
@@ -643,6 +630,26 @@ class TwoPing:
             sock.sendto(data, address)
         except socket.error as e:
             self.handle_socket_error(e, sock_class, peer_address=address)
+
+    def sock_recvfrom(self, sock_class):
+        sock = sock_class.sock
+        try:
+            (data, peer_address) = sock.recvfrom(16384)
+        except socket.error as e:
+            self.handle_socket_error(e, sock_class)
+            return
+
+        # Simulate random packet loss.
+        if self.args.packet_loss_in and (
+            random.random() < (self.args.packet_loss_in / 100.0)
+        ):
+            return
+
+        # Simulate data corruption
+        if self.args.fuzz:
+            data = fuzz_packet(data, self.args.fuzz)
+
+        return data, peer_address
 
     def start_investigations(self, peer_state, packet_check):
         if len(peer_state.sent_messages) == 0:
