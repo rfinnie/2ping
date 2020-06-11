@@ -6,12 +6,7 @@ python:
   - "3.8"
 install:
   - pip install -r requirements.txt
-  - python -c 'import sys; sys.exit(0 if sys.version_info[0:2] == (3, 5) else 1)' || pip install black
-  - pip install flake8
+  - pip install tox
   - pip install .
 script:
-  - make lint
-  - python -c 'import sys; sys.exit(0 if sys.version_info[0:2] == (3, 5) else 1)' || black --check
-  - python setup.py test
-  - python setup.py check
-  - python setup.py sdist
+  - tox
