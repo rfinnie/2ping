@@ -32,13 +32,16 @@ class TestCLI(unittest.TestCase):
         p.print_out = unittest.mock.Mock()
         self.assertEqual(p.run(), 0)
 
+        for sock_class in p.sock_classes:
+            self.assertTrue(sock_class.closed)
+
+        self.assertEqual(len(p.sock_classes), 2)
         client_sock_classes = [
-            sock_class for sock_class in p.all_sock_classes if sock_class.client_host
+            sock_class for sock_class in p.sock_classes if sock_class.client_host
         ]
         self.assertEqual(len(client_sock_classes), 1)
         sock_class = client_sock_classes[0]
 
-        self.assertTrue(sock_class.closed)
         self.assertEqual(sock_class.errors_received, 0)
         self.assertEqual(sock_class.lost_inbound, 0)
         self.assertEqual(sock_class.lost_outbound, 0)
