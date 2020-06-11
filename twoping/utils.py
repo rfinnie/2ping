@@ -62,11 +62,9 @@ def twoping_checksum(packet):
     return checksum
 
 
-def lazy_div(n, d):
+def div0(n, d):
     """Pretend we live in a world where n / 0 == 0"""
-    if d == 0:
-        return 0
-    return n / d
+    return 0 if d == 0 else n / d
 
 
 def npack(i, minimum=1):

@@ -45,7 +45,7 @@ from .utils import (
     _,
     _pl,
     fuzz_packet,
-    lazy_div,
+    div0,
     nunpack,
     platform_info,
     random,
@@ -1084,24 +1084,22 @@ class TwoPing:
         stats_class = sock_class
         time_start = self.time_start
         pings_lost = stats_class.pings_transmitted - stats_class.pings_received
-        lost_pct = lazy_div(pings_lost, stats_class.pings_transmitted) * 100
+        lost_pct = div0(pings_lost, stats_class.pings_transmitted) * 100
         lost_undetermined = pings_lost - (
             stats_class.lost_outbound + stats_class.lost_inbound
         )
         outbound_pct = (
-            lazy_div(stats_class.lost_outbound, stats_class.pings_transmitted) * 100
+            div0(stats_class.lost_outbound, stats_class.pings_transmitted) * 100
         )
         inbound_pct = (
-            lazy_div(stats_class.lost_inbound, stats_class.pings_transmitted) * 100
+            div0(stats_class.lost_inbound, stats_class.pings_transmitted) * 100
         )
-        undetermined_pct = (
-            lazy_div(lost_undetermined, stats_class.pings_transmitted) * 100
-        )
-        rtt_avg = lazy_div(float(stats_class.rtt_total), stats_class.rtt_count)
+        undetermined_pct = div0(lost_undetermined, stats_class.pings_transmitted) * 100
+        rtt_avg = div0(float(stats_class.rtt_total), stats_class.rtt_count)
         rtt_ewma = stats_class.rtt_ewma / 8.0
         rtt_mdev = math.sqrt(
-            lazy_div(stats_class.rtt_total_sq, stats_class.rtt_count)
-            - (lazy_div(stats_class.rtt_total, stats_class.rtt_count) ** 2)
+            div0(stats_class.rtt_total_sq, stats_class.rtt_count)
+            - (div0(stats_class.rtt_total, stats_class.rtt_count) ** 2)
         )
         sockname = sock_class.sock.getsockname()
         if sock_class.client_host:

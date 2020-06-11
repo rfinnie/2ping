@@ -63,10 +63,10 @@ class TestUtils(unittest.TestCase):
         data_fuzzed = utils.fuzz_packet(data, 0)
         self.assertEqual(data, data_fuzzed)
 
-    def test_lazy_div(self):
-        self.assertEqual(utils.lazy_div(10, 5), 10 / 5)
-        self.assertEqual(utils.lazy_div(5, 0), 0)
-        self.assertEqual(utils.lazy_div(0, 0), 0)
+    def test_div0(self):
+        self.assertEqual(utils.div0(10, 5), 10 / 5)
+        self.assertEqual(utils.div0(5, 0), 0)
+        self.assertEqual(utils.div0(0, 0), 0)
 
     def test_npack(self):
         self.assertEqual(utils.npack(1), b"\x01")
