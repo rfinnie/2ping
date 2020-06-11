@@ -64,24 +64,18 @@ def new(buf=None):
 def main(argv):
     files = argv[1:]
     if len(files) == 0:
-        if hasattr(sys.stdin, "buffer"):
-            stdin = sys.stdin.buffer
-        else:
-            stdin = sys.stdin
+        files = ["-"]
+
+    for file in files:
         c = new()
-        for buf in stdin.readlines():
-            c.update(buf)
-        print(c.hexdigest())
-    else:
-        for file in files:
+        if file == "-":
+            for buf in sys.stdin.buffer.readlines():
+                c.update(buf)
+        else:
             with open(file, "rb") as f:
-                c = new()
                 for buf in f.readlines():
                     c.update(buf)
-                if len(files) > 1:
-                    print("{}\t{}".format(c.hexdigest(), file))
-                else:
-                    print(c.hexdigest())
+        print("{}\t{}".format(c.hexdigest(), file))
 
 
 def module_init():
