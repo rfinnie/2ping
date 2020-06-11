@@ -18,6 +18,7 @@
 
 import binascii
 import copy
+import sys
 
 digest_size = 4
 
@@ -60,10 +61,8 @@ def new(buf=None):
     return CRC32(buf)
 
 
-if __name__ == "__main__":
-    import sys
-
-    files = sys.argv[1:]
+def main(argv):
+    files = argv[1:]
     if len(files) == 0:
         if hasattr(sys.stdin, "buffer"):
             stdin = sys.stdin.buffer
@@ -83,3 +82,11 @@ if __name__ == "__main__":
                     print("{}\t{}".format(c.hexdigest(), file))
                 else:
                     print(c.hexdigest())
+
+
+def module_init():
+    if __name__ == "__main__":
+        sys.exit(main(sys.argv))
+
+
+module_init()

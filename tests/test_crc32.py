@@ -1,6 +1,7 @@
 import hmac
 import unittest
 
+from . import _test_module_init
 from twoping import crc32
 
 
@@ -30,6 +31,9 @@ class TestCRC32(unittest.TestCase):
     def test_zero_padding(self):
         c = crc32.new(b"jade")
         self.assertEqual(c.digest(), b"\x00\x83\x52\x18")
+
+    def test_module_init(self):
+        self.assertTrue(_test_module_init(crc32))
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import locale
 import unittest
 import unittest.mock
 
+from . import _test_module_init
 from twoping import args, cli, packets, utils
 
 
@@ -103,6 +104,9 @@ class TestCLI(unittest.TestCase):
 
     def test_time(self):
         self._client(["--send-time"])
+
+    def test_module_init(self):
+        self.assertTrue(_test_module_init(cli))
 
 
 if __name__ == "__main__":

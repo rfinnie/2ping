@@ -18,7 +18,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-if __name__ == '__main__':
-    import sys
-    import twoping.cli
-    sys.exit(twoping.cli.main())
+import sys
+import twoping.cli
+
+
+def module_init():
+    if __name__ == "__main__":
+        sys.exit(twoping.cli.main(sys.argv))
+
+
+module_init()

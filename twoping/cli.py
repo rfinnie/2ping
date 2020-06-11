@@ -1544,11 +1544,15 @@ class TwoPing:
                 return
 
 
-def main():
-    args = parse_args()
+def main(argv):
+    args = parse_args(argv)
     t = TwoPing(args)
     return t.run()
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+def module_init():
+    if __name__ == "__main__":
+        sys.exit(main(sys.argv))
+
+
+module_init()
