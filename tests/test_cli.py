@@ -30,10 +30,30 @@ class TestCLI(unittest.TestCase):
         cli_args = args.parse_args(base_args + test_args)
         p = cli.TwoPing(cli_args)
         p.print_out = unittest.mock.Mock()
-        self.assertEqual(int(p.run()), 0)
+        self.assertEqual(p.run(), 0)
+
+        client_sock_classes = [
+            sock_class for sock_class in p.all_sock_classes if sock_class.client_host
+        ]
+        self.assertEqual(len(client_sock_classes), 1)
+        sock_class = client_sock_classes[0]
+
+        self.assertTrue(sock_class.closed)
+        self.assertEqual(sock_class.errors_received, 0)
+        self.assertEqual(sock_class.lost_inbound, 0)
+        self.assertEqual(sock_class.lost_outbound, 0)
+        if cli_args.count:
+            self.assertEqual(sock_class.pings_transmitted, cli_args.count)
+            self.assertEqual(sock_class.pings_received, cli_args.count)
+
+        return sock_class
 
     def test_adaptive(self):
-        self._client(["--adaptive", "--deadline=3"])
+        sock_class = self._client(["--adaptive", "--deadline=3"])
+        self.assertGreaterEqual(sock_class.pings_transmitted, 100)
+        self.assertGreaterEqual(
+            sock_class.pings_received / sock_class.pings_transmitted, 0.99
+        )
 
     @unittest.skipIf(isinstance(packets.AES, ImportError), "PyCrypto required")
     def test_encrypt(self):
@@ -42,7 +62,11 @@ class TestCLI(unittest.TestCase):
         )
 
     def test_flood(self):
-        self._client(["--flood", "--deadline=3"])
+        sock_class = self._client(["--flood", "--deadline=3"])
+        self.assertGreaterEqual(sock_class.pings_transmitted, 100)
+        self.assertGreaterEqual(
+            sock_class.pings_received / sock_class.pings_transmitted, 0.99
+        )
 
     def test_hmac_crc32(self):
         self._client(["--auth-digest=hmac-crc32", "--auth=mc82kJwtXFlhqQSCKptQ"])

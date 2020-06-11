@@ -66,6 +66,8 @@ class SocketClass:
         self.client_host = None
         # (family, type, proto, canonname, sockaddr) of the bound socket
         self.bind_addrinfo = None
+        # Whether the sock has been closed
+        self.closed = False
 
         # Dict of PeerState instances, indexed by peer tuple
         self.peer_states = {}
@@ -153,6 +155,8 @@ class TwoPing:
         self.fake_time_generation = random.randint(0, 65535)
 
         self.sock_classes = []
+        # All sock_classes, even if they have been unregistered/closed
+        self.all_sock_classes = []
         self.poller = selectors.DefaultSelector()
 
         # Scheduled events
@@ -741,6 +745,7 @@ class TwoPing:
             self.print_debug("Removing socket: {}".format(sock_class))
             self.poller.unregister(sock_class)
             sock_class.sock.close()
+            sock_class.closed = True
         self.sock_classes = new_sock_classes
 
     def gather_systemd_socks(self):
@@ -889,6 +894,7 @@ class TwoPing:
         for sock_class in new_sock_classes:
             if sock_class not in self.sock_classes:
                 self.poller.register(sock_class, selectors.EVENT_READ)
+                self.all_sock_classes.append(sock_class)
 
         client_sock_classes = [
             sock_class for sock_class in self.sock_classes if sock_class.next_send
@@ -981,6 +987,7 @@ class TwoPing:
             sock_class.next_send = self.time_start
             self.poller.register(sock_class, selectors.EVENT_READ)
             self.sock_classes.append(sock_class)
+            self.all_sock_classes.append(sock_class)
 
     def send_new_ping(self, sock_class, peer_address=None):
         sock = sock_class.sock
@@ -1526,4 +1533,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(int(main()))
+    sys.exit(main())
