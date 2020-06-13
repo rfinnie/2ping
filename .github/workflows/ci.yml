@@ -1,0 +1,39 @@
+name: ci
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+        - "3.5"
+        - "3.6"
+        - "3.7"
+        - "3.8"
+    steps:
+    - uses: actions/checkout@v2
+    - name: Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Python dependencies
+      run: |
+        python -mpip install -r requirements.txt
+        python -mpip install tox
+        python -mpip install .
+    - name: tox
+      run: |
+        python -mtox
+      if: ${{ matrix.python-version != '3.5' }}
+    - name: tox (Python 3.5)
+      run: |
+        python -mtox
+      env:
+        TOX_SKIP_ENV: black
+      if: ${{ matrix.python-version == '3.5' }}
