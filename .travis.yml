@@ -12,8 +12,6 @@ jobs:
     - name: "Python 3.8"
       python: "3.8"
 install:
-  - pip install -r requirements.txt
-  - pip install tox
-  - pip install .
+  - python -mpip install tox
 script:
-  - tox
+  - python -mtox

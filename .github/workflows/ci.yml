@@ -24,9 +24,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Python dependencies
       run: |
-        python -mpip install -r requirements.txt
         python -mpip install tox
-        python -mpip install .
     - name: tox
       run: |
         python -mtox

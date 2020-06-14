@@ -12,3 +12,4 @@ include tests/*.py
 include wireshark/*
 include snapcraft.yaml
 include requirements.txt
+include tox.ini
