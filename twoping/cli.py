@@ -1243,8 +1243,11 @@ class TwoPing:
         try:
             self.setup_sockets()
         except (socket.error, socket.gaierror) as e:
-            self.print_out(str(e))
-            return 1
+            if self.args.debug:
+                raise
+            else:
+                self.print_out(str(e))
+                return 1
 
         for sock_class in self.sock_classes:
             if sock_class.closed:

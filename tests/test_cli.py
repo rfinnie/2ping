@@ -1,10 +1,9 @@
 import locale
 import logging
-import os
-import platform
 import socket
 import unittest
 import unittest.mock
+import warnings
 
 from . import _test_module_init
 from twoping import args, cli, utils
@@ -20,7 +19,7 @@ class TestCLI(unittest.TestCase):
         self.logger.level = logging.DEBUG
 
     def _get_unused_port(self, bind_address):
-        last_error = None
+        caught_errors = []
         for attempt in range(100):
             port = utils.random.randint(49152, 65535)
             try:
@@ -31,11 +30,21 @@ class TestCLI(unittest.TestCase):
                     socket.SOCK_DGRAM,
                     socket.IPPROTO_UDP,
                 )[0]
-                socket.socket(addrinfo[0], addrinfo[1], addrinfo[2]).close()
+                sock = socket.socket(addrinfo[0], addrinfo[1], addrinfo[2])
+                sock.bind(addrinfo[4])
+                sock.close()
+                if attempt > 0:
+                    warnings.warn(
+                        UserWarning(
+                            "It took {} attempts to get an unused port: {}".format(
+                                attempt + 1, caught_errors
+                            )
+                        )
+                    )
                 return port
-            except Exception as e:
-                last_error = e
-        raise last_error
+            except socket.error as e:
+                caught_errors.append((port, e))
+        raise caught_errors[-1][1]
 
     def _client(self, test_args):
         if self.port is None:
@@ -79,12 +88,6 @@ class TestCLI(unittest.TestCase):
 
         return sock_class
 
-    # https://blog.vjirovsky.cz/azure-functions-and-forbidden-socket-exception/
-    # https://www.freekpaans.nl/2015/08/starving-outgoing-connections-on-windows-azure-web-sites/
-    @unittest.skipIf(
-        platform.system() == "Windows" and os.getlogin() == "runneradmin",
-        "--adaptive breaks GitHub Windows runners",
-    )
     def test_adaptive(self):
         sock_class = self._client(["--adaptive", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
@@ -98,12 +101,6 @@ class TestCLI(unittest.TestCase):
             ["--encrypt-method=hkdf-aes256-cbc", "--auth=S49HVbnJd3fBdDzdMVVw"]
         )
 
-    # https://blog.vjirovsky.cz/azure-functions-and-forbidden-socket-exception/
-    # https://www.freekpaans.nl/2015/08/starving-outgoing-connections-on-windows-azure-web-sites/
-    @unittest.skipIf(
-        platform.system() == "Windows" and os.getlogin() == "runneradmin",
-        "--flood breaks GitHub Windows runners",
-    )
     def test_flood(self):
         sock_class = self._client(["--flood", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
