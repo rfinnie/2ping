@@ -1,4 +1,6 @@
 import locale
+import logging
+import socket
 import unittest
 import unittest.mock
 
@@ -9,10 +11,33 @@ from twoping import args, cli, utils
 class TestCLI(unittest.TestCase):
     bind_address = "127.0.0.1"
     port = None
+    logger = None
+
+    def setUp(self):
+        self.logger = logging.getLogger()
+        self.logger.level = logging.DEBUG
+
+    def _get_unused_port(self, bind_address):
+        last_error = None
+        for attempt in range(100):
+            port = utils.random.randint(49152, 65535)
+            try:
+                addrinfo = socket.getaddrinfo(
+                    bind_address,
+                    port,
+                    socket.AF_UNSPEC,
+                    socket.SOCK_DGRAM,
+                    socket.IPPROTO_UDP,
+                )[0]
+                socket.socket(addrinfo[0], addrinfo[1], addrinfo[2]).close()
+                return port
+            except Exception as e:
+                last_error = e
+        raise last_error
 
     def _client(self, test_args):
         if self.port is None:
-            port = utils.random.randint(49152, 65535)
+            port = self._get_unused_port(self.bind_address)
         else:
             port = self.port
         base_args = [
@@ -29,8 +54,8 @@ class TestCLI(unittest.TestCase):
         if not ("--count=1" in test_args):
             base_args.append("--interval=5")
         cli_args = args.parse_args(base_args + test_args)
+        self.logger.debug("Arguments: {}".format(cli_args))
         p = cli.TwoPing(cli_args)
-        p.print_out = unittest.mock.Mock()
         self.assertEqual(p.run(), 0)
 
         for sock_class in p.sock_classes:
