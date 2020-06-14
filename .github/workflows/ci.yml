@@ -3,9 +3,11 @@ on:
   push:
     branches:
     - main
+    - next
   pull_request:
     branches:
     - main
+    - next
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -42,5 +44,5 @@ jobs:
     - name: Upload sdist zip
       uses: actions/upload-artifact@v2
       with:
-        name: sdist-zip-${{ matrix.os }}-${{ matrix.python-version }}
+        name: 2ping-sdist-${{ github.job }}-${{ github.run_id }}.${{ github.run_number }}-${{ runner.os }}-py${{ matrix.python-version }}
         path: .tox/dist/*.zip
