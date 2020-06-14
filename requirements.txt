@@ -1,4 +1,4 @@
 distro
 dnspython
 netifaces
-pycrypto
+pycryptodome

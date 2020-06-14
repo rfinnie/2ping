@@ -24,7 +24,7 @@ parts:
       - distro
       - dnspython
       - netifaces
-      - pycrypto
+      - pycryptodome
 
 apps:
   2ping:

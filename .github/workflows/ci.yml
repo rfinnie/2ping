@@ -8,9 +8,13 @@ on:
     - main
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os:
+        - macos-latest
+        - ubuntu-latest
+        - windows-latest
         python-version:
         - "3.5"
         - "3.6"

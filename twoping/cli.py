@@ -55,7 +55,7 @@ from .utils import (
 
 
 version_string = "2ping {} - {}".format(__version__, platform_info())
-clock = time.monotonic
+clock = time.perf_counter
 
 
 class SocketClass:
