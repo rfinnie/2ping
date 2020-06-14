@@ -59,7 +59,7 @@ class TestCLI(unittest.TestCase):
             sock_class.pings_received / sock_class.pings_transmitted, 0.99
         )
 
-    @unittest.skipIf(isinstance(utils.AES, ImportError), "PyCryptodome required")
+    @unittest.skipIf(isinstance(utils.AES, ImportError), "Crypto module required")
     def test_encrypt(self):
         self._client(
             ["--encrypt-method=hkdf-aes256-cbc", "--auth=S49HVbnJd3fBdDzdMVVw"]
