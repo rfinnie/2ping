@@ -39,3 +39,8 @@ jobs:
       env:
         TOX_SKIP_ENV: black
       if: ${{ matrix.python-version == '3.5' }}
+    - name: Upload sdist zip
+      uses: actions/upload-artifact@v2
+      with:
+        name: sdist-zip-${{ matrix.os }}-${{ matrix.python-version }}
+        path: .tox/dist/*.zip
