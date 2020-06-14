@@ -25,6 +25,14 @@ try:
 except ImportError as e:
     distro = e
 
+try:
+    from Cryptodome.Cipher import AES
+except ImportError as e:
+    try:
+        from Crypto.Cipher import AES
+    except ImportError:
+        AES = e
+
 
 _ = gettext.translation("2ping", fallback=True).gettext
 _pl = gettext.translation("2ping", fallback=True).ngettext

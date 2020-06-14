@@ -21,13 +21,8 @@ import hmac
 from math import ceil
 import time
 
-try:
-    from Crypto.Cipher import AES
-except ImportError as e:
-    AES = e
-
 from . import crc32
-from .utils import npack, nunpack, random, twoping_checksum
+from .utils import AES, npack, nunpack, random, twoping_checksum
 
 
 class Extended:

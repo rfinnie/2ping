@@ -1,6 +1,6 @@
 import unittest
 
-from twoping import packets
+from twoping import packets, utils
 
 
 class TestPacketsOpcodes(unittest.TestCase):
@@ -172,7 +172,7 @@ class TestPacketsOpcodes(unittest.TestCase):
         self.assertEqual(opcode.id, 0x88A1F7C7)
         self.assertEqual(opcode.dump(), b"\x00\x02\x00\x00\xff\xff\x00\x01\xce\xa3")
 
-    @unittest.skipIf(isinstance(packets.AES, ImportError), "PyCrypto required")
+    @unittest.skipIf(isinstance(utils.AES, ImportError), "PyCryptodome required")
     def test_encrypted_encrypt_decrypt(self):
         key = b"Secret key"
         iv = b"\x32\xf0\x4a\x2f\xb3\x78\xe3\xf3\x73\x2b\x4a\x8c\x02\x74\xca\x0e"

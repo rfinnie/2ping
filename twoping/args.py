@@ -21,7 +21,7 @@ import os
 import sys
 
 from . import __version__
-from .utils import _
+from .utils import _, AES
 
 
 def parse_args(argv=None):
@@ -330,11 +330,8 @@ def parse_args(argv=None):
     }
     args.auth_digest_index = hmac_id_map[args.auth_digest]
 
-    if args.encrypt:
-        try:
-            from Crypto.Cipher import AES  # noqa: F401
-        except ImportError:
-            parser.error(_("Python crypto module required for encryption"))
+    if args.encrypt and isinstance(AES, ImportError):
+        parser.error(_("PyCryptodome module required for encryption"))
 
     encrypt_id_map = {"hkdf-aes256-cbc": 1}
     args.encrypt_method_index = encrypt_id_map[args.encrypt_method]

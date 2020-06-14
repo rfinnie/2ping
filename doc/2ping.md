@@ -123,7 +123,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 
 \-\-encrypt=*key*
 :   Set a shared key, encrypt 2ping packets, and require encrypted packets from peers encrypted with the same shared key.
-    Requires the PyCrypto module.
+    Requires the PyCryptodome or PyCrypto module.
 
 \-\-encrypt-method=*method*
 :   When *\-\-encrypt* is used, specify the method used to encrypt packets.

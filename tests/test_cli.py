@@ -3,7 +3,7 @@ import unittest
 import unittest.mock
 
 from . import _test_module_init
-from twoping import args, cli, packets, utils
+from twoping import args, cli, utils
 
 
 class TestCLI(unittest.TestCase):
@@ -59,7 +59,7 @@ class TestCLI(unittest.TestCase):
             sock_class.pings_received / sock_class.pings_transmitted, 0.99
         )
 
-    @unittest.skipIf(isinstance(packets.AES, ImportError), "PyCrypto required")
+    @unittest.skipIf(isinstance(utils.AES, ImportError), "PyCryptodome required")
     def test_encrypt(self):
         self._client(
             ["--encrypt-method=hkdf-aes256-cbc", "--auth=S49HVbnJd3fBdDzdMVVw"]
