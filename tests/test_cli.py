@@ -1,5 +1,7 @@
 import locale
 import logging
+import os
+import platform
 import socket
 import unittest
 import unittest.mock
@@ -77,6 +79,12 @@ class TestCLI(unittest.TestCase):
 
         return sock_class
 
+    # https://blog.vjirovsky.cz/azure-functions-and-forbidden-socket-exception/
+    # https://www.freekpaans.nl/2015/08/starving-outgoing-connections-on-windows-azure-web-sites/
+    @unittest.skipIf(
+        platform.system() == "Windows" and os.getlogin() == "runneradmin",
+        "--adaptive breaks GitHub Windows runners",
+    )
     def test_adaptive(self):
         sock_class = self._client(["--adaptive", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
@@ -90,6 +98,12 @@ class TestCLI(unittest.TestCase):
             ["--encrypt-method=hkdf-aes256-cbc", "--auth=S49HVbnJd3fBdDzdMVVw"]
         )
 
+    # https://blog.vjirovsky.cz/azure-functions-and-forbidden-socket-exception/
+    # https://www.freekpaans.nl/2015/08/starving-outgoing-connections-on-windows-azure-web-sites/
+    @unittest.skipIf(
+        platform.system() == "Windows" and os.getlogin() == "runneradmin",
+        "--flood breaks GitHub Windows runners",
+    )
     def test_flood(self):
         sock_class = self._client(["--flood", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
