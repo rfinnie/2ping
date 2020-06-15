@@ -1115,9 +1115,12 @@ class TwoPing:
 
     def print_stats(self, short=False):
         time_end = clock()
-        for sock_class in self.sock_classes:
-            if sock_class.closed:
-                continue
+        sock_classes = [
+            sock_class for sock_class in self.sock_classes if not sock_class.closed
+        ]
+        if self.args.nagios:
+            sock_classes = [sock_classes[0]]
+        for sock_class in sock_classes:
             self.print_stats_sock(sock_class, time_end, short=short)
 
     def print_stats_sock(self, sock_class, time_end, short=False):
@@ -1195,7 +1198,7 @@ class TwoPing:
                 nagios_result_text = "OK"
             self.print_out(
                 _(
-                    "2PING {result} - Packet loss = {loss}%, RTA = {avg:0.03f} ms"
+                    "{result} 2PING - Packet loss = {loss}%, RTA = {avg:0.03f} ms"
                 ).format(result=nagios_result_text, loss=int(lost_pct), avg=rtt_avg)
                 + (
                     "|rta={avg:0.06f}ms;{avgwarn:0.06f};{avgcrit:0.06f};0.000000 pl={loss}%;{losswarn};{losscrit};0"
