@@ -187,6 +187,9 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
     With *\-\-listen*, this is the port to bind as, otherwise this is the port to send to.
     Default is UDP port 15998.
 
+    When port *"-1"* is specified, a random unused high port is picked.
+    This is useful for automated unit and functional testing, but not for normal use.
+
 \-\-send-monotonic-clock
 :   Send a monotonic clock value with each packet.
     Peer time (if sent by the peer) can be viewed with *\-\-verbose*.

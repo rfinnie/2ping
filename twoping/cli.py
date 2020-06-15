@@ -23,6 +23,7 @@ import signal
 import socket
 import sys
 import time
+import warnings
 
 try:
     import dns.resolver as dns_resolver
@@ -854,19 +855,37 @@ class TwoPing:
 
         return list(addrs)
 
-    def setup_sockets(self):
-        if self.args.host:
-            self.setup_sockets_client()
-        if self.args.listen:
-            self.setup_sockets_listener()
+    def set_high_port(self):
+        interface_addresses = self.get_interface_addresses()
+        interface_address = interface_addresses[0][0]
+        family = interface_addresses[0][1]
+        caught_errors = []
+        for attempt in range(100):
+            port = random.randint(49152, 65535)
+            addrinfo = socket.getaddrinfo(
+                interface_address, port, family, socket.SOCK_DGRAM, socket.IPPROTO_UDP
+            )[0]
+            sock = socket.socket(addrinfo[0], addrinfo[1], addrinfo[2])
+            try:
+                sock.bind(addrinfo[4])
+            except socket.error as e:
+                caught_errors.append((port, e))
+                continue
+            sock.close()
+            if attempt > 0:
+                warnings.warn(
+                    UserWarning(
+                        "It took {} attempts to get an unused port: {}".format(
+                            attempt + 1, caught_errors
+                        )
+                    )
+                )
+            self.args.port = str(port)
+            return
+        raise caught_errors[-1][1]
 
-    def setup_sockets_listener(self):
-        systemd_sock_classes = self.gather_systemd_socks()
-
-        if systemd_sock_classes:
-            # Existing systemd socks, do nothing
-            interface_addresses = []
-        elif self.args.interface_address:
+    def get_interface_addresses(self):
+        if self.args.interface_address:
             # Addresses supplied by user
             interface_addresses = [
                 (addr, socket.AF_UNSPEC) for addr in self.args.interface_address
@@ -886,6 +905,27 @@ class TwoPing:
             interface_addresses = [("0.0.0.0", socket.AF_INET)]
             if self.has_ipv6:
                 interface_addresses.append(("::", socket.AF_INET6))
+
+        return interface_addresses
+
+    def setup_sockets(self):
+        if self.args.port == "-1":
+            # Special testing mode
+            self.set_high_port()
+
+        if self.args.host:
+            self.setup_sockets_client()
+        if self.args.listen:
+            self.setup_sockets_listener()
+
+    def setup_sockets_listener(self):
+        systemd_sock_classes = self.gather_systemd_socks()
+
+        if systemd_sock_classes:
+            # Existing systemd socks, do nothing
+            interface_addresses = []
+        else:
+            interface_addresses = self.get_interface_addresses()
 
         interface_sock_classes = []
         for interface_address, interface_family in interface_addresses:

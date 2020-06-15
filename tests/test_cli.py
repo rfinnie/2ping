@@ -1,9 +1,7 @@
 import locale
 import logging
-import socket
 import unittest
 import unittest.mock
-import warnings
 
 from . import _test_module_init
 from twoping import args, cli, utils
@@ -18,37 +16,9 @@ class TestCLI(unittest.TestCase):
         self.logger = logging.getLogger()
         self.logger.level = logging.DEBUG
 
-    def _get_unused_port(self, bind_address):
-        caught_errors = []
-        for attempt in range(100):
-            port = utils.random.randint(49152, 65535)
-            try:
-                addrinfo = socket.getaddrinfo(
-                    bind_address,
-                    port,
-                    socket.AF_UNSPEC,
-                    socket.SOCK_DGRAM,
-                    socket.IPPROTO_UDP,
-                )[0]
-                sock = socket.socket(addrinfo[0], addrinfo[1], addrinfo[2])
-                sock.bind(addrinfo[4])
-                sock.close()
-                if attempt > 0:
-                    warnings.warn(
-                        UserWarning(
-                            "It took {} attempts to get an unused port: {}".format(
-                                attempt + 1, caught_errors
-                            )
-                        )
-                    )
-                return port
-            except socket.error as e:
-                caught_errors.append((port, e))
-        raise caught_errors[-1][1]
-
     def _client(self, test_args):
         if self.port is None:
-            port = self._get_unused_port(self.bind_address)
+            port = -1
         else:
             port = self.port
         base_args = [

@@ -275,6 +275,13 @@ name string.
 With \f[I]\-\-listen\f[R], this is the port to bind as, otherwise this
 is the port to send to.
 Default is UDP port 15998.
+.RS
+.PP
+When port \f[I]\[lq]\-1\[rq]\f[R] is specified, a random unused high
+port is picked.
+This is useful for automated unit and functional testing, but not for
+normal use.
+.RE
 .TP
 .B \-\-send\-monotonic\-clock
 Send a monotonic clock value with each packet.
