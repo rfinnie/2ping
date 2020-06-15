@@ -1,5 +1,8 @@
 # 2ping - A bi-directional ping utility
 
+![ci](https://github.com/rfinnie/2ping/workflows/ci/badge.svg)
+![snapcraft](https://github.com/rfinnie/2ping/workflows/snapcraft/badge.svg)
+
 https://www.finnie.org/software/2ping/
 
 ## About
