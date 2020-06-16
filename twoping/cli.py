@@ -62,6 +62,7 @@ clock = time.perf_counter
 class SocketClass:
     def __init__(self, sock):
         self.sock = sock
+        self.address = sock.getsockname()
 
         # Used during client mode for the host tuple to send UDP packets to.
         self.client_host = None
@@ -91,7 +92,6 @@ class SocketClass:
         self.next_send = 0
 
         self.shutdown_time = 0
-        self.nagios_result = 0
         self.session = bytes([random.randint(0, 255) for x in range(8)])
 
         # Systemd sockets must be handled specially
@@ -100,9 +100,13 @@ class SocketClass:
     def __repr__(self):
         attrs = ["fd {}".format(self.fileno())]
         if self.bind_addrinfo:
-            attrs.append(str(self.bind_addrinfo))
+            attrs.append("bind {}".format(self.bind_addrinfo))
+        if self.client_host:
+            attrs.append("client {}".format(self.client_host))
         if self.is_systemd:
             attrs.append("systemd")
+        if self.closed:
+            attrs.append("closed")
         return "<SocketClass: {}>".format(", ".join(attrs))
 
     def fileno(self):
@@ -247,9 +251,8 @@ class TwoPing:
             # Error handled, simulated packet loss, etc
             return
         data, peer_address = recvfrom
-        socket_address = sock.getsockname()
-        self.logger.debug("Socket address: {}".format(repr(socket_address)))
-        self.logger.debug("Peer address: {}".format(repr(peer_address)))
+        socket_address = sock_class.address
+        self.logger.debug("Socket: {}, peer: {}".format(sock_class, peer_address))
 
         # Per-packet options.
         sock_class.packets_received += 1
@@ -778,7 +781,7 @@ class TwoPing:
                 self.poller.register(sock_class, selectors.EVENT_READ)
                 self.logger.debug(
                     "Using systemd-supplied socket on fd {}: {}".format(
-                        fd, (family, socket.SOCK_DGRAM, sock.getsockname())
+                        fd, (family, socket.SOCK_DGRAM, sock_class.address)
                     )
                 )
 
@@ -1035,7 +1038,7 @@ class TwoPing:
 
     def send_new_ping(self, sock_class, peer_address=None):
         sock = sock_class.sock
-        socket_address = sock.getsockname()
+        socket_address = sock_class.address
         if not peer_address and sock_class.client_host:
             peer_address = sock_class.client_host[4]
         peer_tuple = (socket_address, peer_address, sock.type)
@@ -1113,14 +1116,46 @@ class TwoPing:
         self.logger.debug("Received SIGHUP, scheduling reload")
         self.is_reload = True
 
+    def get_nagios_stats(self):
+        sock_class = [
+            sock_class for sock_class in self.sock_classes if sock_class.client_host
+        ][0]
+
+        pings_lost = sock_class.pings_transmitted - sock_class.pings_received
+        lost_pct = div0(pings_lost, sock_class.pings_transmitted) * 100
+        rtt_avg = div0(float(sock_class.rtt_total), sock_class.rtt_count)
+
+        if (lost_pct >= self.args.nagios_crit_loss) or (
+            rtt_avg >= self.args.nagios_crit_rta
+        ):
+            nagios_result = 2
+            nagios_result_text = "CRITICAL"
+        elif (lost_pct >= self.args.nagios_warn_loss) or (
+            rtt_avg >= self.args.nagios_warn_rta
+        ):
+            nagios_result = 1
+            nagios_result_text = "WARNING"
+        else:
+            nagios_result = 0
+            nagios_result_text = "OK"
+
+        nagios_stats_text = _(
+            "{result} 2PING - Packet loss = {loss}%, RTA = {avg:0.03f} ms"
+        ).format(result=nagios_result_text, loss=int(lost_pct), avg=rtt_avg) + (
+            "|rta={avg:0.06f}ms;{avgwarn:0.06f};{avgcrit:0.06f};0.000000 pl={loss}%;{losswarn};{losscrit};0"
+        ).format(
+            avg=rtt_avg,
+            loss=int(lost_pct),
+            avgwarn=self.args.nagios_warn_rta,
+            avgcrit=self.args.nagios_crit_rta,
+            losswarn=int(self.args.nagios_warn_loss),
+            losscrit=int(self.args.nagios_crit_loss),
+        )
+        return nagios_result, nagios_stats_text
+
     def print_stats(self, short=False):
         time_end = clock()
-        sock_classes = self.sock_classes_open
-        if self.args.nagios:
-            sock_classes = [
-                [sock_class for sock_class in sock_classes if sock_class.client_host][0]
-            ]
-        for sock_class in sock_classes:
+        for sock_class in self.sock_classes:
             self.print_stats_sock(sock_class, time_end, short=short)
 
     def print_stats_sock(self, sock_class, time_end, short=False):
@@ -1144,11 +1179,11 @@ class TwoPing:
             div0(stats_class.rtt_total_sq, stats_class.rtt_count)
             - (div0(stats_class.rtt_total, stats_class.rtt_count) ** 2)
         )
-        sockname = sock_class.sock.getsockname()
+        socket_address = sock_class.address
         if sock_class.client_host:
             hostname = sock_class.client_host[3]
-        elif sockname:
-            hostname = sockname[0]
+        elif socket_address:
+            hostname = socket_address[0]
         else:
             hostname = sock_class
         if short:
@@ -1178,35 +1213,6 @@ class TwoPing:
                     ewma=rtt_ewma,
                     max=stats_class.rtt_max,
                     mdev=rtt_mdev,
-                )
-            )
-        elif self.args.nagios:
-            if (lost_pct >= self.args.nagios_crit_loss) or (
-                rtt_avg >= self.args.nagios_crit_rta
-            ):
-                self.nagios_result = 2
-                nagios_result_text = "CRITICAL"
-            elif (lost_pct >= self.args.nagios_warn_loss) or (
-                rtt_avg >= self.args.nagios_warn_rta
-            ):
-                self.nagios_result = 1
-                nagios_result_text = "WARNING"
-            else:
-                self.nagios_result = 0
-                nagios_result_text = "OK"
-            self.print_out(
-                _(
-                    "{result} 2PING - Packet loss = {loss}%, RTA = {avg:0.03f} ms"
-                ).format(result=nagios_result_text, loss=int(lost_pct), avg=rtt_avg)
-                + (
-                    "|rta={avg:0.06f}ms;{avgwarn:0.06f};{avgcrit:0.06f};0.000000 pl={loss}%;{losswarn};{losscrit};0"
-                ).format(
-                    avg=rtt_avg,
-                    loss=int(lost_pct),
-                    avgwarn=self.args.nagios_warn_rta,
-                    avgcrit=self.args.nagios_crit_rta,
-                    losswarn=int(self.args.nagios_warn_loss),
-                    losscrit=int(self.args.nagios_crit_loss),
                 )
             )
         else:
@@ -1293,15 +1299,15 @@ class TwoPing:
         for sock_class in self.sock_classes_active:
             if self.args.nagios:
                 continue
-            sockname = sock_class.sock.getsockname()
+            socket_address = sock_class.address
             if sock_class.client_host:
                 host_display = "{} ({})".format(
                     sock_class.client_host[3], sock_class.client_host[4][0]
                 )
             elif sock_class.next_send:
                 host_display = "{}".format(sock_class)
-            elif sockname:
-                host_display = "listener ({})".format(sockname[0])
+            elif socket_address:
+                host_display = "listener ({})".format(socket_address[0])
             else:
                 host_display = "listener ({})".format(sock_class)
             self.logger.info(
@@ -1326,11 +1332,16 @@ class TwoPing:
         except KeyboardInterrupt:
             pass
 
-        self.print_stats()
+        if self.args.nagios:
+            nagios_result, nagios_stats_text = self.get_nagios_stats()
+            self.print_out(nagios_stats_text)
+        else:
+            self.print_stats()
         self.close_socks(close_systemd=True)
         if self.args.nagios:
-            return self.nagios_result
-        return 0
+            return nagios_result
+        else:
+            return 0
 
     def base_packet(self):
         packet_out = packets.Packet()
