@@ -205,6 +205,20 @@ class TwoPing:
             return
         self.print_out(*args, **kwargs)
 
+    @property
+    def sock_classes_open(self):
+        return [sock_class for sock_class in self.sock_classes if not sock_class.closed]
+
+    @property
+    def sock_classes_active(self):
+        now = clock()
+        return [
+            sock_class
+            for sock_class in self.sock_classes_open
+            if not sock_class.shutdown_time
+            or (sock_class.shutdown_time and sock_class.shutdown_time > now)
+        ]
+
     def handle_socket_error(self, e, sock_class, peer_address=None):
         sock = sock_class.sock
         # Errors from the last send() can be trapped via IP_RECVERR (Linux only).
@@ -723,9 +737,7 @@ class TwoPing:
             )
 
     def close_socks(self, close_systemd=False, exclude=None):
-        for sock_class in self.sock_classes:
-            if sock_class.closed:
-                continue
+        for sock_class in self.sock_classes_open:
             if (not close_systemd) and sock_class.is_systemd:
                 continue
             if exclude is not None and sock_class in exclude:
@@ -795,9 +807,7 @@ class TwoPing:
                 continue
 
             found_existing = False
-            for sock_class in self.sock_classes:
-                if sock_class.closed:
-                    continue
+            for sock_class in self.sock_classes_open:
                 if addrinfo == sock_class.bind_addrinfo:
                     sock_classes.append(sock_class)
                     found_existing = True
@@ -810,6 +820,7 @@ class TwoPing:
             sock_classes.append(sock_class)
             self.sock_classes.append(sock_class)
             self.poller.register(sock_class, selectors.EVENT_READ)
+            self.logger.debug("Opened socket: {}".format(sock_class))
 
         return sock_classes
 
@@ -923,8 +934,8 @@ class TwoPing:
 
         client_sock_classes = [
             sock_class
-            for sock_class in self.sock_classes
-            if sock_class.next_send and not sock_class.closed
+            for sock_class in self.sock_classes_open
+            if sock_class.client_host
         ]
         known_sock_classes = (
             systemd_sock_classes + interface_sock_classes + client_sock_classes
@@ -936,8 +947,8 @@ class TwoPing:
         # Unlike the listener, client socket setup is only done once.
         client_sock_classes = [
             sock_class
-            for sock_class in self.sock_classes
-            if sock_class.next_send and not sock_class.closed
+            for sock_class in self.sock_classes_open
+            if sock_class.client_host
         ]
         if client_sock_classes:
             return
@@ -1103,11 +1114,11 @@ class TwoPing:
 
     def print_stats(self, short=False):
         time_end = clock()
-        sock_classes = [
-            sock_class for sock_class in self.sock_classes if not sock_class.closed
-        ]
+        sock_classes = self.sock_classes_open
         if self.args.nagios:
-            sock_classes = [sock_classes[0]]
+            sock_classes = [
+                [sock_class for sock_class in sock_classes if sock_class.client_host][0]
+            ]
         for sock_class in sock_classes:
             self.print_stats_sock(sock_class, time_end, short=short)
 
@@ -1278,9 +1289,7 @@ class TwoPing:
                 self.logger.error(str(e))
                 return 1
 
-        for sock_class in self.sock_classes:
-            if sock_class.closed:
-                continue
+        for sock_class in self.sock_classes_active:
             if self.args.nagios:
                 continue
             sockname = sock_class.sock.getsockname()
@@ -1305,9 +1314,7 @@ class TwoPing:
         self.ready()
 
         if self.args.preload > 1:
-            for sock_class in self.sock_classes:
-                if sock_class.closed:
-                    continue
+            for sock_class in self.sock_classes_active:
                 if not sock_class.next_send:
                     continue
                 for i in range(self.args.preload - 1):
@@ -1395,9 +1402,7 @@ class TwoPing:
     def scheduled_cleanup(self):
         self.logger.debug("Cleanup")
         self.setup_sockets()
-        for sock_class in self.sock_classes:
-            if sock_class.closed:
-                continue
+        for sock_class in self.sock_classes_active:
             self.scheduled_cleanup_sock_class(sock_class)
 
     def scheduled_cleanup_sock_class(self, sock_class):
@@ -1443,18 +1448,15 @@ class TwoPing:
             except (AttributeError, socket.error):
                 pass
         sock.bind(bind)
-        self.logger.debug("Bound to: {}".format(addrinfo))
         return sock
 
     def get_next_wakeup(self):
         now = clock()
         events = [(self.next_cleanup, "cleanup")]
-        for sock_class in self.sock_classes:
-            if sock_class.closed:
-                continue
+        for sock_class in self.sock_classes_active:
             if sock_class.next_send:
                 events.append((sock_class.next_send, "send ({})".format(sock_class)))
-            if sock_class.shutdown_time:
+            if sock_class.shutdown_time > now:
                 events.append(
                     (sock_class.shutdown_time, "shutdown ({})".format(sock_class))
                 )
@@ -1492,20 +1494,20 @@ class TwoPing:
 
     def loop_client_send(self):
         now = clock()
-        for sock_class in self.sock_classes:
-            if sock_class.closed:
-                continue
+        for sock_class in self.sock_classes_active:
             if not sock_class.next_send:
                 # Not scheduled to send
-                continue
-            if sock_class.shutdown_time:
-                # Scheduled to shutdown, do not send any more pings
                 continue
             if now < sock_class.next_send:
                 # Not yet time
                 continue
 
             if self.args.count and (sock_class.pings_transmitted >= self.args.count):
+                self.logger.debug(
+                    "loop_client_send: Setting shutdown time to +{} on {}".format(
+                        self.args.interval, sock_class
+                    )
+                )
                 sock_class.shutdown_time = now + self.args.interval
                 sock_class.next_send = 0
                 continue
@@ -1530,18 +1532,11 @@ class TwoPing:
                 and (sock_class.pings_transmitted >= self.args.count)
                 and (sock_class.pings_transmitted == sock_class.pings_received)
             ):
+                self.logger.debug(
+                    "loop_poller: Setting shutdown time to now on {}".format(sock_class)
+                )
                 sock_class.shutdown_time = clock()
-
-    def loop_is_shutdown(self):
-        now = clock()
-        for sock_class in self.sock_classes:
-            if sock_class.closed:
-                continue
-            if not sock_class.shutdown_time:
-                return False
-            if sock_class.shutdown_time >= now:
-                return False
-        return True
+                sock_class.next_send = 0
 
     def loop(self):
         while True:
@@ -1561,10 +1556,40 @@ class TwoPing:
                 self.next_stats = now + self.args.stats
 
             if self.args.deadline and now >= (self.time_start + self.args.deadline):
-                for sock_class in self.sock_classes:
-                    if sock_class.closed:
-                        continue
+                for sock_class in self.sock_classes_active:
+                    self.logger.debug(
+                        "loop (deadline): Setting shutdown time to now on {}".format(
+                            sock_class
+                        )
+                    )
                     sock_class.shutdown_time = now
+                    sock_class.next_send = 0
+
+            if (
+                self.args.count
+                and self.args.no_3way
+                and len(
+                    [
+                        sock_class
+                        for sock_class in self.sock_classes_active
+                        if sock_class.client_host
+                    ]
+                )
+                == 0
+            ):
+                # Special case for --count and --no-3way on a listener
+                for sock_class in [
+                    sock_class
+                    for sock_class in self.sock_classes_active
+                    if not sock_class.client_host
+                ]:
+                    self.logger.debug(
+                        "loop (no_3way): Setting shutdown time to now on {}".format(
+                            sock_class
+                        )
+                    )
+                    sock_class.shutdown_time = clock()
+                    sock_class.next_send = 0
 
             if now >= self.next_cleanup:
                 self.scheduled_cleanup()
@@ -1574,7 +1599,7 @@ class TwoPing:
                 self.is_reload = False
                 self.setup_sockets()
 
-            if self.loop_is_shutdown():
+            if len(self.sock_classes_active) == 0:
                 return
 
 
