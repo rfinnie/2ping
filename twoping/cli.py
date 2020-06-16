@@ -223,7 +223,11 @@ class TwoPing:
 
     def process_incoming_packet(self, sock_class):
         sock = sock_class.sock
-        data, peer_address = self.sock_recvfrom(sock_class)
+        recvfrom = self.sock_recvfrom(sock_class)
+        if recvfrom is None:
+            # Error handled, simulated packet loss, etc
+            return
+        data, peer_address = recvfrom
         socket_address = sock.getsockname()
         self.print_debug("Socket address: {}".format(repr(socket_address)))
         self.print_debug("Peer address: {}".format(repr(peer_address)))
