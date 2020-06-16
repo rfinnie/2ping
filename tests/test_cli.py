@@ -82,7 +82,7 @@ class TestCLI(unittest.TestCase):
     @unittest.skipIf(isinstance(utils.AES, ImportError), "Crypto module required")
     def test_encrypt(self):
         self._client(
-            ["--encrypt-method=hkdf-aes256-cbc", "--auth=S49HVbnJd3fBdDzdMVVw"]
+            ["--encrypt-method=hkdf-aes256-cbc", "--encrypt=S49HVbnJd3fBdDzdMVVw"]
         )
 
     @pytest.mark.slow
