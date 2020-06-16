@@ -17,14 +17,13 @@ class TestCLI(unittest.TestCase):
         self.logger = logging.getLogger()
         self.logger.level = logging.DEBUG
 
-    def _client(self, test_args):
+    def _client(self, test_args, test_stats=True):
         if self.port is None:
             port = -1
         else:
             port = self.port
         base_args = [
             "2ping",
-            self.bind_address,
             "--listen",
             "--interface-address={}".format(self.bind_address),
             "--port={}".format(port),
@@ -34,10 +33,10 @@ class TestCLI(unittest.TestCase):
             base_args.append("--count=1")
         if not ("--count=1" in test_args):
             base_args.append("--interval=5")
-        cli_args = args.parse_args(base_args + test_args)
-        self.logger.info("Passed arguments: {}".format(base_args + test_args))
-        self.logger.info("Parsed arguments: {}".format(cli_args))
-        p = cli.TwoPing(cli_args)
+        all_args = base_args + test_args + [self.bind_address]
+        self.logger.info("Passed arguments: {}".format(all_args))
+        p = cli.TwoPing(args.parse_args(all_args))
+        self.logger.info("Parsed arguments: {}".format(p.args))
         self.assertEqual(p.run(), 0)
 
         for sock_class in p.sock_classes:
@@ -50,18 +49,30 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(len(client_sock_classes), 1)
         sock_class = client_sock_classes[0]
 
+        if not test_stats:
+            return sock_class
+
         self.assertEqual(sock_class.errors_received, 0)
         self.assertEqual(sock_class.lost_inbound, 0)
         self.assertEqual(sock_class.lost_outbound, 0)
-        if cli_args.count:
-            self.assertEqual(sock_class.pings_transmitted, cli_args.count)
-            self.assertEqual(sock_class.pings_received, cli_args.count)
+        if p.args.count:
+            self.assertEqual(sock_class.pings_transmitted, p.args.count)
+            self.assertEqual(sock_class.pings_received, p.args.count)
         else:
             self.assertGreaterEqual(
                 sock_class.pings_received / sock_class.pings_transmitted, 0.99
             )
 
         return sock_class
+
+    def test_3way(self):
+        sock_class = self._client([])
+        self.assertEqual(sock_class.packets_transmitted, 2)
+        self.assertEqual(sock_class.packets_received, 1)
+
+        sock_class = self._client(["--no-3way"])
+        self.assertEqual(sock_class.packets_transmitted, 1)
+        self.assertEqual(sock_class.packets_received, 1)
 
     @pytest.mark.slow
     def test_adaptive(self):
@@ -94,6 +105,10 @@ class TestCLI(unittest.TestCase):
     def test_hmac_sha512(self):
         self._client(["--auth-digest=hmac-sha512", "--auth=sjk3kqzcSV3XfHJWNstn"])
 
+    def test_invalid_hostname(self):
+        with self.assertRaises(OSError):
+            self._client(["xGkKWDDMnZxCD4XchMnK."])
+
     def test_monotonic_clock(self):
         self._client(["--send-monotonic-clock"])
 
@@ -105,6 +120,21 @@ class TestCLI(unittest.TestCase):
     )
     def test_notice_utf8(self):
         self._client(["--notice=UTF-8 \u2603"])
+
+    @pytest.mark.slow
+    def test_packet_loss(self):
+        # There is a small but non-zero chance that packet loss will prevent
+        # any investigation replies from getting back to the client sock
+        # between the 10 and 15 second mark, causing a test failure.
+        # There's an even more minisculely small chance no simulated losses
+        # will occur within the test period.
+        sock_class = self._client(
+            ["--flood", "--deadline=15", "--packet-loss=25"], test_stats=False
+        )
+        self.assertGreaterEqual(sock_class.pings_transmitted, 100)
+        self.assertEqual(sock_class.errors_received, 0)
+        self.assertGreater(sock_class.lost_inbound, 0)
+        self.assertGreater(sock_class.lost_outbound, 0)
 
     def test_random(self):
         self._client(["--send-random=32"])
