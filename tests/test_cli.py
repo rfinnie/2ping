@@ -28,14 +28,14 @@ class TestCLI(unittest.TestCase):
             "--interface-address={}".format(self.bind_address),
             "--port={}".format(port),
             "--debug",
-            "--nagios=1000,5%,1000,5%",
         ]
         if not (("--adaptive" in test_args) or ("--flood" in test_args)):
             base_args.append("--count=1")
         if not ("--count=1" in test_args):
             base_args.append("--interval=5")
         cli_args = args.parse_args(base_args + test_args)
-        self.logger.debug("Arguments: {}".format(cli_args))
+        self.logger.info("Passed arguments: {}".format(base_args + test_args))
+        self.logger.info("Parsed arguments: {}".format(cli_args))
         p = cli.TwoPing(cli_args)
         self.assertEqual(p.run(), 0)
 
@@ -61,9 +61,6 @@ class TestCLI(unittest.TestCase):
     def test_adaptive(self):
         sock_class = self._client(["--adaptive", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
-        self.assertGreaterEqual(
-            sock_class.pings_received / sock_class.pings_transmitted, 0.99
-        )
 
     @unittest.skipIf(isinstance(utils.AES, ImportError), "Crypto module required")
     def test_encrypt(self):
