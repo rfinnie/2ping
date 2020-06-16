@@ -746,6 +746,7 @@ class TwoPing:
             self.poller.unregister(sock_class)
             sock_class.sock.close()
             sock_class.closed = True
+            sock_class.shutdown_time = clock()
             sock_class.next_send = 0
 
     def gather_systemd_socks(self):
