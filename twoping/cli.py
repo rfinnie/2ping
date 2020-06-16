@@ -204,22 +204,20 @@ class TwoPing:
         try:
             MSG_ERRQUEUE = 8192
             (error_data, error_address) = sock.recvfrom(16384, MSG_ERRQUEUE)
-            if self.args.quiet:
-                pass
-            elif self.args.flood:
-                self.print_out("E", end="", flush=True)
-            else:
-                self.print_out("{}: {}".format(error_address[0], error_string))
+            print_address = error_address[0]
         except socket.error:
-            if self.args.quiet:
-                pass
-            elif self.args.flood:
-                self.print_out("E", end="", flush=True)
+            if peer_address:
+                print_address = peer_address[0]
             else:
-                if peer_address:
-                    self.print_out("{}: {}".format(peer_address[0], error_string))
-                else:
-                    self.print_out(error_string)
+                print_address = None
+        if self.args.quiet:
+            pass
+        elif self.args.flood:
+            self.print_out("E", end="", flush=True)
+        elif print_address:
+            self.print_out("{}: {}".format(print_address, error_string))
+        else:
+            self.print_out(error_string)
 
     def process_incoming_packet(self, sock_class):
         sock = sock_class.sock
@@ -686,31 +684,26 @@ class TwoPing:
     def check_investigations(self, peer_state, packet_check):
         found = {}
 
-        # Inbound
-        if packets.OpcodeInvestigationSeen.id in packet_check.opcodes:
-            for message_id in packet_check.opcodes[
-                packets.OpcodeInvestigationSeen.id
-            ].message_ids:
-                message_id_int = nunpack(message_id)
-                if message_id_int not in peer_state.sent_messages:
-                    continue
-                (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id_int]
-                found[ping_seq] = ("inbound", peer_state.peer_tuple[1][0])
-                del peer_state.sent_messages[message_id_int]
-                peer_state.sock_class.lost_inbound += 1
-
-        # Outbound
-        if packets.OpcodeInvestigationUnseen.id in packet_check.opcodes:
-            for message_id in packet_check.opcodes[
-                packets.OpcodeInvestigationUnseen.id
-            ].message_ids:
-                message_id_int = nunpack(message_id)
-                if message_id_int not in peer_state.sent_messages:
-                    continue
-                (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id_int]
-                found[ping_seq] = ("outbound", peer_state.peer_tuple[1][0])
-                del peer_state.sent_messages[message_id_int]
-                peer_state.sock_class.lost_outbound += 1
+        # Inbound/Outbound
+        for opcode_id, type_str, type_stat in [
+            (packets.OpcodeInvestigationSeen.id, "inbound", "lost_inbound"),
+            (packets.OpcodeInvestigationUnseen.id, "outbound", "lost_outbound"),
+        ]:
+            if opcode_id in packet_check.opcodes:
+                for message_id in packet_check.opcodes[opcode_id].message_ids:
+                    message_id_int = nunpack(message_id)
+                    if message_id_int not in peer_state.sent_messages:
+                        continue
+                    (_unused, _unused, ping_seq) = peer_state.sent_messages[
+                        message_id_int
+                    ]
+                    found[ping_seq] = (type_str, peer_state.peer_tuple[1][0])
+                    del peer_state.sent_messages[message_id_int]
+                    setattr(
+                        peer_state.sock_class,
+                        type_stat,
+                        getattr(peer_state.sock_class, type_stat) + 1,
+                    )
 
         if self.args.quiet:
             return
@@ -718,23 +711,19 @@ class TwoPing:
         for ping_seq in sorted(found):
             (loss_type, address) = found[ping_seq]
             if loss_type == "inbound":
-                if self.args.flood:
-                    self.print_out("<", end="", flush=True)
-                else:
-                    self.print_out(
-                        _("Lost inbound packet from {address}: ping_seq={seq}").format(
-                            address=address, seq=ping_seq
-                        )
-                    )
+                flood_char = "<"
+                loss_message = "Lost inbound packet from {address}: ping_seq={seq}"
             else:
-                if self.args.flood:
-                    self.print_out(">", end="", flush=True)
-                else:
-                    self.print_out(
-                        _("Lost outbound packet to {address}: ping_seq={seq}").format(
-                            address=address, seq=ping_seq
-                        )
+                flood_char = ">"
+                loss_message = "Lost outbound packet to {address}: ping_seq={seq}"
+            if self.args.flood:
+                self.print_out(flood_char, end="", flush=True)
+            else:
+                self.print_out(
+                    _(loss_message).format(
+                        loss_type=loss_type, address=address, seq=ping_seq
                     )
+                )
 
     def close_socks(self, close_systemd=False, exclude=None):
         for sock_class in self.sock_classes:
