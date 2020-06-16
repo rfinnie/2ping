@@ -221,8 +221,6 @@ class TwoPing:
                 print_address = None
         if self.args.quiet:
             pass
-        elif self.args.flood:
-            self.tty_out("E", end="", flush=True)
         elif print_address:
             self.logger.error("{}: {}".format(print_address, error_string))
         else:
@@ -412,10 +410,8 @@ class TwoPing:
 
                 sock_class.pings_received += 1
                 self.update_rtts(sock_class, calculated_rtt)
-                if self.args.quiet:
+                if self.args.quiet or self.args.flood:
                     pass
-                elif self.args.flood:
-                    self.tty_out("\x08", end="", flush=True)
                 else:
                     if self.args.audible:
                         self.tty_out("\x07", end="", flush=True)
@@ -717,19 +713,14 @@ class TwoPing:
         for ping_seq in sorted(found):
             (loss_type, address) = found[ping_seq]
             if loss_type == "inbound":
-                flood_char = "<"
                 loss_message = "Lost inbound packet from {address}: ping_seq={seq}"
             else:
-                flood_char = ">"
                 loss_message = "Lost outbound packet to {address}: ping_seq={seq}"
-            if self.args.flood:
-                self.tty_out(flood_char, end="", flush=True)
-            else:
-                self.logger.error(
-                    _(loss_message).format(
-                        loss_type=loss_type, address=address, seq=ping_seq
-                    )
+            self.logger.error(
+                _(loss_message).format(
+                    loss_type=loss_type, address=address, seq=ping_seq
                 )
+            )
 
     def close_socks(self, close_systemd=False, exclude=None):
         for sock_class in self.sock_classes:
@@ -1079,10 +1070,8 @@ class TwoPing:
         )
         packet_out_examine = packets.Packet()
         packet_out_examine.load(dump_out)
-        if self.args.quiet:
+        if self.args.quiet or self.args.flood:
             pass
-        elif self.args.flood:
-            self.tty_out(".", end="", flush=True)
         else:
             self.verbose(
                 "SEND{}: {}".format(
@@ -1151,7 +1140,6 @@ class TwoPing:
         else:
             hostname = sock_class
         if short:
-            self.tty_out("\x0d", end="", flush=True)
             self.logger.info(
                 _pl(
                     (
