@@ -11,6 +11,9 @@ lint:
 test:
 	$(PYTHON) -mtox
 
+test-quick:
+	$(PYTHON) -mtox -e black,flake8,pytest-quick
+
 black-check:
 	$(PYTHON) -mtox -e black
 

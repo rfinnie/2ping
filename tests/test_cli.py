@@ -1,5 +1,6 @@
 import locale
 import logging
+import pytest
 import unittest
 import unittest.mock
 
@@ -62,6 +63,7 @@ class TestCLI(unittest.TestCase):
 
         return sock_class
 
+    @pytest.mark.slow
     def test_adaptive(self):
         sock_class = self._client(["--adaptive", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
@@ -72,6 +74,7 @@ class TestCLI(unittest.TestCase):
             ["--encrypt-method=hkdf-aes256-cbc", "--auth=S49HVbnJd3fBdDzdMVVw"]
         )
 
+    @pytest.mark.slow
     def test_flood(self):
         sock_class = self._client(["--flood", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
