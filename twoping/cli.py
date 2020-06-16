@@ -1083,6 +1083,7 @@ class TwoPing:
             pass
         elif self.args.flood:
             self.tty_out(".", end="", flush=True)
+        else:
             self.verbose(
                 "SEND{}: {}".format(
                     (" (encrypted)" if self.args.encrypt else ""),
@@ -1150,7 +1151,7 @@ class TwoPing:
         else:
             hostname = sock_class
         if short:
-            self.tty_out("\x0d", end="", flush=True, file=sys.stderr)
+            self.tty_out("\x0d", end="", flush=True)
             self.logger.info(
                 _pl(
                     (
@@ -1177,8 +1178,7 @@ class TwoPing:
                     ewma=rtt_ewma,
                     max=stats_class.rtt_max,
                     mdev=rtt_mdev,
-                ),
-                file=sys.stderr,
+                )
             )
         elif self.args.nagios:
             if (lost_pct >= self.args.nagios_crit_loss) or (
