@@ -1,6 +1,7 @@
 MANIFEST
 *.snap
 2ping_*.txt
+.pybuild/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
