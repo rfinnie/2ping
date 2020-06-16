@@ -55,6 +55,10 @@ class TestCLI(unittest.TestCase):
         if cli_args.count:
             self.assertEqual(sock_class.pings_transmitted, cli_args.count)
             self.assertEqual(sock_class.pings_received, cli_args.count)
+        else:
+            self.assertGreaterEqual(
+                sock_class.pings_received / sock_class.pings_transmitted, 0.99
+            )
 
         return sock_class
 
@@ -71,9 +75,6 @@ class TestCLI(unittest.TestCase):
     def test_flood(self):
         sock_class = self._client(["--flood", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
-        self.assertGreaterEqual(
-            sock_class.pings_received / sock_class.pings_transmitted, 0.99
-        )
 
     def test_hmac_crc32(self):
         self._client(["--auth-digest=hmac-crc32", "--auth=mc82kJwtXFlhqQSCKptQ"])
