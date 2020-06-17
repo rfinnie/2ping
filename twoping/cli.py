@@ -814,13 +814,14 @@ class TwoPing:
             else:
                 continue
 
-            found_existing = False
-            for sock_class in self.sock_classes_open:
-                if addrinfo == sock_class.bind_addrinfo:
-                    sock_classes.append(sock_class)
-                    found_existing = True
-            if found_existing:
-                continue
+            if tags is not None and "listener" in tags:
+                found_existing = False
+                for sock_class in self.sock_classes_open:
+                    if addrinfo == sock_class.bind_addrinfo:
+                        sock_classes.append(sock_class)
+                        found_existing = True
+                if found_existing:
+                    continue
 
             sock = self.new_socket(addrinfo)
             sock_class = SocketClass(sock)
