@@ -782,6 +782,7 @@ class TwoPing:
                 sock = socket.fromfd(fd, family, socket.SOCK_DGRAM)
                 sock_class = SocketClass(sock)
                 sock_class.tags.append("systemd")
+                sock_class.tags.append("listener")
                 sock_classes.append(sock_class)
                 self.sock_classes.append(sock_class)
                 self.poller.register(sock_class, selectors.EVENT_READ)
