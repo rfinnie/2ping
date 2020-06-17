@@ -47,7 +47,6 @@ from .utils import (
     _pl,
     fuzz_packet,
     div0,
-    nunpack,
     platform_info,
     random,
     random_is_systemrandom,
@@ -409,12 +408,11 @@ class TwoPing:
             replied_message_id = packet_in.opcodes[
                 packets.OpcodeInReplyTo.id
             ].message_id
-            replied_message_id_int = nunpack(replied_message_id)
-            if replied_message_id_int in peer_state.sent_messages:
+            if replied_message_id in peer_state.sent_messages:
                 (sent_time, _unused, ping_position) = peer_state.sent_messages[
-                    replied_message_id_int
+                    replied_message_id
                 ]
-                del peer_state.sent_messages[replied_message_id_int]
+                del peer_state.sent_messages[replied_message_id]
 
                 calculated_rtt = (time_begin - sent_time) * 1000
                 if (
@@ -479,7 +477,7 @@ class TwoPing:
                         self.logger.info(
                             "  " + _("Peer notice: {notice}").format(notice=notice)
                         )
-            peer_state.courtesy_messages[replied_message_id_int] = (
+            peer_state.courtesy_messages[replied_message_id] = (
                 time_begin,
                 replied_message_id,
             )
@@ -492,14 +490,13 @@ class TwoPing:
             for message_id in packet_in.opcodes[
                 packets.OpcodeCourtesyExpiration.id
             ].message_ids:
-                message_id_int = nunpack(message_id)
-                if message_id_int in peer_state.seen_messages:
-                    del peer_state.seen_messages[message_id_int]
+                if message_id in peer_state.seen_messages:
+                    del peer_state.seen_messages[message_id]
 
         # If the peer requested a reply, prepare one.
         if packets.OpcodeReplyRequested.id in packet_in.opcodes:
             # Populate seen_messages.
-            peer_state.seen_messages[nunpack(packet_in.message_id)] = (time_begin,)
+            peer_state.seen_messages[packet_in.message_id] = (time_begin,)
 
             # Basic packet configuration.
             packet_out = self.base_packet()
@@ -531,7 +528,7 @@ class TwoPing:
                 for message_id in packet_in.opcodes[
                     packets.OpcodeInvestigate.id
                 ].message_ids:
-                    if nunpack(message_id) in peer_state.seen_messages:
+                    if message_id in peer_state.seen_messages:
                         if packets.OpcodeInvestigationSeen.id not in packet_out.opcodes:
                             packet_out.opcodes[
                                 packets.OpcodeInvestigationSeen.id
@@ -617,7 +614,7 @@ class TwoPing:
             if packets.OpcodeReplyRequested.id in packet_out.opcodes:
                 sock_class.pings_transmitted += 1
                 peer_state.ping_position += 1
-                peer_state.sent_messages[nunpack(packet_out.message_id)] = (
+                peer_state.sent_messages[packet_out.message_id] = (
                     time_send,
                     packet_out.message_id,
                     peer_state.ping_position,
@@ -632,9 +629,8 @@ class TwoPing:
                 for courtesy_message_id in packet_out_examine.opcodes[
                     packets.OpcodeCourtesyExpiration.id
                 ].message_ids:
-                    courtesy_message_id_int = nunpack(courtesy_message_id)
-                    if courtesy_message_id_int in peer_state.courtesy_messages:
-                        del peer_state.courtesy_messages[courtesy_message_id_int]
+                    if courtesy_message_id in peer_state.courtesy_messages:
+                        del peer_state.courtesy_messages[courtesy_message_id]
 
             if self.args.verbose:
                 self.logger.info(
@@ -714,18 +710,15 @@ class TwoPing:
         ]:
             if opcode_id in packet_check.opcodes:
                 for message_id in packet_check.opcodes[opcode_id].message_ids:
-                    message_id_int = nunpack(message_id)
-                    if message_id_int not in peer_state.sent_messages:
+                    if message_id not in peer_state.sent_messages:
                         continue
-                    (_unused, _unused, ping_seq) = peer_state.sent_messages[
-                        message_id_int
-                    ]
+                    (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id]
                     if peer_state.peer_tuple[1]:
                         address = peer_state.peer_tuple[1][0]
                     else:
                         address = peer_state.sock_class
                     found[ping_seq] = (type_str, address)
-                    del peer_state.sent_messages[message_id_int]
+                    del peer_state.sent_messages[message_id]
                     setattr(
                         peer_state.sock_class,
                         type_stat,
@@ -1124,7 +1117,7 @@ class TwoPing:
         sock_class.packets_transmitted += 1
         sock_class.pings_transmitted += 1
         peer_state.ping_position += 1
-        peer_state.sent_messages[nunpack(packet_out.message_id)] = (
+        peer_state.sent_messages[packet_out.message_id] = (
             now,
             packet_out.message_id,
             peer_state.ping_position,
