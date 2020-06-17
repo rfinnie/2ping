@@ -232,7 +232,7 @@ class TwoPing:
             if peer_address:
                 print_address = peer_address[0]
             else:
-                print_address = None
+                print_address = str(sock_class)
         if self.args.quiet:
             pass
         elif print_address:
@@ -243,6 +243,7 @@ class TwoPing:
     def process_incoming_packet(self, sock_class):
         sock = sock_class.sock
         recvfrom = self.sock_recvfrom(sock_class)
+        time_begin = clock()
         if recvfrom is None:
             # Error handled, simulated packet loss, etc
             return
@@ -250,7 +251,7 @@ class TwoPing:
         if peer_address:
             print_address = peer_address[0]
         else:
-            print_address = None
+            print_address = str(sock_class)
         socket_address = sock_class.address
         self.logger.debug("Socket: {}, peer: {}".format(sock_class, peer_address))
 
@@ -258,7 +259,6 @@ class TwoPing:
         sock_class.packets_received += 1
         calculated_rtt = None
 
-        time_begin = clock()
         peer_tuple = (socket_address, peer_address, sock.type)
 
         # Preload state tables if the client has not been seen (or has been cleaned).
@@ -430,10 +430,6 @@ class TwoPing:
                 else:
                     if self.args.audible:
                         self.tty_out("\x07", end="", flush=True)
-                    if peer_state.peer_tuple[1]:
-                        address = peer_state.peer_tuple[1][0]
-                    else:
-                        address = sock_class
                     if packets.OpcodeRTTEnclosed.id in packet_in.opcodes:
                         self.logger.info(
                             _(
@@ -443,7 +439,7 @@ class TwoPing:
                                 )
                             ).format(
                                 bytes=len(data),
-                                address=address,
+                                address=print_address,
                                 seq=ping_position,
                                 ms=calculated_rtt,
                                 peerms=(
@@ -460,7 +456,7 @@ class TwoPing:
                                 "{bytes} bytes from {address}: ping_seq={seq} time={ms:0.03f} ms"
                             ).format(
                                 bytes=len(data),
-                                address=address,
+                                address=print_address,
                                 seq=ping_position,
                                 ms=calculated_rtt,
                             )
@@ -1228,7 +1224,12 @@ class TwoPing:
         )
         socket_address = sock_class.address
         if sock_class.client_host:
-            hostname = sock_class.client_host[3]
+            if sock_class.client_host[3]:
+                hostname = "{} ({})".format(
+                    sock_class.client_host[3], sock_class.client_host[4][0]
+                )
+            else:
+                hostname = sock_class.client_host[4][0]
         elif socket_address:
             hostname = socket_address[0]
         else:
@@ -1348,9 +1349,12 @@ class TwoPing:
                 continue
             socket_address = sock_class.address
             if sock_class.client_host:
-                host_display = "{} ({})".format(
-                    sock_class.client_host[3], sock_class.client_host[4][0]
-                )
+                if sock_class.client_host[3]:
+                    host_display = "{} ({})".format(
+                        sock_class.client_host[3], sock_class.client_host[4][0]
+                    )
+                else:
+                    host_display = "{}".format(sock_class.client_host[4][0])
             elif sock_class.next_send:
                 host_display = "{}".format(sock_class)
             elif socket_address:
