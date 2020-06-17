@@ -9,7 +9,7 @@ from twoping import args, cli, utils
 
 
 class TestCLI(unittest.TestCase):
-    bind_address = "127.0.0.1"
+    bind_addresses = ["127.0.0.1"]
     port = None
     logger = None
     class_args = None
@@ -35,12 +35,10 @@ class TestCLI(unittest.TestCase):
             positional_args += test_positionals
 
         if "--loopback" not in flag_args:
-            flag_args += [
-                "--listen",
-                "--interface-address={}".format(self.bind_address),
-                "--port={}".format(port),
-            ]
-            positional_args.append(self.bind_address)
+            flag_args += ["--listen", "--port={}".format(port)]
+            for bind_address in self.bind_addresses:
+                flag_args.append("--interface-address={}".format(bind_address))
+                positional_args.append(bind_address)
         if ("--adaptive" not in flag_args) and ("--flood" not in flag_args):
             flag_args.append("--count=1")
         if not ("--count=1" in flag_args):
@@ -158,6 +156,17 @@ class TestCLI(unittest.TestCase):
 
     def test_module_init(self):
         self.assertTrue(_test_module_init(cli))
+
+
+class TestCLIInet(TestCLI):
+    def test_srv_addresses(self):
+        self.bind_addresses = []
+        with unittest.mock.patch(
+            "twoping.cli.TwoPing.get_srv_hosts", return_value=[("127.0.0.1", -1)]
+        ):
+            self._client(
+                ["--interface-address=127.0.0.1", "--srv"], ["pssPCPkc3XlMTDZhclPV."]
+            )
 
 
 @unittest.skipUnless(hasattr(cli.socket, "AF_UNIX"), "UNIX environment required")

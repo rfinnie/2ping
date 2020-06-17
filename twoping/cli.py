@@ -991,6 +991,31 @@ class TwoPing:
 
         self.close_socks(to_close)
 
+    def get_srv_hosts(self):
+        if isinstance(dns_resolver, ImportError):
+            raise socket.error(
+                "DNS SRV lookups not available; please install dnspython"
+            )
+        hosts = []
+        for lookup in self.args.host:
+            lookup_hosts_found = 0
+            self.logger.debug("SRV lookup: {}".format(lookup))
+            try:
+                res = dns_resolver.query(
+                    "_{}._udp.{}".format(self.args.srv_service, lookup), "srv"
+                )
+            except dns_resolver.dns.exception.DNSException as e:
+                raise socket.error("{}: {}".format(lookup, e))
+            for rdata in res:
+                self.logger.debug("SRV result for {}: {}".format(lookup, rdata))
+                if (str(rdata.target), rdata.port) in hosts:
+                    continue
+                hosts.append((str(rdata.target), rdata.port))
+                lookup_hosts_found += 1
+            if lookup_hosts_found == 0:
+                raise socket.error("{}: No SRV results".format(lookup))
+        return hosts
+
     def setup_sockets_client(self):
         # Client socket setup is only done once.
         if [
@@ -1001,31 +1026,12 @@ class TwoPing:
             return
 
         if self.args.srv:
-            if isinstance(dns_resolver, ImportError):
-                raise socket.error(
-                    "DNS SRV lookups not available; please install dnspython"
-                )
-            hosts = []
-            for lookup in self.args.host:
-                lookup_hosts_found = 0
-                self.logger.debug("SRV lookup: {}".format(lookup))
-                try:
-                    res = dns_resolver.query(
-                        "_{}._udp.{}".format(self.args.srv_service, lookup), "srv"
-                    )
-                except dns_resolver.dns.exception.DNSException as e:
-                    raise socket.error("{}: {}".format(lookup, e))
-                for rdata in res:
-                    self.logger.debug("SRV result for {}: {}".format(lookup, rdata))
-                    if (str(rdata.target), rdata.port) in hosts:
-                        continue
-                    hosts.append((str(rdata.target), rdata.port))
-                    lookup_hosts_found += 1
-                if lookup_hosts_found == 0:
-                    raise socket.error("{}: No SRV results".format(lookup))
+            hosts = self.get_srv_hosts()
         else:
             hosts = [(x, self.args.port) for x in self.args.host]
         for (hostname, port) in hosts:
+            if str(port) in ("None", "-1"):
+                port = self.args.port
             try:
                 self.setup_sockets_client_host(hostname, port)
             except socket.error as e:
@@ -1061,8 +1067,8 @@ class TwoPing:
         if host_info is None:
             raise socket.error("Name or service not known")
 
-        if self.args.interface_address:
-            interface_address = self.args.interface_address[-1]
+        if len(self.args.interface_address) == 1:
+            interface_address = self.args.interface_address[0]
         elif host_info[0] == socket.AF_INET6:
             interface_address = "::"
         else:
