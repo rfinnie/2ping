@@ -84,6 +84,7 @@ def parse_args(argv=None):
         dest="interface_address",
         type=str,
         action="append",
+        default=[],
         help=_("interface bind address"),
         metavar="ADDRESS",
     )
