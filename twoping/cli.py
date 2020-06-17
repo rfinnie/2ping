@@ -318,12 +318,10 @@ class TwoPing:
                         "Encryption session mismatch from {address} (expected {expected}, got {got})"
                     ).format(
                         address=print_address,
-                        expected=repr(peer_state.encrypted_session_id),
-                        got=repr(
-                            encrypted_packet_in.opcodes[
-                                packets.OpcodeEncrypted.id
-                            ].session
-                        ),
+                        expected=peer_state.encrypted_session_id,
+                        got=encrypted_packet_in.opcodes[
+                            packets.OpcodeEncrypted.id
+                        ].session,
                     )
                 )
                 return
@@ -334,9 +332,7 @@ class TwoPing:
                 sock_class.errors_received += 1
                 self.logger.error(
                     _("Repeated IV {iv} from {address}, discarding").format(
-                        iv=repr(
-                            encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv
-                        ),
+                        iv=encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv,
                         address=print_address,
                     )
                 )
@@ -1016,11 +1012,9 @@ class TwoPing:
                         "_{}._udp.{}".format(self.args.srv_service, lookup), "srv"
                     )
                 except dns_resolver.dns.exception.DNSException as e:
-                    raise socket.error("{}: {}".format(lookup, repr(e)))
+                    raise socket.error("{}: {}".format(lookup, e))
                 for rdata in res:
-                    self.logger.debug(
-                        "SRV result for {}: {}".format(lookup, repr(rdata))
-                    )
+                    self.logger.debug("SRV result for {}: {}".format(lookup, rdata))
                     if (str(rdata.target), rdata.port) in hosts:
                         continue
                     hosts.append((str(rdata.target), rdata.port))
@@ -1468,7 +1462,7 @@ class TwoPing:
             peer_state = sock_class.peer_states[peer_tuple]
             if now > peer_state.last_seen + 600.0:
                 del sock_class.peer_states[peer_tuple]
-                self.logger.debug("Cleanup: Removed {}".format(repr(peer_tuple)))
+                self.logger.debug("Cleanup: Removed {}".format(peer_tuple))
                 continue
             for table_name, max_time in (
                 ("sent_messages", 600.0),
@@ -1482,7 +1476,7 @@ class TwoPing:
                         del table[table_key_name]
                         self.logger.debug(
                             "Cleanup: Removed {} {} {}".format(
-                                repr(peer_tuple), table_name, table_key_name
+                                peer_tuple, table_name, table_key_name
                             )
                         )
 
