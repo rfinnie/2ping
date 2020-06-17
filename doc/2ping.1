@@ -213,6 +213,13 @@ A listener is required as the remote end for a client.
 When run as a listener, a SIGHUP will reload the configuration on all
 interfaces.
 .TP
+.B \-\-loopback
+Use one or more client/listener pairs of UNIX datagram sockets.
+Mainly for testing purposes.
+.TP
+.B \-\-loopback\-pairs=\f[I]pairs\f[R]
+Number of pairs to generate when using \f[I]\-\-loopback\f[R].
+.TP
 .B \-\-min\-packet\-size=\f[I]min\f[R]
 Set the minimum total payload size to \f[I]min\f[R] bytes, default 128.
 If the payload is smaller than \f[I]min\f[R] bytes, padding will be

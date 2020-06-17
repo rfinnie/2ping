@@ -63,7 +63,11 @@ class SocketClass:
     def __init__(self, sock):
         self.sock = sock
         self.address = sock.getsockname()
+        if not self.address:
+            self.address = None
 
+        # Functional tags applied to the SocketClass
+        self.tags = []
         # Used during client mode for the host tuple to send UDP packets to.
         self.client_host = None
         # (family, type, proto, canonname, sockaddr) of the bound socket
@@ -94,17 +98,14 @@ class SocketClass:
         self.shutdown_time = 0
         self.session = bytes([random.randint(0, 255) for x in range(8)])
 
-        # Systemd sockets must be handled specially
-        self.is_systemd = False
-
     def __repr__(self):
         attrs = ["fd {}".format(self.fileno())]
         if self.bind_addrinfo:
             attrs.append("bind {}".format(self.bind_addrinfo))
         if self.client_host:
             attrs.append("client {}".format(self.client_host))
-        if self.is_systemd:
-            attrs.append("systemd")
+        if self.tags:
+            attrs.append("tags {}".format(self.tags))
         if self.closed:
             attrs.append("closed")
         return "<SocketClass: {}>".format(", ".join(attrs))
@@ -251,6 +252,10 @@ class TwoPing:
             # Error handled, simulated packet loss, etc
             return
         data, peer_address = recvfrom
+        if peer_address:
+            print_address = peer_address[0]
+        else:
+            print_address = None
         socket_address = sock_class.address
         self.logger.debug("Socket: {}, peer: {}".format(sock_class, peer_address))
 
@@ -278,7 +283,7 @@ class TwoPing:
                 sock_class.errors_received += 1
                 self.logger.error(
                     _("Encryption required but not provided by {address}").format(
-                        address=peer_address[0]
+                        address=print_address
                     )
                 )
                 return
@@ -291,7 +296,7 @@ class TwoPing:
                     _(
                         "Encryption method mismatch from {address} (expected {expected}, got {got})"
                     ).format(
-                        address=peer_address[0],
+                        address=print_address,
                         expected=self.args.encrypt_method_index,
                         got=packet_in.opcodes[packets.OpcodeEncrypted.id].method_index,
                     )
@@ -316,7 +321,7 @@ class TwoPing:
                     _(
                         "Encryption session mismatch from {address} (expected {expected}, got {got})"
                     ).format(
-                        address=peer_address[0],
+                        address=print_address,
                         expected=repr(peer_state.encrypted_session_id),
                         got=repr(
                             encrypted_packet_in.opcodes[
@@ -336,7 +341,7 @@ class TwoPing:
                         iv=repr(
                             encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv
                         ),
-                        address=peer_address[0],
+                        address=print_address,
                     )
                 )
                 return
@@ -351,7 +356,7 @@ class TwoPing:
                 sock_class.errors_received += 1
                 self.logger.error(
                     _("Auth required but not provided by {address}").format(
-                        address=peer_address[0]
+                        address=print_address
                     )
                 )
                 return
@@ -364,7 +369,7 @@ class TwoPing:
                     _(
                         "Auth digest type mismatch from {address} (expected {expected}, got {got})"
                     ).format(
-                        address=peer_address[0],
+                        address=print_address,
                         expected=self.args.auth_digest_index,
                         got=packet_in.opcodes[packets.OpcodeHMAC.id].digest_index,
                     )
@@ -391,7 +396,7 @@ class TwoPing:
                     _(
                         "Auth hash failed from {address} (expected {expected}, got {got})"
                     ).format(
-                        address=peer_address[0],
+                        address=print_address,
                         expected="".join(
                             "{hex:02x}".format(hex=x) for x in test_hash_calculated
                         ),
@@ -680,6 +685,9 @@ class TwoPing:
         if self.args.fuzz:
             data = fuzz_packet(data, self.args.fuzz)
 
+        if not peer_address:
+            peer_address = None
+
         return data, peer_address
 
     def start_investigations(self, peer_state, packet_check):
@@ -716,7 +724,11 @@ class TwoPing:
                     (_unused, _unused, ping_seq) = peer_state.sent_messages[
                         message_id_int
                     ]
-                    found[ping_seq] = (type_str, peer_state.peer_tuple[1][0])
+                    if peer_state.peer_tuple[1]:
+                        address = peer_state.peer_tuple[1][0]
+                    else:
+                        address = peer_state.sock_class
+                    found[ping_seq] = (type_str, address)
                     del peer_state.sent_messages[message_id_int]
                     setattr(
                         peer_state.sock_class,
@@ -739,12 +751,10 @@ class TwoPing:
                 )
             )
 
-    def close_socks(self, close_systemd=False, exclude=None):
-        for sock_class in self.sock_classes_open:
-            if (not close_systemd) and sock_class.is_systemd:
-                continue
-            if exclude is not None and sock_class in exclude:
-                continue
+    def close_socks(self, sock_classes=None):
+        if sock_classes is None:
+            sock_classes = self.sock_classes_open
+        for sock_class in sock_classes:
             self.logger.debug("Closing socket: {}".format(sock_class))
             self.poller.unregister(sock_class)
             sock_class.sock.close()
@@ -759,7 +769,9 @@ class TwoPing:
 
         # If we've done this before, don't re-attempt
         systemd_sock_classes = [
-            sock_class for sock_class in self.sock_classes if sock_class.is_systemd
+            sock_class
+            for sock_class in self.sock_classes
+            if "systemd" in sock_class.tags
         ]
         if systemd_sock_classes:
             return systemd_sock_classes
@@ -775,15 +787,11 @@ class TwoPing:
                     continue
                 sock = socket.fromfd(fd, family, socket.SOCK_DGRAM)
                 sock_class = SocketClass(sock)
-                sock_class.is_systemd = True
+                sock_class.tags.append("systemd")
                 sock_classes.append(sock_class)
                 self.sock_classes.append(sock_class)
                 self.poller.register(sock_class, selectors.EVENT_READ)
-                self.logger.debug(
-                    "Using systemd-supplied socket on fd {}: {}".format(
-                        fd, (family, socket.SOCK_DGRAM, sock_class.address)
-                    )
-                )
+                self.logger.debug("Opened socket: {}".format(sock_class))
 
         return sock_classes
 
@@ -794,6 +802,7 @@ class TwoPing:
         family=socket.AF_UNSPEC,
         type=socket.SOCK_DGRAM,
         proto=socket.IPPROTO_UDP,
+        tags=None,
     ):
         sock_classes = []
         for addrinfo in socket.getaddrinfo(
@@ -820,6 +829,9 @@ class TwoPing:
 
             sock = self.new_socket(addrinfo)
             sock_class = SocketClass(sock)
+            if tags is not None:
+                for tag in tags:
+                    sock_class.tags.append(tag)
             sock_class.bind_addrinfo = addrinfo
             sock_classes.append(sock_class)
             self.sock_classes.append(sock_class)
@@ -916,45 +928,80 @@ class TwoPing:
             # Special testing mode
             self.set_high_port()
 
+        if self.args.loopback:
+            self.setup_sockets_loopback()
         if self.args.host:
             self.setup_sockets_client()
         if self.args.listen:
+            self.gather_systemd_socks()
             self.setup_sockets_listener()
 
+    def setup_sockets_loopback(self):
+        # Client socket setup is only done once.
+        if [
+            sock_class
+            for sock_class in self.sock_classes_open
+            if "loopback" in sock_class.tags and "client" in sock_class.tags
+        ]:
+            return
+
+        for i in range(self.args.loopback_pairs):
+            sock_client, sock_listener = socket.socketpair(
+                socket.AF_UNIX, socket.SOCK_DGRAM
+            )
+            sock_class_client = SocketClass(sock_client)
+            sock_class_client.tags.append("loopback")
+            sock_class_client.tags.append("client")
+            sock_class_client.next_send = self.time_start
+            self.poller.register(sock_class_client, selectors.EVENT_READ)
+            self.sock_classes.append(sock_class_client)
+            self.logger.debug("Opened socket: {}".format(sock_class_client))
+
+            sock_class_listener = SocketClass(sock_listener)
+            sock_class_listener.tags.append("loopback")
+            sock_class_listener.tags.append("listener")
+            self.poller.register(sock_class_listener, selectors.EVENT_READ)
+            self.sock_classes.append(sock_class_listener)
+            self.logger.debug("Opened socket: {}".format(sock_class_listener))
+
     def setup_sockets_listener(self):
-        systemd_sock_classes = self.gather_systemd_socks()
+        # Do not set up listener sockets if systemd sockets exist.
+        if [
+            sock_class
+            for sock_class in self.sock_classes_open
+            if "systemd" in sock_class.tags
+        ]:
+            return
 
-        if systemd_sock_classes:
-            # Existing systemd socks, do nothing
-            interface_addresses = []
-        else:
-            interface_addresses = self.get_interface_addresses()
-
+        interface_addresses = self.get_interface_addresses()
         interface_sock_classes = []
         for interface_address, interface_family in interface_addresses:
             interface_sock_classes += self.setup_interface_address(
-                interface_address, port=self.args.port, family=interface_family
+                interface_address,
+                port=self.args.port,
+                family=interface_family,
+                tags=["inet", "listener"],
             )
 
-        client_sock_classes = [
+        listener_sock_classes = [
             sock_class
             for sock_class in self.sock_classes_open
-            if sock_class.client_host
+            if "inet" in sock_class.tags and "listener" in sock_class.tags
         ]
-        known_sock_classes = (
-            systemd_sock_classes + interface_sock_classes + client_sock_classes
-        )
+        to_close = []
+        for sock_class in listener_sock_classes:
+            if sock_class not in interface_sock_classes:
+                to_close.append(sock_class)
 
-        self.close_socks(exclude=known_sock_classes)
+        self.close_socks(to_close)
 
     def setup_sockets_client(self):
-        # Unlike the listener, client socket setup is only done once.
-        client_sock_classes = [
+        # Client socket setup is only done once.
+        if [
             sock_class
             for sock_class in self.sock_classes_open
-            if sock_class.client_host
-        ]
-        if client_sock_classes:
+            if "inet" in sock_class.tags and "client" in sock_class.tags
+        ]:
             return
 
         if self.args.srv:
@@ -1032,6 +1079,7 @@ class TwoPing:
             family=host_info[0],
             type=host_info[1],
             proto=host_info[2],
+            tags=["inet", "client"],
         ):
             sock_class.client_host = host_info
             sock_class.next_send = self.time_start
@@ -1118,7 +1166,9 @@ class TwoPing:
 
     def get_nagios_stats(self):
         sock_class = [
-            sock_class for sock_class in self.sock_classes if sock_class.client_host
+            sock_class
+            for sock_class in self.sock_classes
+            if "client" in sock_class.tags
         ][0]
 
         pings_lost = sock_class.pings_transmitted - sock_class.pings_received
@@ -1337,7 +1387,7 @@ class TwoPing:
             self.print_out(nagios_stats_text)
         else:
             self.print_stats()
-        self.close_socks(close_systemd=True)
+        self.close_socks()
         if self.args.nagios:
             return nagios_result
         else:
@@ -1584,7 +1634,7 @@ class TwoPing:
                     [
                         sock_class
                         for sock_class in self.sock_classes_active
-                        if sock_class.client_host
+                        if "client" in sock_class.tags
                     ]
                 )
                 == 0
@@ -1593,7 +1643,7 @@ class TwoPing:
                 for sock_class in [
                     sock_class
                     for sock_class in self.sock_classes_active
-                    if not sock_class.client_host
+                    if "listener" in sock_class.tags
                 ]:
                     self.logger.debug(
                         "loop (no_3way): Setting shutdown time to now on {}".format(

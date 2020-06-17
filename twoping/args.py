@@ -18,6 +18,7 @@
 
 import argparse
 import os
+import socket
 import sys
 
 from . import __version__
@@ -165,6 +166,16 @@ def parse_args(argv=None):
     )
     parser.add_argument("--listen", action="store_true", help=_("listen mode"))
     parser.add_argument(
+        "--loopback", action="store_true", help=_("UNIX loopback test mode")
+    )
+    parser.add_argument(
+        "--loopback-pairs",
+        type=int,
+        default=1,
+        help=_("number of loopback pairs to create"),
+        metavar="PAIRS",
+    )
+    parser.add_argument(
         "--max-packet-size",
         type=int,
         default=512,
@@ -257,9 +268,11 @@ def parse_args(argv=None):
 
     args = parser.parse_args(args=argv[1:])
 
-    if (not args.listen) and (not args.host):
+    if (not args.listen) and (not args.host) and (not args.loopback):
         parser.print_help()
         parser.exit()
+    if args.loopback and not hasattr(socket, "AF_UNIX"):
+        parser.error("--loopback not supported on non-UNIX platforms")
     if args.nagios:
         args.quiet = True
         if (not args.count) and (not args.deadline):

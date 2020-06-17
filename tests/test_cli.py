@@ -12,29 +12,42 @@ class TestCLI(unittest.TestCase):
     bind_address = "127.0.0.1"
     port = None
     logger = None
+    class_args = None
 
     def setUp(self):
         self.logger = logging.getLogger()
         self.logger.level = logging.DEBUG
 
-    def _client(self, test_args, test_stats=True):
+    def _client(self, test_flags=None, test_positionals=None, test_stats=True, pairs=1):
         if self.port is None:
             port = -1
         else:
             port = self.port
-        base_args = [
-            "2ping",
-            "--listen",
-            "--interface-address={}".format(self.bind_address),
-            "--port={}".format(port),
-            "--debug",
-        ]
-        if not (("--adaptive" in test_args) or ("--flood" in test_args)):
-            base_args.append("--count=1")
-        if not ("--count=1" in test_args):
-            base_args.append("--interval=5")
-        all_args = base_args + test_args + [self.bind_address]
+
+        flag_args = ["--debug"]
+        if self.class_args is not None:
+            flag_args += self.class_args
+        if test_flags is not None:
+            flag_args += test_flags
+
+        positional_args = []
+        if test_positionals is not None:
+            positional_args += test_positionals
+
+        if "--loopback" not in flag_args:
+            flag_args += [
+                "--listen",
+                "--interface-address={}".format(self.bind_address),
+                "--port={}".format(port),
+            ]
+            positional_args.append(self.bind_address)
+        if ("--adaptive" not in flag_args) and ("--flood" not in flag_args):
+            flag_args.append("--count=1")
+        if not ("--count=1" in flag_args):
+            flag_args.append("--interval=5")
+        all_args = ["2ping"] + flag_args + positional_args
         self.logger.info("Passed arguments: {}".format(all_args))
+
         p = cli.TwoPing(args.parse_args(all_args))
         self.logger.info("Parsed arguments: {}".format(p.args))
         self.assertEqual(p.run(), 0)
@@ -42,11 +55,11 @@ class TestCLI(unittest.TestCase):
         for sock_class in p.sock_classes:
             self.assertTrue(sock_class.closed)
 
-        self.assertEqual(len(p.sock_classes), 2)
+        self.assertEqual(len(p.sock_classes), (pairs * 2))
         client_sock_classes = [
-            sock_class for sock_class in p.sock_classes if sock_class.client_host
+            sock_class for sock_class in p.sock_classes if "client" in sock_class.tags
         ]
-        self.assertEqual(len(client_sock_classes), 1)
+        self.assertEqual(len(client_sock_classes), pairs)
         sock_class = client_sock_classes[0]
 
         if not test_stats:
@@ -70,6 +83,7 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(sock_class.packets_transmitted, 2)
         self.assertEqual(sock_class.packets_received, 1)
 
+    def test_3way_no(self):
         sock_class = self._client(["--no-3way"])
         self.assertEqual(sock_class.packets_transmitted, 1)
         self.assertEqual(sock_class.packets_received, 1)
@@ -107,7 +121,7 @@ class TestCLI(unittest.TestCase):
 
     def test_invalid_hostname(self):
         with self.assertRaises(OSError):
-            self._client(["xGkKWDDMnZxCD4XchMnK."])
+            self._client([], ["xGkKWDDMnZxCD4XchMnK."])
 
     def test_monotonic_clock(self):
         self._client(["--send-monotonic-clock"])
@@ -144,6 +158,14 @@ class TestCLI(unittest.TestCase):
 
     def test_module_init(self):
         self.assertTrue(_test_module_init(cli))
+
+
+@unittest.skipUnless(hasattr(cli.socket, "AF_UNIX"), "UNIX environment required")
+class TestCLILoopback(TestCLI):
+    class_args = ["--loopback"]
+
+    def test_loopback_pairs(self):
+        self._client(["--loopback-pairs=3"], pairs=3)
 
 
 if __name__ == "__main__":
