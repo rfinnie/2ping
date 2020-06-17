@@ -54,7 +54,7 @@ class CRC32:
         return out
 
     def hexdigest(self):
-        return "".join("{hex:02x}".format(hex=x) for x in self.digest())
+        return self.digest().hex()
 
 
 def new(buf=None):

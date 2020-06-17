@@ -23,6 +23,10 @@ class TestCRC32(unittest.TestCase):
         c = crc32.new(b"Data to hash")
         self.assertEqual(c.hexdigest(), "449e0a5c")
 
+    def test_hexdigest_zero_padding(self):
+        c = crc32.new(b"jade")
+        self.assertEqual(c.hexdigest(), "00835218")
+
     def test_clear(self):
         c = crc32.new(b"Data to hash")
         c.clear()

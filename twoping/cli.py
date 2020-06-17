@@ -395,10 +395,8 @@ class TwoPing:
                         "Auth hash failed from {address} (expected {expected}, got {got})"
                     ).format(
                         address=print_address,
-                        expected="".join(
-                            "{hex:02x}".format(hex=x) for x in test_hash_calculated
-                        ),
-                        got="".join("{hex:02x}".format(hex=x) for x in test_hash),
+                        expected=test_hash_calculated.hex(),
+                        got=test_hash.hex(),
                     )
                 )
                 return

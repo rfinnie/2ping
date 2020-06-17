@@ -35,8 +35,7 @@ class Extended:
         if self.id is None:
             return "<Extended: {} bytes>".format(len(self.data))
         else:
-            id_hex = "".join(["{:02x}".format(x) for x in npack(self.id, 4)])
-            return "<Extended (0x{}): {} bytes>".format(id_hex, len(self.data))
+            return "<Extended (0x{:08x}): {} bytes>".format(self.id, len(self.data))
 
     def load(self, data):
         self.data = data
@@ -210,8 +209,7 @@ class Opcode:
         if self.id is None:
             return "<Opcode: {} bytes>".format(len(self.data))
         else:
-            id_hex = "".join(["{:02x}".format(x) for x in npack(self.id, 2)])
-            return "<Opcode (0x{}): {} bytes>".format(id_hex, len(self.data))
+            return "<Opcode (0x{:04x}): {} bytes>".format(self.id, len(self.data))
 
     def load(self, data):
         self.data = data
@@ -243,8 +241,7 @@ class OpcodeInReplyTo(Opcode):
         self.message_id = b""
 
     def __repr__(self):
-        message_id_hex = "".join(["{:02x}".format(x) for x in self.message_id])
-        return "<In Reply To: 0x{}>".format(message_id_hex)
+        return "<In Reply To: 0x{}>".format(self.message_id.hex())
 
     def load(self, data):
         self.message_id = data[0:6]
@@ -274,17 +271,16 @@ class OpcodeRTTEnclosed(Opcode):
 
 
 class OpcodeMessageIDList(Opcode):
+    _repr_name = "ID List (Generic)"
+
     def __init__(self):
         self.message_ids = []
 
     def __repr__(self):
-        ids = [
-            "0x{}".format(
-                "".join(["{:02x}".format(x) for x in y]) for y in self.message_ids
-            )
-        ]
-        return "<ID List (Generic): [{}] ({})>".format(
-            ", ".join(ids), len(self.message_ids)
+        return "<{}: [{}] ({})>".format(
+            self._repr_name,
+            ", ".join(["0x{}".format(x.hex()) for x in self.message_ids]),
+            len(self.message_ids),
         )
 
     def load(self, data):
@@ -310,52 +306,22 @@ class OpcodeMessageIDList(Opcode):
 
 class OpcodeInvestigationSeen(OpcodeMessageIDList):
     id = 0x0008
-
-    def __repr__(self):
-        ids = [
-            "0x{}".format("".join(["{:02x}".format(x) for x in y]))
-            for y in self.message_ids
-        ]
-        return "<Investigation Seen: [{}] ({})>".format(
-            ", ".join(ids), len(self.message_ids)
-        )
+    _repr_name = "Investigation Seen"
 
 
 class OpcodeInvestigationUnseen(OpcodeMessageIDList):
     id = 0x0010
-
-    def __repr__(self):
-        ids = [
-            "0x{}".format("".join(["{:02x}".format(x) for x in y]))
-            for y in self.message_ids
-        ]
-        return "<Investigation Unseen: [{}] ({})>".format(
-            ", ".join(ids), len(self.message_ids)
-        )
+    _repr_name = "Investigation Unseen"
 
 
 class OpcodeInvestigate(OpcodeMessageIDList):
     id = 0x0020
-
-    def __repr__(self):
-        ids = [
-            "0x{}".format("".join(["{:02x}".format(x) for x in y]))
-            for y in self.message_ids
-        ]
-        return "<Investigate: [{}] ({})>".format(", ".join(ids), len(self.message_ids))
+    _repr_name = "Investigate"
 
 
 class OpcodeCourtesyExpiration(OpcodeMessageIDList):
     id = 0x0040
-
-    def __repr__(self):
-        ids = [
-            "0x{}".format("".join(["{:02x}".format(x) for x in y]))
-            for y in self.message_ids
-        ]
-        return "<Courtesy Expiration: [{}] ({})>".format(
-            ", ".join(ids), len(self.message_ids)
-        )
+    _repr_name = "Courtesy Expiration"
 
 
 class OpcodeHMAC(Opcode):
@@ -377,8 +343,7 @@ class OpcodeHMAC(Opcode):
     def __repr__(self):
         if self.digest_index is not None:
             return "<{}: 0x{}>".format(
-                self.digest_map[self.digest_index][2],
-                "".join(["{:02x}".format(x) for x in self.hash]),
+                self.digest_map[self.digest_index][2], self.hash.hex()
             )
         return "<HMAC>"
 
@@ -569,7 +534,7 @@ class OpcodeExtended(Opcode):
 class Packet:
     def __repr__(self):
         return "<Packet (0x{}): {}>".format(
-            "".join(["{:02x}".format(x) for x in self.message_id]),
+            self.message_id.hex(),
             repr(sorted(self.opcodes.values(), key=lambda x: x.id)),
         )
 
