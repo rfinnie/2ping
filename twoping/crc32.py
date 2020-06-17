@@ -62,6 +62,9 @@ def new(buf=None):
 
 
 def main(argv):
+    if argv is None:
+        argv = sys.argv
+
     files = argv[1:]
     if len(files) == 0:
         files = ["-"]

@@ -34,7 +34,3 @@ class TestCRC32(unittest.TestCase):
 
     def test_module_init(self):
         self.assertTrue(_test_module_init(crc32))
-
-
-if __name__ == "__main__":
-    unittest.main()

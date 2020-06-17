@@ -92,7 +92,3 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(utils.stats_time(123.45), "2m 3s 450ms")
         self.assertEqual(utils.stats_time(0.45678), "456ms")
         self.assertEqual(utils.stats_time(123456789000), "3914y 288d 30m")
-
-
-if __name__ == "__main__":
-    unittest.main()

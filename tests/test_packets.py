@@ -471,7 +471,3 @@ class TestPacketsReference(unittest.TestCase):
             b"\x00\x00\x33\x38\x00\x08\x00\x01\x00\x00\x00\x00\xb0\x02"
         )
         self.assertEqual(packet.dump(), expected)
-
-
-if __name__ == "__main__":
-    unittest.main()

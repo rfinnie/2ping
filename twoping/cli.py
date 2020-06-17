@@ -1662,7 +1662,10 @@ class TwoPing:
                 return
 
 
-def main(argv):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
     args = parse_args(argv)
     t = TwoPing(args)
 

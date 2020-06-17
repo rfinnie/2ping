@@ -7,7 +7,3 @@ class TestPython(unittest.TestCase):
         val1 = time.monotonic()
         val2 = time.monotonic()
         self.assertGreaterEqual(val2, val1)
-
-
-if __name__ == "__main__":
-    unittest.main()

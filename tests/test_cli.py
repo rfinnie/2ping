@@ -175,7 +175,3 @@ class TestCLILoopback(TestCLI):
 
     def test_loopback_pairs(self):
         self._client(["--loopback-pairs=3"], pairs=3)
-
-
-if __name__ == "__main__":
-    unittest.main()
