@@ -161,8 +161,6 @@ class TwoPing:
         self.fake_time_generation = random.randint(0, 65535)
         self.isatty = sys.stdout.isatty()
 
-        self.log_level_VERBOSE = int((logging.INFO + logging.DEBUG) / 2)
-        logging.addLevelName(self.log_level_VERBOSE, "VERBOSE")
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
 
@@ -198,9 +196,6 @@ class TwoPing:
                     raise
 
         self.is_reload = False
-
-    def verbose(self, msg):
-        self.logger.log(self.log_level_VERBOSE, msg)
 
     def print_out(self, *args, **kwargs):
         print(*args, **kwargs)
@@ -275,7 +270,8 @@ class TwoPing:
         # Load/parse the packet.
         packet_in = packets.Packet()
         packet_in.load(data)
-        self.verbose("RECV: {}".format(repr(packet_in)))
+        if self.args.verbose:
+            self.logger.info("RECV: {}".format(packet_in))
 
         # Decrypt packet if needed.
         if self.args.encrypt:
@@ -348,7 +344,8 @@ class TwoPing:
             peer_state.encrypted_session_ivs[
                 encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].iv
             ] = (time_begin,)
-            self.verbose("DECR: {}".format(repr(packet_in)))
+            if self.args.verbose:
+                self.logger.info("DECR: {}".format(packet_in))
 
         # Verify HMAC if required.
         if self.args.auth:
@@ -641,12 +638,13 @@ class TwoPing:
                     if courtesy_message_id_int in peer_state.courtesy_messages:
                         del peer_state.courtesy_messages[courtesy_message_id_int]
 
-            self.verbose(
-                "SEND{}: {}".format(
-                    (" (encrypted)" if self.args.encrypt else ""),
-                    repr(packet_out_examine),
+            if self.args.verbose:
+                self.logger.info(
+                    "SEND{}: {}".format(
+                        (" (encrypted)" if self.args.encrypt else ""),
+                        packet_out_examine,
+                    )
                 )
-            )
 
         if sock_class.next_send and (packets.OpcodeInReplyTo.id in packet_in.opcodes):
             self.schedule_next_send(sock_class, reply_received=True)
@@ -1133,13 +1131,10 @@ class TwoPing:
         )
         packet_out_examine = packets.Packet()
         packet_out_examine.load(dump_out)
-        if self.args.quiet or self.args.flood:
-            pass
-        else:
-            self.verbose(
+        if self.args.verbose:
+            self.logger.info(
                 "SEND{}: {}".format(
-                    (" (encrypted)" if self.args.encrypt else ""),
-                    repr(packet_out_examine),
+                    (" (encrypted)" if self.args.encrypt else ""), packet_out_examine
                 )
             )
 
@@ -1671,8 +1666,6 @@ def main(argv):
 
     if t.args.debug:
         log_level = logging.DEBUG
-    elif t.args.verbose:
-        log_level = t.log_level_VERBOSE
     else:
         log_level = logging.INFO
     logging.basicConfig(format="%(message)s", stream=sys.stdout, level=log_level)
