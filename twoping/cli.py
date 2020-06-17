@@ -67,7 +67,12 @@ class SocketClass:
             self.address = None
 
         # Functional tags applied to the SocketClass
-        self.tags = []
+        self.is_client = False
+        self.is_listener = False
+        self.is_loopback = False
+        self.is_inet = False
+        self.is_systemd = False
+
         # Used during client mode for the host tuple to send UDP packets to.
         self.client_host = None
         # (family, type, proto, canonname, sockaddr) of the bound socket
@@ -104,8 +109,9 @@ class SocketClass:
             attrs.append("bind {}".format(self.bind_addrinfo))
         if self.client_host:
             attrs.append("client {}".format(self.client_host))
-        if self.tags:
-            attrs.append("tags {}".format(self.tags))
+        for tag in ("client", "listener", "inet", "loopback", "systemd"):
+            if getattr(self, "is_{}".format(tag)):
+                attrs.append(tag)
         if self.closed:
             attrs.append("closed")
         return "<SocketClass: {}>".format(", ".join(attrs))
@@ -759,9 +765,7 @@ class TwoPing:
 
         # If we've done this before, don't re-attempt
         systemd_sock_classes = [
-            sock_class
-            for sock_class in self.sock_classes
-            if "systemd" in sock_class.tags
+            sock_class for sock_class in self.sock_classes if sock_class.is_systemd
         ]
         if systemd_sock_classes:
             return systemd_sock_classes
@@ -777,8 +781,8 @@ class TwoPing:
                     continue
                 sock = socket.fromfd(fd, family, socket.SOCK_DGRAM)
                 sock_class = SocketClass(sock)
-                sock_class.tags.append("systemd")
-                sock_class.tags.append("listener")
+                sock_class.is_systemd = True
+                sock_class.is_listener = True
                 sock_classes.append(sock_class)
                 self.sock_classes.append(sock_class)
                 self.poller.register(sock_class, selectors.EVENT_READ)
@@ -823,7 +827,7 @@ class TwoPing:
             sock_class = SocketClass(sock)
             if tags is not None:
                 for tag in tags:
-                    sock_class.tags.append(tag)
+                    setattr(sock_class, "is_{}".format(tag), True)
             sock_class.bind_addrinfo = addrinfo
             sock_classes.append(sock_class)
             self.sock_classes.append(sock_class)
@@ -933,7 +937,7 @@ class TwoPing:
         if [
             sock_class
             for sock_class in self.sock_classes_open
-            if "loopback" in sock_class.tags and "client" in sock_class.tags
+            if sock_class.is_loopback and sock_class.is_client
         ]:
             return
 
@@ -942,16 +946,16 @@ class TwoPing:
                 socket.AF_UNIX, socket.SOCK_DGRAM
             )
             sock_class_client = SocketClass(sock_client)
-            sock_class_client.tags.append("loopback")
-            sock_class_client.tags.append("client")
+            sock_class_client.is_loopback = True
+            sock_class_client.is_client = True
             sock_class_client.next_send = self.time_start
             self.poller.register(sock_class_client, selectors.EVENT_READ)
             self.sock_classes.append(sock_class_client)
             self.logger.debug("Opened socket: {}".format(sock_class_client))
 
             sock_class_listener = SocketClass(sock_listener)
-            sock_class_listener.tags.append("loopback")
-            sock_class_listener.tags.append("listener")
+            sock_class_listener.is_loopback = True
+            sock_class_listener.is_listener = True
             self.poller.register(sock_class_listener, selectors.EVENT_READ)
             self.sock_classes.append(sock_class_listener)
             self.logger.debug("Opened socket: {}".format(sock_class_listener))
@@ -959,9 +963,7 @@ class TwoPing:
     def setup_sockets_listener(self):
         # Do not set up listener sockets if systemd sockets exist.
         if [
-            sock_class
-            for sock_class in self.sock_classes_open
-            if "systemd" in sock_class.tags
+            sock_class for sock_class in self.sock_classes_open if sock_class.is_systemd
         ]:
             return
 
@@ -978,7 +980,7 @@ class TwoPing:
         listener_sock_classes = [
             sock_class
             for sock_class in self.sock_classes_open
-            if "inet" in sock_class.tags and "listener" in sock_class.tags
+            if sock_class.is_inet and sock_class.is_listener
         ]
         to_close = []
         for sock_class in listener_sock_classes:
@@ -1017,7 +1019,7 @@ class TwoPing:
         if [
             sock_class
             for sock_class in self.sock_classes_open
-            if "inet" in sock_class.tags and "client" in sock_class.tags
+            if sock_class.is_inet and sock_class.is_client
         ]:
             return
 
@@ -1159,9 +1161,7 @@ class TwoPing:
 
     def get_nagios_stats(self):
         sock_class = [
-            sock_class
-            for sock_class in self.sock_classes
-            if "client" in sock_class.tags
+            sock_class for sock_class in self.sock_classes if sock_class.is_client
         ][0]
 
         pings_lost = sock_class.pings_transmitted - sock_class.pings_received
@@ -1635,7 +1635,7 @@ class TwoPing:
                     [
                         sock_class
                         for sock_class in self.sock_classes_active
-                        if "client" in sock_class.tags
+                        if sock_class.is_client
                     ]
                 )
                 == 0
@@ -1644,7 +1644,7 @@ class TwoPing:
                 for sock_class in [
                     sock_class
                     for sock_class in self.sock_classes_active
-                    if "listener" in sock_class.tags
+                    if sock_class.is_listener
                 ]:
                     self.logger.debug(
                         "loop (no_3way): Setting shutdown time to now on {}".format(

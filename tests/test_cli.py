@@ -55,7 +55,7 @@ class TestCLI(unittest.TestCase):
 
         self.assertEqual(len(p.sock_classes), (pairs * 2))
         client_sock_classes = [
-            sock_class for sock_class in p.sock_classes if "client" in sock_class.tags
+            sock_class for sock_class in p.sock_classes if sock_class.is_client
         ]
         self.assertEqual(len(client_sock_classes), pairs)
         sock_class = client_sock_classes[0]
