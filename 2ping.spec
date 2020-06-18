@@ -7,6 +7,7 @@ URL:            https://www.finnie.org/software/2ping
 Source0:        https://www.finnie.org/software/%{name}/%{name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildRequires:  python3-devel
+BuildRequires:  python3-pytest
 BuildRequires:  python3-setuptools
 
 %description
@@ -27,7 +28,7 @@ install -Dp -m 0644 doc/2ping.1 %{buildroot}/%{_mandir}/man1/2ping.1
 install -Dp -m 0644 doc/2ping.1 %{buildroot}/%{_mandir}/man1/2ping6.1
 
 %check
-%{__python3} setup.py test
+%{__python3} -mpytest
 
 %post
 %systemd_post 2ping.service
