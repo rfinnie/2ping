@@ -19,5 +19,5 @@
 import sys
 
 
-__version__ = "4.4.1"
+__version__ = "4.5"
 assert sys.version_info > (3, 5)
