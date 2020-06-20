@@ -1,5 +1,5 @@
 include COPYING
-include ChangeLog
+include ChangeLog.md
 include Makefile
 include *.md
 include doc/Makefile

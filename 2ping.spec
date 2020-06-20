@@ -41,7 +41,7 @@ install -Dp -m 0644 doc/2ping.1 %{buildroot}/%{_mandir}/man1/2ping6.1
 %systemd_postun 2ping.service
 
 %files
-%doc ChangeLog README.md
+%doc ChangeLog.md README.md
 %license COPYING
 %{python3_sitelib}/*
 %{_bindir}/%{name}
