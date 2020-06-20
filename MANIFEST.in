@@ -1,4 +1,4 @@
-include COPYING
+include COPYING.md
 include ChangeLog.md
 include Makefile
 include *.md

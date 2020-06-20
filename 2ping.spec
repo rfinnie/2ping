@@ -42,7 +42,7 @@ install -Dp -m 0644 doc/2ping.1 %{buildroot}/%{_mandir}/man1/2ping6.1
 
 %files
 %doc ChangeLog.md README.md
-%license COPYING
+%license COPYING.md
 %{python3_sitelib}/*
 %{_bindir}/%{name}
 %{_bindir}/%{name}6
