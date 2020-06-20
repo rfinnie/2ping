@@ -134,10 +134,8 @@
 # 2ping 3.0.0 (2015-10-25)
 
 - Total rewrite from Perl to Python.
-
 - Multiple hostnames/addresses may be specified in client mode, and will
   be pinged in parallel.
-
 - Improved IPv6 support:
     - In most cases, specifying -4 or -6 is unnecessary. You should be
       able to specify IPv4 and/or IPv6 addresses and it will "just
