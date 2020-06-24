@@ -69,10 +69,6 @@ class TestCLI(unittest.TestCase):
         if p.args.count:
             self.assertEqual(sock_class.pings_transmitted, p.args.count)
             self.assertEqual(sock_class.pings_received, p.args.count)
-        else:
-            self.assertGreaterEqual(
-                sock_class.pings_received / sock_class.pings_transmitted, 0.99
-            )
 
         return sock_class
 
