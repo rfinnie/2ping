@@ -3,24 +3,25 @@
 _2ping()
 {
     local cur prev words cword
-    _init_completion -n = || return
+    if declare -F _init_completion >/dev/null 2>&1; then
+        _init_completion
+    elif declare -F _get_comp_words_by_ref >/dev/null 2>&1; then
+        COMPREPLY=()
+        _get_comp_words_by_ref cur prev words cword
+    else
+        return
+    fi
 
-    local ipvx
-
-    case $prev in
-        -4|-6)
-            ipvx=$prev
-            ;;
-    esac
-
-    if [[ $cur == -* ]]; then
+    if [[ $cur == -* ]] && declare -F _parse_usage >/dev/null 2>&1; then
         COMPREPLY=( $( compgen -W '$( _parse_usage "$1" )' -- "$cur" ) )
         return
     fi
 
-    [[ $1 == *6 ]] && ipvx=-6
-    _known_hosts_real $ipvx -- "$cur"
-} &&
+    if declare -F _known_hosts_real >/dev/null 2>&1; then
+        _known_hosts_real -- "$cur"
+    fi
+}
+
 complete -F _2ping 2ping 2ping6
 
 # ex: filetype=sh
