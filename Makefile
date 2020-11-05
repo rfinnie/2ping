@@ -18,7 +18,7 @@ black-check:
 	$(PYTHON) -mtox -e black
 
 black:
-	$(PYTHON) -mblack $(CURDIR)
+	$(PYTHON) -mtox -e black-reformat
 
 install: build
 	$(PYTHON) setup.py install

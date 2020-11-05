@@ -188,7 +188,7 @@ class TestPacketsOpcodes(unittest.TestCase):
 
 
 class TestPacketsReference(unittest.TestCase):
-    """ Test protocol reference packets
+    """Test protocol reference packets
 
     These tests replicate the reference packets included as examples in
     the 2ping protocol specification.
