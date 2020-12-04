@@ -18,7 +18,7 @@ class TestCLI(unittest.TestCase):
         self.logger = logging.getLogger()
         self.logger.level = logging.DEBUG
 
-    def _client(self, test_flags=None, test_positionals=None, test_stats=True, pairs=1):
+    def _client(self, test_flags=(), test_positionals=(), test_stats=True, pairs=1):
         if self.port is None:
             port = -1
         else:
@@ -27,12 +27,9 @@ class TestCLI(unittest.TestCase):
         flag_args = ["--debug"]
         if self.class_args is not None:
             flag_args += self.class_args
-        if test_flags is not None:
-            flag_args += test_flags
+        flag_args += test_flags
 
-        positional_args = []
-        if test_positionals is not None:
-            positional_args += test_positionals
+        positional_args = list(test_positionals)
 
         if "--loopback" not in flag_args:
             flag_args += ["--listen", "--port={}".format(port)]

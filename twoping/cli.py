@@ -738,8 +738,8 @@ class TwoPing:
                 )
             )
 
-    def close_socks(self, sock_classes=None):
-        if sock_classes is None:
+    def close_socks(self, sock_classes=()):
+        if sock_classes == ():
             sock_classes = self.sock_classes_open
         for sock_class in sock_classes:
             self.logger.debug("Closing socket: {}".format(sock_class))
