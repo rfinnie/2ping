@@ -12,7 +12,7 @@ It uses 3-way pings (akin to TCP SYN, SYN/ACK, ACK) and after-the-fact state com
 
 ## Installation
 
-2ping requires Python 3 version 3.5 or higher.
+2ping requires Python 3 version 3.6 or higher.
 
 To install:
 

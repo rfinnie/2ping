@@ -10,10 +10,10 @@ jobs:
         - ubuntu-latest
         - windows-latest
         python-version:
-        - "3.5"
         - "3.6"
         - "3.7"
         - "3.8"
+        - "3.9"
     steps:
     - uses: actions/checkout@v2
     - name: Python ${{ matrix.python-version }}
@@ -26,13 +26,6 @@ jobs:
     - name: tox
       run: |
         python -mtox
-      if: ${{ matrix.python-version != '3.5' }}
-    - name: tox (Python 3.5)
-      run: |
-        python -mtox
-      env:
-        TOX_SKIP_ENV: black
-      if: ${{ matrix.python-version == '3.5' }}
     - name: Upload sdist zip
       uses: actions/upload-artifact@v2
       with:

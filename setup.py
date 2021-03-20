@@ -7,7 +7,7 @@ from setuptools import setup
 
 
 __version__ = "4.5"
-assert sys.version_info > (3, 5)
+assert sys.version_info > (3, 6)
 
 
 def read(filename):
