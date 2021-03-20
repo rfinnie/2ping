@@ -42,7 +42,7 @@ Where "$LISTENER" is the name or IP address of the listener.
 
 2ping - A bi-directional ping utility
 
-Copyright (C) 2010-2020 [Ryan Finnie](https://www.finnie.org/)
+Copyright (C) 2010-2021 [Ryan Finnie](https://www.finnie.org/)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
