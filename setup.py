@@ -6,7 +6,7 @@ import sys
 from setuptools import setup
 
 
-__version__ = "4.5"
+__version__ = "4.5.1"
 assert sys.version_info > (3, 6)
 
 

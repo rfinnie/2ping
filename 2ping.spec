@@ -1,5 +1,5 @@
 Name:           2ping
-Version:        4.5
+Version:        4.5.1
 Release:        1%{?dist}
 Summary:        Bi-directional ping utility
 License:        GPLv2+

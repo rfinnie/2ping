@@ -1,3 +1,11 @@
+# 2ping 4.5.1 (2021-03-20)
+
+- 2ping.bash_completion: Make more resilient to failure / missing
+  features.
+- 2ping.spec: Add missing BuildRequires: systemd.
+- Minimum Python version changed from 3.5 to 3.6.
+- Minor no-op code and distribution updates.
+
 # 2ping 4.5 (2020-06-18)
 
 - Added PyCryptodome support (recommended over PyCrypto, though the
