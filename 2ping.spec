@@ -2,7 +2,7 @@ Name:           2ping
 Version:        4.5.1
 Release:        1%{?dist}
 Summary:        Bi-directional ping utility
-License:        GPLv2+
+License:        MPLv2.0
 URL:            https://www.finnie.org/software/2ping
 Source0:        https://www.finnie.org/software/%{name}/%{name}-%{version}.tar.gz
 BuildArch:      noarch
