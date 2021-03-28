@@ -6,19 +6,19 @@ build:
 	$(PYTHON) setup.py build
 
 lint:
-	$(PYTHON) -mtox -e flake8
+	$(PYTHON) -mtox -e py-flake8
 
 test:
 	$(PYTHON) -mtox
 
 test-quick:
-	$(PYTHON) -mtox -e black,flake8,pytest-quick
+	$(PYTHON) -mtox -e py-black,py-flake8,py-pytest-quick
 
 black-check:
-	$(PYTHON) -mtox -e black
+	$(PYTHON) -mtox -e py-black
 
 black:
-	$(PYTHON) -mtox -e black-reformat
+	$(PYTHON) -mtox -e py-black-reformat
 
 install: build
 	$(PYTHON) setup.py install
