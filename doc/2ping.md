@@ -1,5 +1,5 @@
 % 2PING(1) | 2ping
-% Ryan Finnie
+% Ryan Finnie \<ryan@finnie.org\>
 # NAME
 
 2ping - A bi-directional ping utility
@@ -230,7 +230,3 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 # BUGS
 
 None known, many assumed.
-
-# AUTHOR
-
-`2ping` was written by Ryan Finnie \<ryan@finnie.org\>.
