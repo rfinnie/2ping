@@ -158,6 +158,13 @@ class TwoPing:
         self.sock_classes = []
         self.poller = selectors.DefaultSelector()
 
+        self.auth_digest_index = {
+            v[2].lower(): k for k, v in packets.OpcodeHMAC().digest_map.items()
+        }[self.args.auth_digest]
+        self.encrypt_method_index = {
+            v[0].lower(): k for k, v in packets.OpcodeEncrypted().method_map.items()
+        }[self.args.encrypt_method]
+
         # Scheduled events
         self.next_cleanup = now + 60.0
         self.next_stats = 0
@@ -276,7 +283,7 @@ class TwoPing:
                 return
             if (
                 packet_in.opcodes[packets.OpcodeEncrypted.id].method_index
-                != self.args.encrypt_method_index
+                != self.encrypt_method_index
             ):
                 sock_class.errors_received += 1
                 self.logger.error(
@@ -284,7 +291,7 @@ class TwoPing:
                         "Encryption method mismatch from {address} (expected {expected}, got {got})"
                     ).format(
                         address=print_address,
-                        expected=self.args.encrypt_method_index,
+                        expected=self.encrypt_method_index,
                         got=packet_in.opcodes[packets.OpcodeEncrypted.id].method_index,
                     )
                 )
@@ -346,7 +353,7 @@ class TwoPing:
                 return
             if (
                 packet_in.opcodes[packets.OpcodeHMAC.id].digest_index
-                != self.args.auth_digest_index
+                != self.auth_digest_index
             ):
                 sock_class.errors_received += 1
                 self.logger.error(
@@ -354,7 +361,7 @@ class TwoPing:
                         "Auth digest type mismatch from {address} (expected {expected}, got {got})"
                     ).format(
                         address=print_address,
-                        expected=self.args.auth_digest_index,
+                        expected=self.auth_digest_index,
                         got=packet_in.opcodes[packets.OpcodeHMAC.id].digest_index,
                     )
                 )
@@ -577,7 +584,7 @@ class TwoPing:
                 ] = packets.OpcodeEncrypted()
                 encrypted_packet.opcodes[
                     packets.OpcodeEncrypted.id
-                ].method_index = self.args.encrypt_method_index
+                ].method_index = self.encrypt_method_index
                 encrypted_packet.opcodes[
                     packets.OpcodeEncrypted.id
                 ].session = encrypted_packet_in.opcodes[
@@ -630,8 +637,8 @@ class TwoPing:
     def sock_sendto(self, sock_class, data, address=None):
         sock = sock_class.sock
         # Simulate random packet loss.
-        if self.args.packet_loss_out and (
-            random.random() < (self.args.packet_loss_out / 100.0)
+        if self.args.packet_loss and (
+            random.random() < (self.args.packet_loss.out_pct / 100.0)
         ):
             return
         # Send the packet.
@@ -652,8 +659,8 @@ class TwoPing:
             return
 
         # Simulate random packet loss.
-        if self.args.packet_loss_in and (
-            random.random() < (self.args.packet_loss_in / 100.0)
+        if self.args.packet_loss and (
+            random.random() < (self.args.packet_loss.in_pct / 100.0)
         ):
             return
 
@@ -1085,7 +1092,7 @@ class TwoPing:
             ] = packets.OpcodeEncrypted()
             encrypted_packet.opcodes[
                 packets.OpcodeEncrypted.id
-            ].method_index = self.args.encrypt_method_index
+            ].method_index = self.encrypt_method_index
             encrypted_packet.opcodes[
                 packets.OpcodeEncrypted.id
             ].session = sock_class.session
@@ -1137,6 +1144,7 @@ class TwoPing:
         self.is_reload = True
 
     def get_nagios_stats(self):
+        n = self.args.nagios
         sock_class = [
             sock_class for sock_class in self.sock_classes if sock_class.is_client
         ][0]
@@ -1145,14 +1153,10 @@ class TwoPing:
         lost_pct = div0(pings_lost, sock_class.pings_transmitted) * 100
         rtt_avg = div0(float(sock_class.rtt_total), sock_class.rtt_count)
 
-        if (lost_pct >= self.args.nagios_crit_loss) or (
-            rtt_avg >= self.args.nagios_crit_rta
-        ):
+        if (lost_pct >= n.crit_loss) or (rtt_avg >= n.crit_rta):
             nagios_result = 2
             nagios_result_text = "CRITICAL"
-        elif (lost_pct >= self.args.nagios_warn_loss) or (
-            rtt_avg >= self.args.nagios_warn_rta
-        ):
+        elif (lost_pct >= n.warn_loss) or (rtt_avg >= n.warn_rta):
             nagios_result = 1
             nagios_result_text = "WARNING"
         else:
@@ -1166,10 +1170,10 @@ class TwoPing:
         ).format(
             avg=rtt_avg,
             loss=int(lost_pct),
-            avgwarn=self.args.nagios_warn_rta,
-            avgcrit=self.args.nagios_crit_rta,
-            losswarn=int(self.args.nagios_warn_loss),
-            losscrit=int(self.args.nagios_crit_loss),
+            avgwarn=n.warn_rta,
+            avgcrit=n.crit_rta,
+            losswarn=int(n.warn_loss),
+            losscrit=int(n.crit_loss),
         )
         return nagios_result, nagios_stats_text
 
@@ -1431,8 +1435,8 @@ class TwoPing:
             )
             packet_out.opcodes[
                 packets.OpcodeHMAC.id
-            ].digest_index = self.args.auth_digest_index
-        packet_out.padding_pattern = self.args.pattern_bytes
+            ].digest_index = self.auth_digest_index
+        packet_out.padding_pattern = self.args.pattern
         packet_out.min_length = self.args.min_packet_size
         packet_out.max_length = self.args.max_packet_size
         if self.args.encrypt:

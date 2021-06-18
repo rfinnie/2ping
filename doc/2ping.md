@@ -65,7 +65,7 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 :   If specified, `2ping` sends that many packets not waiting for reply.
 
 \-\-pattern=*hex_bytes*, -p *hex_bytes*
-:   You may specify up to 16 "pad" bytes to fill out the packets you send.
+:   You may specify a number of hex bytes to fill out the packets you send.
     This is useful for diagnosing data-dependent problems in a network.
     For example, *\-\-pattern=ff* will cause the sent packet pad area to be filled with all ones.
 

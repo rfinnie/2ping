@@ -6,9 +6,30 @@ import argparse
 import os
 import socket
 import sys
+import types
 
-from . import __version__
+from . import __version__, packets
 from .utils import _, AES
+
+
+def _type_nagios(string):
+    (warn_rta, warn_loss, crit_rta, crit_loss) = string.split(",", 3)
+    if (warn_loss[-1:] != "%") or (crit_loss[-1:] != "%"):
+        raise argparse.ArgumentTypeError(_("Invalid limits"))
+    return types.SimpleNamespace(
+        warn_rta=float(warn_rta),
+        warn_loss=float(warn_loss[:-1]),
+        crit_rta=float(crit_rta),
+        crit_loss=float(crit_loss[:-1]),
+    )
+
+
+def _type_packet_loss(string):
+    if ":" in string:
+        (v_out, v_in) = string.split(":", 1)
+    else:
+        v_out = v_in = string
+    return types.SimpleNamespace(out_pct=float(v_out), in_pct=float(v_in))
 
 
 def parse_args(argv=None):
@@ -39,23 +60,25 @@ def parse_args(argv=None):
     )
 
     # ping-compatible options
-    parser.add_argument(
+    ping_group = parser.add_argument_group(title=_("ping-compatible options"))
+
+    ping_group.add_argument(
         "--audible", "-a", dest="audible", action="store_true", help=_("audible ping")
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--adaptive",
         "-A",
         dest="adaptive",
         action="store_true",
         help=_("adaptive RTT ping"),
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--count", "-c", dest="count", type=int, help=_("number of pings to send")
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--flood", "-f", dest="flood", action="store_true", help=_("flood mode")
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--interval",
         "-i",
         dest="interval",
@@ -64,7 +87,7 @@ def parse_args(argv=None):
         help=_("seconds between pings"),
         metavar="SECONDS",
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--interface-address",
         "-I",
         dest="interface_address",
@@ -74,7 +97,7 @@ def parse_args(argv=None):
         help=_("interface bind address"),
         metavar="ADDRESS",
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--preload",
         "-l",
         dest="preload",
@@ -83,18 +106,19 @@ def parse_args(argv=None):
         help=_("number of pings to send at start"),
         metavar="COUNT",
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--pattern",
         "-p",
         dest="pattern",
-        type=str,
+        type=lambda string: bytes.fromhex(string),
+        default="00",
         help=_("hex pattern for padding"),
         metavar="HEX_BYTES",
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--quiet", "-q", dest="quiet", action="store_true", help=_("quiet mode")
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--packetsize-compat",
         "-s",
         dest="packetsize_compat",
@@ -102,10 +126,10 @@ def parse_args(argv=None):
         help=_("packet size (ping compatible)"),
         metavar="BYTES",
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--verbose", "-v", dest="verbose", action="store_true", help=_("verbose mode")
     )
-    parser.add_argument(
+    ping_group.add_argument(
         "--deadline",
         "-w",
         dest="deadline",
@@ -115,122 +139,127 @@ def parse_args(argv=None):
     )
 
     # 2ping options
-    parser.add_argument("--all-interfaces", action="store_true", help=_("deprecated"))
-    parser.add_argument(
+    twoping_group = parser.add_argument_group(title=_("2ping-specific options"))
+
+    twoping_group.add_argument(
         "--auth", type=str, help=_("HMAC authentication key"), metavar="KEY"
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--auth-digest",
         type=str,
         default="hmac-md5",
-        choices=["hmac-md5", "hmac-sha1", "hmac-sha256", "hmac-crc32", "hmac-sha512"],
+        choices=[x[2].lower() for x in packets.OpcodeHMAC().digest_map.values()],
         help=_("HMAC authentication digest"),
         metavar="DIGEST",
     )
-    parser.add_argument("--debug", action="store_true", help=_("debug mode"))
-    parser.add_argument("--encrypt", type=str, help=_("Encryption key"), metavar="KEY")
-    parser.add_argument(
+    twoping_group.add_argument("--debug", action="store_true", help=_("debug mode"))
+    twoping_group.add_argument(
+        "--encrypt", type=str, help=_("Encryption key"), metavar="KEY"
+    )
+    twoping_group.add_argument(
         "--encrypt-method",
         type=str,
         default="hkdf-aes256-cbc",
-        choices=["hkdf-aes256-cbc"],
+        choices=[x[0].lower() for x in packets.OpcodeEncrypted().method_map.values()],
         help=_("Encryption method"),
         metavar="METHOD",
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--fuzz", type=float, help=_("incoming fuzz percentage"), metavar="PERCENT"
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--inquire-wait",
         type=float,
         default=10.0,
         help=_("maximum time before loss inquiries"),
         metavar="SECONDS",
     )
-    parser.add_argument("--ipv4", "-4", action="store_true", help=_("force IPv4"))
-    parser.add_argument(
+    twoping_group.add_argument(
+        "--ipv4", "-4", action="store_true", help=_("force IPv4")
+    )
+    twoping_group.add_argument(
         "--ipv6", "-6", action="store_true", default=ipv6_default, help=_("force IPv6")
     )
-    parser.add_argument("--listen", action="store_true", help=_("listen mode"))
-    parser.add_argument(
+    twoping_group.add_argument("--listen", action="store_true", help=_("listen mode"))
+    twoping_group.add_argument(
         "--loopback", action="store_true", help=_("UNIX loopback test mode")
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--loopback-pairs",
         type=int,
         default=1,
         help=_("number of loopback pairs to create"),
         metavar="PAIRS",
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--max-packet-size",
         type=int,
         default=512,
         help=_("maximum packet size"),
         metavar="BYTES",
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--min-packet-size",
         type=int,
         default=128,
         help=_("minimum packet size"),
         metavar="BYTES",
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--nagios",
-        type=str,
+        type=_type_nagios,
         help=_("nagios-compatible output"),
         metavar="WRTA,WLOSS%,CRTA,CLOSS%",
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--no-3way", action="store_true", help=_("do not send 3-way pings")
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--no-match-packet-size",
         action="store_true",
         help=_("do not match packet size of peer"),
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--no-send-version",
         action="store_true",
         help=_("do not send program version to peers"),
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--notice", type=str, help=_("arbitrary notice text"), metavar="TEXT"
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--packet-loss",
-        type=str,
+        type=_type_packet_loss,
         help=_("percentage simulated packet loss"),
         metavar="OUT:IN",
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--port", type=str, default="15998", help=_("port to connect / bind to")
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--send-monotonic-clock",
         action="store_true",
         help=_("send monotonic clock to peers"),
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--send-random", type=int, help=_("send random data to peers"), metavar="BYTES"
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--send-time", action="store_true", help=_("send wall clock time to peers")
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--stats", type=float, help=_("print recurring statistics"), metavar="SECONDS"
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--srv", action="store_true", help=_("lookup SRV records in client mode")
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--srv-service",
         type=str,
         default="2ping",
         help=_("service name for SRV lookups"),
     )
-    parser.add_argument(
+    twoping_group.add_argument(
         "--subtract-peer-host-latency",
         action="store_true",
         help=_("subtract peer host latency from RTT calculations, if sent"),
@@ -253,6 +282,9 @@ def parse_args(argv=None):
             help=argparse.SUPPRESS,
         )
 
+    # Deprecated ignored options
+    parser.add_argument("--all-interfaces", action="store_true", help=argparse.SUPPRESS)
+
     args = parser.parse_args(args=argv[1:])
 
     if (not args.listen) and (not args.host) and (not args.loopback):
@@ -264,77 +296,15 @@ def parse_args(argv=None):
         args.quiet = True
         if (not args.count) and (not args.deadline):
             args.count = 5
-        nagios_opts = args.nagios.split(",")
-        if len(nagios_opts) != 4:
-            parser.error(_("Invalid limits"))
-        (
-            args.nagios_warn_rta,
-            args.nagios_warn_loss,
-            args.nagios_crit_rta,
-            args.nagios_crit_loss,
-        ) = nagios_opts
-        if args.nagios_warn_loss[-1:] != "%":
-            parser.error(_("Invalid limits"))
-        if args.nagios_crit_loss[-1:] != "%":
-            parser.error(_("Invalid limits"))
-        try:
-            args.nagios_warn_loss = float(args.nagios_warn_loss[:-1])
-            args.nagios_crit_loss = float(args.nagios_crit_loss[:-1])
-            args.nagios_warn_rta = float(args.nagios_warn_rta)
-            args.nagios_crit_rta = float(args.nagios_crit_rta)
-        except ValueError as e:
-            parser.error(e.message)
     if args.packetsize_compat:
         args.min_packet_size = args.packetsize_compat + 8
     if args.max_packet_size < args.min_packet_size:
         parser.error(_("Maximum packet size must be at least minimum packet size"))
     if args.max_packet_size < 64:
         parser.error(_("Maximum packet size must be at least 64"))
-    args.packet_loss_in = 0
-    args.packet_loss_out = 0
-    if args.packet_loss:
-        if ":" in args.packet_loss:
-            (v_out, v_in) = args.packet_loss.split(":", 1)
-            try:
-                args.packet_loss_out = float(v_out)
-                args.packet_loss_in = float(v_in)
-            except ValueError as e:
-                parser.error(e.message)
-        else:
-            try:
-                args.packet_loss_in = args.packet_loss_out = float(args.packet_loss)
-            except ValueError as e:
-                parser.error(_("Packet loss: {error}").format(error=e.message))
-    if args.pattern:
-        if len(args.pattern) & 1:
-            parser.error(_("Pattern must be full bytes"))
-        if len(args.pattern) > 32:
-            parser.error(_("Pattern must be 16 bytes or less"))
-        args.pattern_bytes = b""
-        for i in range(int(len(args.pattern) / 2)):
-            a = args.pattern[(i * 2) : (i * 2 + 2)]
-            try:
-                b = int(a, 16)
-            except ValueError as e:
-                parser.error(_("Pattern: {error}").format(error=e.message))
-            args.pattern_bytes += bytes([b])
-    else:
-        args.pattern_bytes = b"\x00"
-
-    hmac_id_map = {
-        "hmac-md5": 1,
-        "hmac-sha1": 2,
-        "hmac-sha256": 3,
-        "hmac-crc32": 4,
-        "hmac-sha512": 5,
-    }
-    args.auth_digest_index = hmac_id_map[args.auth_digest]
 
     if args.encrypt and isinstance(AES, ImportError):
         parser.error(_("Crypto module required for encryption"))
-
-    encrypt_id_map = {"hkdf-aes256-cbc": 1}
-    args.encrypt_method_index = encrypt_id_map[args.encrypt_method]
 
     if args.debug:
         args.verbose = True
