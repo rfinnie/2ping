@@ -1263,26 +1263,27 @@ class TwoPing:
                     time=stats_time(time_end - time_start),
                 )
             )
-            self.logger.info(
-                _pl(
-                    (
-                        "{outbound} outbound ping loss ({outboundpct}%), {inbound} inbound ({inboundpct}%), "
-                        "{undetermined} undetermined ({undeterminedpct}%)"
-                    ),
-                    (
-                        "{outbound} outbound ping losses ({outboundpct}%), {inbound} inbound ({inboundpct}%), "
-                        "{undetermined} undetermined ({undeterminedpct}%)"
-                    ),
-                    stats_class.lost_outbound,
-                ).format(
-                    outbound=stats_class.lost_outbound,
-                    outboundpct=int(outbound_pct),
-                    inbound=stats_class.lost_inbound,
-                    inboundpct=int(inbound_pct),
-                    undetermined=lost_undetermined,
-                    undeterminedpct=int(undetermined_pct),
+            if pings_lost > 0:
+                self.logger.info(
+                    _pl(
+                        (
+                            "{outbound} outbound ping loss ({outboundpct}%), {inbound} inbound ({inboundpct}%), "
+                            "{undetermined} undetermined ({undeterminedpct}%)"
+                        ),
+                        (
+                            "{outbound} outbound ping losses ({outboundpct}%), {inbound} inbound ({inboundpct}%), "
+                            "{undetermined} undetermined ({undeterminedpct}%)"
+                        ),
+                        stats_class.lost_outbound,
+                    ).format(
+                        outbound=stats_class.lost_outbound,
+                        outboundpct=int(outbound_pct),
+                        inbound=stats_class.lost_inbound,
+                        inboundpct=int(inbound_pct),
+                        undetermined=lost_undetermined,
+                        undeterminedpct=int(undetermined_pct),
+                    )
                 )
-            )
             self.logger.info(
                 _(
                     "rtt min/avg/ewma/max/mdev = {min:0.03f}/{avg:0.03f}/{ewma:0.03f}/{max:0.03f}/{mdev:0.03f} ms"
@@ -1294,7 +1295,7 @@ class TwoPing:
                     mdev=rtt_mdev,
                 )
             )
-            self.logger.info(
+            self.logger.debug(
                 _pl(
                     "{transmitted} raw packet transmitted, {received} received",
                     "{transmitted} raw packets transmitted, {received} received",
