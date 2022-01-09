@@ -30,7 +30,7 @@ RestrictAddressFamilies=AF_NETLINK AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
-User=nobody
+DynamicUser=yes
 
 [Install]
 WantedBy=multi-user.target
