@@ -148,7 +148,7 @@ class TwoPing:
         now = clock()
         self.args = args
         self.time_start = now
-        self.fake_time_epoch = random.random() * (2 ** 32)
+        self.fake_time_epoch = random.random() * (2**32)
         self.fake_time_generation = random.randint(0, 65535)
         self.isatty = sys.stdout.isatty()
 
@@ -1125,7 +1125,7 @@ class TwoPing:
     def update_rtts(self, sock_class, rtt):
         for c in (sock_class,):
             c.rtt_total += rtt
-            c.rtt_total_sq += rtt ** 2
+            c.rtt_total_sq += rtt**2
             c.rtt_count += 1
             if (rtt < c.rtt_min) or (c.rtt_min == 0):
                 c.rtt_min = rtt

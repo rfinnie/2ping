@@ -124,7 +124,7 @@ def fuzz_bytearray(data, percent, start=0, end=None):
         xor_byte = 0
         for i in range(8):
             if random.random() < (percent / 100.0):
-                xor_byte = xor_byte + (2 ** i)
+                xor_byte = xor_byte + (2**i)
         data[p] = data[p] ^ xor_byte
 
 

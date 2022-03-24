@@ -559,7 +559,7 @@ class Packet:
             OpcodeEncrypted,
             OpcodeExtended,
         )
-        for flag in (2 ** x for x in range(16)):
+        for flag in (2**x for x in range(16)):
             if not opcode_flags & flag:
                 continue
             opcode_data_length = nunpack(data[pos : pos + 2])
