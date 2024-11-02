@@ -104,9 +104,9 @@ packet.message_id = b"\x00\x00\x00\x00\xb0\x01"
 packet.opcodes[packets.OpcodeReplyRequested.id] = packets.OpcodeReplyRequested()
 packet.opcodes[packets.OpcodeInReplyTo.id] = packets.OpcodeInReplyTo()
 packet.opcodes[packets.OpcodeInReplyTo.id].message_id = b"\x00\x00\x00\x00\xa0\x02"
-packet.opcodes[
-    packets.OpcodeInvestigationUnseen.id
-] = packets.OpcodeInvestigationUnseen()
+packet.opcodes[packets.OpcodeInvestigationUnseen.id] = (
+    packets.OpcodeInvestigationUnseen()
+)
 packet.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids.append(
     b"\x00\x00\x00\x00\xa0\x01"
 )
@@ -168,9 +168,9 @@ packet.opcodes[packets.OpcodeInvestigationSeen.id] = packets.OpcodeInvestigation
 packet.opcodes[packets.OpcodeInvestigationSeen.id].message_ids.append(
     b"\x00\x00\x00\x00\xa0\x01"
 )
-packet.opcodes[
-    packets.OpcodeInvestigationUnseen.id
-] = packets.OpcodeInvestigationUnseen()
+packet.opcodes[packets.OpcodeInvestigationUnseen.id] = (
+    packets.OpcodeInvestigationUnseen()
+)
 packet.opcodes[packets.OpcodeInvestigationUnseen.id].message_ids.append(
     b"\x00\x00\x00\x00\xa0\x02"
 )

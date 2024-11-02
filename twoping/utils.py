@@ -168,7 +168,7 @@ def stats_time(seconds):
     )
     out = ""
     rest = int(seconds * 1000)
-    for (div, suffix) in conversion:
+    for div, suffix in conversion:
         if div is None:
             if out:
                 out = " " + out
