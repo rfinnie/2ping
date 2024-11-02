@@ -826,7 +826,10 @@ class TwoPing:
 
         addrs = set()
         for iface in netifaces.interfaces():
-            iface_addrs = netifaces.ifaddresses(iface)
+            try:
+                iface_addrs = netifaces.ifaddresses(iface)
+            except ValueError:
+                continue
             if (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)) and (
                 netifaces.AF_INET in iface_addrs
             ):
