@@ -492,9 +492,9 @@ class TwoPing:
             # Basic packet configuration.
             packet_out = self.base_packet()
             packet_out.opcodes[packets.OpcodeInReplyTo.id] = packets.OpcodeInReplyTo()
-            packet_out.opcodes[
-                packets.OpcodeInReplyTo.id
-            ].message_id = packet_in.message_id
+            packet_out.opcodes[packets.OpcodeInReplyTo.id].message_id = (
+                packet_in.message_id
+            )
 
             # If we are matching packet sizes of the peer, adjust the minimum if it falls between min_packet_size
             # and max_packet_size.
@@ -507,9 +507,9 @@ class TwoPing:
 
             # 3-way pings already have the first roundtrip calculated.
             if calculated_rtt is not None:
-                packet_out.opcodes[
-                    packets.OpcodeRTTEnclosed.id
-                ] = packets.OpcodeRTTEnclosed()
+                packet_out.opcodes[packets.OpcodeRTTEnclosed.id] = (
+                    packets.OpcodeRTTEnclosed()
+                )
                 packet_out.opcodes[packets.OpcodeRTTEnclosed.id].rtt_us = int(
                     calculated_rtt * 1000
                 )
@@ -521,9 +521,9 @@ class TwoPing:
                 ].message_ids:
                     if message_id in peer_state.seen_messages:
                         if packets.OpcodeInvestigationSeen.id not in packet_out.opcodes:
-                            packet_out.opcodes[
-                                packets.OpcodeInvestigationSeen.id
-                            ] = packets.OpcodeInvestigationSeen()
+                            packet_out.opcodes[packets.OpcodeInvestigationSeen.id] = (
+                                packets.OpcodeInvestigationSeen()
+                            )
                         packet_out.opcodes[
                             packets.OpcodeInvestigationSeen.id
                         ].message_ids.append(message_id)
@@ -532,9 +532,9 @@ class TwoPing:
                             packets.OpcodeInvestigationUnseen.id
                             not in packet_out.opcodes
                         ):
-                            packet_out.opcodes[
-                                packets.OpcodeInvestigationUnseen.id
-                            ] = packets.OpcodeInvestigationUnseen()
+                            packet_out.opcodes[packets.OpcodeInvestigationUnseen.id] = (
+                                packets.OpcodeInvestigationUnseen()
+                            )
                         packet_out.opcodes[
                             packets.OpcodeInvestigationUnseen.id
                         ].message_ids.append(message_id)
@@ -544,18 +544,18 @@ class TwoPing:
             if (packets.OpcodeInReplyTo.id not in packet_in.opcodes) and (
                 not self.args.no_3way
             ):
-                packet_out.opcodes[
-                    packets.OpcodeReplyRequested.id
-                ] = packets.OpcodeReplyRequested()
+                packet_out.opcodes[packets.OpcodeReplyRequested.id] = (
+                    packets.OpcodeReplyRequested()
+                )
 
             # Send any investigations we would like to know about.
             self.start_investigations(peer_state, packet_out)
 
             # Any courtesy expirations we have waiting should be sent.
             if len(peer_state.courtesy_messages) > 0:
-                packet_out.opcodes[
-                    packets.OpcodeCourtesyExpiration.id
-                ] = packets.OpcodeCourtesyExpiration()
+                packet_out.opcodes[packets.OpcodeCourtesyExpiration.id] = (
+                    packets.OpcodeCourtesyExpiration()
+                )
                 for (
                     courtesy_time,
                     courtesy_message_id,
@@ -565,9 +565,9 @@ class TwoPing:
                     ].message_ids.append(courtesy_message_id)
 
             # Calculate the host latency as late as possible.
-            packet_out.opcodes[
-                packets.OpcodeHostLatency.id
-            ] = packets.OpcodeHostLatency()
+            packet_out.opcodes[packets.OpcodeHostLatency.id] = (
+                packets.OpcodeHostLatency()
+            )
             time_send = clock()
             packet_out.opcodes[packets.OpcodeHostLatency.id].delay_us = int(
                 (time_send - time_begin) * 1000000
@@ -579,17 +579,15 @@ class TwoPing:
             # If enabled, encrypt the packet and wrap it in a stub packet.
             if self.args.encrypt:
                 encrypted_packet = packets.Packet()
-                encrypted_packet.opcodes[
-                    packets.OpcodeEncrypted.id
-                ] = packets.OpcodeEncrypted()
-                encrypted_packet.opcodes[
-                    packets.OpcodeEncrypted.id
-                ].method_index = self.encrypt_method_index
-                encrypted_packet.opcodes[
-                    packets.OpcodeEncrypted.id
-                ].session = encrypted_packet_in.opcodes[
-                    packets.OpcodeEncrypted.id
-                ].session
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = (
+                    packets.OpcodeEncrypted()
+                )
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = (
+                    self.encrypt_method_index
+                )
+                encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = (
+                    encrypted_packet_in.opcodes[packets.OpcodeEncrypted.id].session
+                )
                 encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(
                     dump_out, self.args.encrypt.encode("UTF-8")
                 )
@@ -1014,7 +1012,7 @@ class TwoPing:
             hosts = self.get_srv_hosts()
         else:
             hosts = [(x, self.args.port) for x in self.args.host]
-        for (hostname, port) in hosts:
+        for hostname, port in hosts:
             if str(port) in ("None", "-1"):
                 port = self.args.port
             try:
@@ -1081,24 +1079,24 @@ class TwoPing:
         peer_state.last_seen = clock()
 
         packet_out = self.base_packet()
-        packet_out.opcodes[
-            packets.OpcodeReplyRequested.id
-        ] = packets.OpcodeReplyRequested()
+        packet_out.opcodes[packets.OpcodeReplyRequested.id] = (
+            packets.OpcodeReplyRequested()
+        )
         self.start_investigations(peer_state, packet_out)
         dump_out = packet_out.dump()
 
         # If enabled, encrypt the packet and wrap it in a stub packet.
         if self.args.encrypt:
             encrypted_packet = packets.Packet()
-            encrypted_packet.opcodes[
-                packets.OpcodeEncrypted.id
-            ] = packets.OpcodeEncrypted()
-            encrypted_packet.opcodes[
-                packets.OpcodeEncrypted.id
-            ].method_index = self.encrypt_method_index
-            encrypted_packet.opcodes[
-                packets.OpcodeEncrypted.id
-            ].session = sock_class.session
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id] = (
+                packets.OpcodeEncrypted()
+            )
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].method_index = (
+                self.encrypt_method_index
+            )
+            encrypted_packet.opcodes[packets.OpcodeEncrypted.id].session = (
+                sock_class.session
+            )
             encrypted_packet.opcodes[packets.OpcodeEncrypted.id].encrypt(
                 dump_out, self.args.encrypt.encode("UTF-8")
             )
@@ -1437,9 +1435,9 @@ class TwoPing:
             packet_out.opcodes[packets.OpcodeHMAC.id].key = self.args.auth.encode(
                 "UTF-8"
             )
-            packet_out.opcodes[
-                packets.OpcodeHMAC.id
-            ].digest_index = self.auth_digest_index
+            packet_out.opcodes[packets.OpcodeHMAC.id].digest_index = (
+                self.auth_digest_index
+            )
         packet_out.padding_pattern = self.args.pattern
         packet_out.min_length = self.args.min_packet_size
         packet_out.max_length = self.args.max_packet_size
