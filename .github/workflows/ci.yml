@@ -1,31 +1,30 @@
-name: ci
-on: [push, pull_request]
+# SPDX-PackageSummary: 2ping - A bi-directional ping utility
+# SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
+# SPDX-License-Identifier: MPL-2.0
+---
+name: "ci"
+"on": ["push", "pull_request"]
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
         os:
-        - macos-latest
-        - ubuntu-latest
-        - windows-latest
+          - "macos-latest"
+          - "ubuntu-latest"
+          - "windows-latest"
         python-version:
-        - "3.10"
-        - "3.12"
+          - "3.10"
+          - "3.12"
     steps:
-    - uses: actions/checkout@v4
-    - name: Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Python dependencies
-      run: |
-        python -mpip install tox
-    - name: tox
-      run: |
-        python -mtox
-    - name: Upload sdist zip
-      uses: actions/upload-artifact@v4
-      with:
-        name: 2ping-sdist-${{ github.job }}-${{ github.run_id }}.${{ github.run_number }}-${{ runner.os }}-py${{ matrix.python-version }}
-        path: .tox/dist/*.zip
+      - uses: "actions/checkout@v4"
+      - name: "Python ${{ matrix.python-version }}"
+        uses: "actions/setup-python@v5"
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: "Python dependencies"
+        run: |
+          python -mpip install tox
+      - name: "tox"
+        run: |
+          python -mtox

@@ -1,6 +1,9 @@
+# SPDX-PackageSummary: 2ping - A bi-directional ping utility
+# SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
+# SPDX-License-Identifier: MPL-2.0
+
 import locale
 import logging
-import pytest
 import unittest
 import unittest.mock
 
@@ -51,9 +54,7 @@ class TestCLI(unittest.TestCase):
             self.assertTrue(sock_class.closed)
 
         self.assertEqual(len(p.sock_classes), (pairs * 2))
-        client_sock_classes = [
-            sock_class for sock_class in p.sock_classes if sock_class.is_client
-        ]
+        client_sock_classes = [sock_class for sock_class in p.sock_classes if sock_class.is_client]
         self.assertEqual(len(client_sock_classes), pairs)
         sock_class = client_sock_classes[0]
 
@@ -79,18 +80,14 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(sock_class.packets_transmitted, 1)
         self.assertEqual(sock_class.packets_received, 1)
 
-    @pytest.mark.slow
     def test_adaptive(self):
         sock_class = self._client(["--adaptive", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
 
     @unittest.skipIf(isinstance(utils.AES, ImportError), "Crypto module required")
     def test_encrypt(self):
-        self._client(
-            ["--encrypt-method=hkdf-aes256-cbc", "--encrypt=S49HVbnJd3fBdDzdMVVw"]
-        )
+        self._client(["--encrypt-method=hkdf-aes256-cbc", "--encrypt=S49HVbnJd3fBdDzdMVVw"])
 
-    @pytest.mark.slow
     def test_flood(self):
         sock_class = self._client(["--flood", "--deadline=3"])
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
@@ -120,22 +117,17 @@ class TestCLI(unittest.TestCase):
     def test_notice(self):
         self._client(["--notice=Notice text"])
 
-    @unittest.skipUnless(
-        (locale.getlocale()[1] == "UTF-8"), "UTF-8 environment required"
-    )
+    @unittest.skipUnless((locale.getlocale()[1] == "UTF-8"), "UTF-8 environment required")
     def test_notice_utf8(self):
         self._client(["--notice=UTF-8 \u2603"])
 
-    @pytest.mark.slow
     def test_packet_loss(self):
         # There is a small but non-zero chance that packet loss will prevent
         # any investigation replies from getting back to the client sock
         # between the 10 and 15 second mark, causing a test failure.
         # There's an even more minisculely small chance no simulated losses
         # will occur within the test period.
-        sock_class = self._client(
-            ["--flood", "--deadline=15", "--packet-loss=25"], test_stats=False
-        )
+        sock_class = self._client(["--flood", "--deadline=15", "--packet-loss=25"], test_stats=False)
         self.assertGreaterEqual(sock_class.pings_transmitted, 100)
         self.assertEqual(sock_class.errors_received, 0)
         self.assertGreater(sock_class.lost_inbound, 0)
@@ -154,12 +146,8 @@ class TestCLI(unittest.TestCase):
 class TestCLIInet(TestCLI):
     def test_srv_addresses(self):
         self.bind_addresses = []
-        with unittest.mock.patch(
-            "twoping.cli.TwoPing.get_srv_hosts", return_value=[("127.0.0.1", -1)]
-        ):
-            self._client(
-                ["--interface-address=127.0.0.1", "--srv"], ["pssPCPkc3XlMTDZhclPV."]
-            )
+        with unittest.mock.patch("twoping.cli.TwoPing.get_srv_hosts", return_value=[("127.0.0.1", -1)]):
+            self._client(["--interface-address=127.0.0.1", "--srv"], ["pssPCPkc3XlMTDZhclPV."])
 
 
 @unittest.skipUnless(hasattr(cli.socket, "AF_UNIX"), "UNIX environment required")

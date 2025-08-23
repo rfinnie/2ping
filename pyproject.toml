@@ -1,0 +1,60 @@
+# SPDX-PackageSummary: 2ping - A bi-directional ping utility
+# SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
+# SPDX-License-Identifier: MPL-2.0
+
+[project]
+name = "2ping"
+version = "4.5.1"
+authors = [
+    {name = "Ryan Finnie", email = "ryan@finnie.org"},
+]
+description = "2ping a bi-directional ping utility"
+readme = "README.md"
+requires-python = ">=3.6"
+license = {text = "MPL-2.0"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Internet",
+    "Topic :: System :: Networking",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://www.finnie.org/software/2ping/"
+
+
+[project.optional-dependencies]
+full = [
+    "distro",
+    "dnspython",
+    "netifaces",
+    "pycryptodomex",
+]
+
+[tool.setuptools.packages.find]
+include = [
+    "twoping",
+    "twoping.tests",
+]
+
+[project.scripts]
+2ping = "twoping.cli:main"
+2ping6 = "twoping.cli:main"
+
+[tool.black]
+line-length = 132
+
+# https://pypi.org/project/Flake8-pyproject/
+[tool.flake8]
+max-line-length = 132
+ignore = ["E203", "W503"]

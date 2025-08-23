@@ -1,5 +1,5 @@
-# 2ping - A bi-directional ping utility
-# Copyright (C) 2010-2021 Ryan Finnie
+# SPDX-PackageSummary: 2ping - A bi-directional ping utility
+# SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
 # SPDX-License-Identifier: MPL-2.0
 
 import argparse
@@ -55,16 +55,12 @@ def parse_args(argv=None):
     )
 
     # Positionals
-    parser.add_argument(
-        "host", type=str, default=None, nargs="*", help=_("host to ping")
-    )
+    parser.add_argument("host", type=str, default=None, nargs="*", help=_("host to ping"))
 
     # ping-compatible options
     ping_group = parser.add_argument_group(title=_("ping-compatible options"))
 
-    ping_group.add_argument(
-        "--audible", "-a", dest="audible", action="store_true", help=_("audible ping")
-    )
+    ping_group.add_argument("--audible", "-a", dest="audible", action="store_true", help=_("audible ping"))
     ping_group.add_argument(
         "--adaptive",
         "-A",
@@ -72,12 +68,8 @@ def parse_args(argv=None):
         action="store_true",
         help=_("adaptive RTT ping"),
     )
-    ping_group.add_argument(
-        "--count", "-c", dest="count", type=int, help=_("number of pings to send")
-    )
-    ping_group.add_argument(
-        "--flood", "-f", dest="flood", action="store_true", help=_("flood mode")
-    )
+    ping_group.add_argument("--count", "-c", dest="count", type=int, help=_("number of pings to send"))
+    ping_group.add_argument("--flood", "-f", dest="flood", action="store_true", help=_("flood mode"))
     ping_group.add_argument(
         "--interval",
         "-i",
@@ -115,9 +107,7 @@ def parse_args(argv=None):
         help=_("hex pattern for padding"),
         metavar="HEX_BYTES",
     )
-    ping_group.add_argument(
-        "--quiet", "-q", dest="quiet", action="store_true", help=_("quiet mode")
-    )
+    ping_group.add_argument("--quiet", "-q", dest="quiet", action="store_true", help=_("quiet mode"))
     ping_group.add_argument(
         "--packetsize-compat",
         "-s",
@@ -126,9 +116,7 @@ def parse_args(argv=None):
         help=_("packet size (ping compatible)"),
         metavar="BYTES",
     )
-    ping_group.add_argument(
-        "--verbose", "-v", dest="verbose", action="store_true", help=_("verbose mode")
-    )
+    ping_group.add_argument("--verbose", "-v", dest="verbose", action="store_true", help=_("verbose mode"))
     ping_group.add_argument(
         "--deadline",
         "-w",
@@ -141,9 +129,7 @@ def parse_args(argv=None):
     # 2ping options
     twoping_group = parser.add_argument_group(title=_("2ping-specific options"))
 
-    twoping_group.add_argument(
-        "--auth", type=str, help=_("HMAC authentication key"), metavar="KEY"
-    )
+    twoping_group.add_argument("--auth", type=str, help=_("HMAC authentication key"), metavar="KEY")
     twoping_group.add_argument(
         "--auth-digest",
         type=str,
@@ -153,9 +139,7 @@ def parse_args(argv=None):
         metavar="DIGEST",
     )
     twoping_group.add_argument("--debug", action="store_true", help=_("debug mode"))
-    twoping_group.add_argument(
-        "--encrypt", type=str, help=_("Encryption key"), metavar="KEY"
-    )
+    twoping_group.add_argument("--encrypt", type=str, help=_("Encryption key"), metavar="KEY")
     twoping_group.add_argument(
         "--encrypt-method",
         type=str,
@@ -164,9 +148,7 @@ def parse_args(argv=None):
         help=_("Encryption method"),
         metavar="METHOD",
     )
-    twoping_group.add_argument(
-        "--fuzz", type=float, help=_("incoming fuzz percentage"), metavar="PERCENT"
-    )
+    twoping_group.add_argument("--fuzz", type=float, help=_("incoming fuzz percentage"), metavar="PERCENT")
     twoping_group.add_argument(
         "--inquire-wait",
         type=float,
@@ -174,16 +156,10 @@ def parse_args(argv=None):
         help=_("maximum time before loss inquiries"),
         metavar="SECONDS",
     )
-    twoping_group.add_argument(
-        "--ipv4", "-4", action="store_true", help=_("force IPv4")
-    )
-    twoping_group.add_argument(
-        "--ipv6", "-6", action="store_true", default=ipv6_default, help=_("force IPv6")
-    )
+    twoping_group.add_argument("--ipv4", "-4", action="store_true", help=_("force IPv4"))
+    twoping_group.add_argument("--ipv6", "-6", action="store_true", default=ipv6_default, help=_("force IPv6"))
     twoping_group.add_argument("--listen", action="store_true", help=_("listen mode"))
-    twoping_group.add_argument(
-        "--loopback", action="store_true", help=_("UNIX loopback test mode")
-    )
+    twoping_group.add_argument("--loopback", action="store_true", help=_("UNIX loopback test mode"))
     twoping_group.add_argument(
         "--loopback-pairs",
         type=int,
@@ -211,9 +187,7 @@ def parse_args(argv=None):
         help=_("nagios-compatible output"),
         metavar="WRTA,WLOSS%,CRTA,CLOSS%",
     )
-    twoping_group.add_argument(
-        "--no-3way", action="store_true", help=_("do not send 3-way pings")
-    )
+    twoping_group.add_argument("--no-3way", action="store_true", help=_("do not send 3-way pings"))
     twoping_group.add_argument(
         "--no-match-packet-size",
         action="store_true",
@@ -224,35 +198,23 @@ def parse_args(argv=None):
         action="store_true",
         help=_("do not send program version to peers"),
     )
-    twoping_group.add_argument(
-        "--notice", type=str, help=_("arbitrary notice text"), metavar="TEXT"
-    )
+    twoping_group.add_argument("--notice", type=str, help=_("arbitrary notice text"), metavar="TEXT")
     twoping_group.add_argument(
         "--packet-loss",
         type=_type_packet_loss,
         help=_("percentage simulated packet loss"),
         metavar="OUT:IN",
     )
-    twoping_group.add_argument(
-        "--port", type=str, default="15998", help=_("port to connect / bind to")
-    )
+    twoping_group.add_argument("--port", type=str, default="15998", help=_("port to connect / bind to"))
     twoping_group.add_argument(
         "--send-monotonic-clock",
         action="store_true",
         help=_("send monotonic clock to peers"),
     )
-    twoping_group.add_argument(
-        "--send-random", type=int, help=_("send random data to peers"), metavar="BYTES"
-    )
-    twoping_group.add_argument(
-        "--send-time", action="store_true", help=_("send wall clock time to peers")
-    )
-    twoping_group.add_argument(
-        "--stats", type=float, help=_("print recurring statistics"), metavar="SECONDS"
-    )
-    twoping_group.add_argument(
-        "--srv", action="store_true", help=_("lookup SRV records in client mode")
-    )
+    twoping_group.add_argument("--send-random", type=int, help=_("send random data to peers"), metavar="BYTES")
+    twoping_group.add_argument("--send-time", action="store_true", help=_("send wall clock time to peers"))
+    twoping_group.add_argument("--stats", type=float, help=_("print recurring statistics"), metavar="SECONDS")
+    twoping_group.add_argument("--srv", action="store_true", help=_("lookup SRV records in client mode"))
     twoping_group.add_argument(
         "--srv-service",
         type=str,

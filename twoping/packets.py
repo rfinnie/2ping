@@ -1,5 +1,5 @@
-# 2ping - A bi-directional ping utility
-# Copyright (C) 2010-2021 Ryan Finnie
+# SPDX-PackageSummary: 2ping - A bi-directional ping utility
+# SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
 # SPDX-License-Identifier: MPL-2.0
 
 import hashlib
@@ -68,9 +68,7 @@ class ExtendedWallClock(Extended):
         self.time_us = 0
 
     def __repr__(self):
-        return "<Wall Clock: {}>".format(
-            time.strftime("%c", time.gmtime(self.time_us / 1000000.0))
-        )
+        return "<Wall Clock: {}>".format(time.strftime("%c", time.gmtime(self.time_us / 1000000.0)))
 
     def load(self, data):
         self.time_us = nunpack(data[0:8])
@@ -89,9 +87,7 @@ class ExtendedMonotonicClock(Extended):
         self.time_us = 0
 
     def __repr__(self):
-        return "<Monotonic Clock: {:0.9f}, gen {}>".format(
-            (self.time_us / 1000000.0), self.generation
-        )
+        return "<Monotonic Clock: {:0.9f}, gen {}>".format((self.time_us / 1000000.0), self.generation)
 
     def load(self, data):
         self.generation = nunpack(data[0:2])
@@ -151,12 +147,7 @@ class ExtendedBatteryLevels(Extended):
     def __repr__(self):
         return "<Batteries ({}): [{}]>".format(
             len(self.batteries),
-            ", ".join(
-                [
-                    "{}: {:0.03%}".format(x, self.batteries[x] / 65535.0)
-                    for x in sorted(self.batteries)
-                ]
-            ),
+            ", ".join(["{}: {:0.03%}".format(x, self.batteries[x] / 65535.0) for x in sorted(self.batteries)]),
         )
 
     def load(self, data):
@@ -328,9 +319,7 @@ class OpcodeHMAC(Opcode):
 
     def __repr__(self):
         if self.digest_index is not None:
-            return "<{}: 0x{}>".format(
-                self.digest_map[self.digest_index][2], self.hash.hex()
-            )
+            return "<{}: 0x{}>".format(self.digest_map[self.digest_index][2], self.hash.hex())
         return "<HMAC>"
 
     def load(self, data):
@@ -366,9 +355,7 @@ class OpcodeEncrypted(Opcode):
     id = 0x0200
 
     def __init__(self):
-        self.hkdf_info = (
-            b"\xd8\x89\xac\x93\xac\xeb\xa1\xf3\x98\xd0\xc6\x9b\xc8\xc6\xa7\xaa"
-        )
+        self.hkdf_info = b"\xd8\x89\xac\x93\xac\xeb\xa1\xf3\x98\xd0\xc6\x9b\xc8\xc6\xa7\xaa"
         self.method_index = None
         self.encrypted = b""
         self.session = b""
@@ -457,9 +444,7 @@ class OpcodeExtended(Opcode):
         self.segment_data_positions = {}
 
     def __repr__(self):
-        return "<Extended: {}>".format(
-            repr(sorted(self.segments.values(), key=lambda x: x.id))
-        )
+        return "<Extended: {}>".format(repr(sorted(self.segments.values(), key=lambda x: x.id)))
 
     def load(self, data):
         self.segments = {}
@@ -601,9 +586,7 @@ class Packet:
                 continue
             if (packet_length + 2) > self.max_length:
                 break
-            res = self.opcodes[flag].dump(
-                max_length=(self.max_length - packet_length - 2)
-            )
+            res = self.opcodes[flag].dump(max_length=(self.max_length - packet_length - 2))
             if res is None:
                 continue
             opcode_datas[flag] = res
@@ -622,9 +605,7 @@ class Packet:
             opcode_data += npack(res_len, 2)
             opcode_data += res
             packet_length += res_len + 2
-        out = bytearray(
-            b"\x32\x50\x00\x00" + self.message_id + npack(opcode_flags, 2) + opcode_data
-        )
+        out = bytearray(b"\x32\x50\x00\x00" + self.message_id + npack(opcode_flags, 2) + opcode_data)
         target_length = len(out)
         if len(out) < self.min_length:
             target_length = self.min_length
@@ -632,15 +613,10 @@ class Packet:
             target_length += self.align_length - (target_length % self.align_length)
         if len(out) < target_length:
             target_padding = target_length - len(out)
-            padding = (
-                self.padding_pattern
-                * int(target_padding / len(self.padding_pattern) + 1)
-            )[0:target_padding]
+            padding = (self.padding_pattern * int(target_padding / len(self.padding_pattern) + 1))[0:target_padding]
             out += padding
         if (OpcodeHMAC.id in self.opcodes) and auth_pos_begin:
-            out[auth_pos_begin:auth_pos_end] = self.calculate_hash(
-                self.opcodes[OpcodeHMAC.id], out
-            )
+            out[auth_pos_begin:auth_pos_end] = self.calculate_hash(self.opcodes[OpcodeHMAC.id], out)
         out[2:4] = npack(twoping_checksum(out), 2)
         return bytes(out)
 

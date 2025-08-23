@@ -13,9 +13,9 @@ It uses 3-way pings (akin to TCP SYN, SYN/ACK, ACK) and after-the-fact state com
 
 2ping requires Python 3 version 3.6 or higher.
 
-To install:
+To install 2ping with all optional dependencies as a pipx package:
 
-    sudo python3 setup.py install
+    pipx install '.[full]'
 
 Python 3 stdlib is the only requirement for base functionality, but 2ping can utilize the following modules if available:
 
@@ -41,8 +41,14 @@ Where "$LISTENER" is the name or IP address of the listener.
 
 2ping - A bi-directional ping utility
 
-Copyright (C) 2010-2021 [Ryan Finnie](https://www.finnie.org/)
+Copyright (C) 2010-2025 [Ryan Finnie](https://www.finnie.org/)
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+This document is provided under the following license:
+
+    SPDX-PackageSummary: 2ping - A bi-directional ping utility
+    SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
+    SPDX-License-Identifier: CC-BY-SA-4.0

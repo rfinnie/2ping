@@ -230,3 +230,11 @@ To get a short inline display of statistics without quitting, enter \^\\ or send
 # BUGS
 
 None known, many assumed.
+
+# LICENSE
+
+This document is provided under the following license:
+
+    SPDX-PackageSummary: 2ping - A bi-directional ping utility
+    SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
+    SPDX-License-Identifier: CC-BY-SA-4.0

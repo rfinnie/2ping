@@ -1,5 +1,5 @@
-# 2ping - A bi-directional ping utility
-# Copyright (C) 2010-2021 Ryan Finnie
+# SPDX-PackageSummary: 2ping - A bi-directional ping utility
+# SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
 # SPDX-License-Identifier: MPL-2.0
 
 import sys

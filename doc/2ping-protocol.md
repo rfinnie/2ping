@@ -626,8 +626,10 @@ This clarifies the previous (correct) assertion that the segment ID is 32 bits (
 
 * Finalized initial release.
 
-## Copyright
+## License
 
-Copyright (C) 2010-2021 Ryan Finnie
+This document is provided under the following license:
 
-This work is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/).
+    SPDX-PackageSummary: 2ping - A bi-directional ping utility
+    SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
+    SPDX-License-Identifier: CC-BY-SA-4.0

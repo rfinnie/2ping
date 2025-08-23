@@ -1,4 +1,0 @@
-distro
-dnspython
-netifaces
-pycryptodomex
