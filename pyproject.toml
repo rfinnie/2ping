@@ -41,6 +41,9 @@ full = [
     "pycryptodomex",
 ]
 
+[tool.setuptools.data-files]
+"share/man/man1" = ["doc/*.1"]
+
 [tool.setuptools.packages.find]
 include = [
     "twoping",
