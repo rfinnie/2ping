@@ -12,7 +12,7 @@ authors = [
 ]
 description = "2ping a bi-directional ping utility"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 license = "MPL-2.0"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -57,3 +57,7 @@ include = [
 
 [tool.black]
 line-length = 132
+
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
