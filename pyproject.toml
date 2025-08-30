@@ -10,13 +10,12 @@ authors = [
 ]
 description = "2ping a bi-directional ping utility"
 readme = "README.md"
-requires-python = ">=3.6"
-license = {text = "MPL-2.0"}
+requires-python = ">=3.10"
+license = "MPL-2.0"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     "Natural Language :: English",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
@@ -41,6 +40,9 @@ full = [
     "pycryptodomex",
 ]
 
+[tool.setuptools.data-files]
+"share/man/man1" = ["doc/*.1"]
+
 [tool.setuptools.packages.find]
 include = [
     "twoping",
@@ -58,3 +60,7 @@ line-length = 132
 [tool.flake8]
 max-line-length = 132
 ignore = ["E203", "W503"]
+
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
