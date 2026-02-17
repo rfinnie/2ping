@@ -49,6 +49,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 This document is provided under the following license:
 
-    SPDX-PackageSummary: 2ping - A bi-directional ping utility
-    SPDX-FileCopyrightText: Copyright (C) 2010-2025 Ryan Finnie
+    SPDX-PackageName: 2ping
+    SPDX-PackageSupplier: Ryan Finnie <ryan@finnie.org>
+    SPDX-PackageDownloadLocation: https://github.com/rfinnie/finnix-live-build
+    SPDX-FileCopyrightText: © 2010 Ryan Finnie <ryan@finnie.org>
     SPDX-License-Identifier: CC-BY-SA-4.0
