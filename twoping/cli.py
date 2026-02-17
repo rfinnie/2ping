@@ -41,7 +41,6 @@ from .utils import (
     stats_time,
 )
 
-
 version_string = "2ping {} - {}".format(__version__, platform_info())
 clock = time.perf_counter
 
@@ -223,7 +222,7 @@ class TwoPing:
         error_string = str(e)
         try:
             MSG_ERRQUEUE = 8192
-            (error_data, error_address) = sock.recvfrom(16384, MSG_ERRQUEUE)
+            error_data, error_address = sock.recvfrom(16384, MSG_ERRQUEUE)
             print_address = error_address[0]
         except socket.error:
             if peer_address:
@@ -331,7 +330,7 @@ class TwoPing:
                     )
                 )
                 return
-            (test_begin, test_length) = packet_in.opcode_data_positions[packets.OpcodeHMAC.id]
+            test_begin, test_length = packet_in.opcode_data_positions[packets.OpcodeHMAC.id]
             test_begin += 2
             test_length -= 2
             packet_in.opcodes[packets.OpcodeHMAC.id].key = self.args.auth.encode("UTF-8")
@@ -355,7 +354,7 @@ class TwoPing:
         if packets.OpcodeInReplyTo.id in packet_in.opcodes:
             replied_message_id = packet_in.opcodes[packets.OpcodeInReplyTo.id].message_id
             if replied_message_id in peer_state.sent_messages:
-                (sent_time, _unused, ping_position) = peer_state.sent_messages[replied_message_id]
+                sent_time, _unused, ping_position = peer_state.sent_messages[replied_message_id]
                 del peer_state.sent_messages[replied_message_id]
 
                 calculated_rtt = (time_begin - sent_time) * 1000
@@ -536,7 +535,7 @@ class TwoPing:
     def sock_recvfrom(self, sock_class):
         sock = sock_class.sock
         try:
-            (data, peer_address) = sock.recvfrom(16384)
+            data, peer_address = sock.recvfrom(16384)
         except socket.error as e:
             self.handle_socket_error(e, sock_class)
             return
@@ -563,7 +562,7 @@ class TwoPing:
             iobj = None
         now = clock()
         for message_id_str in peer_state.sent_messages:
-            (sent_time, message_id, _unused) = peer_state.sent_messages[message_id_str]
+            sent_time, message_id, _unused = peer_state.sent_messages[message_id_str]
             if now >= (sent_time + self.args.inquire_wait):
                 if iobj is None:
                     iobj = packets.OpcodeInvestigate()
@@ -584,7 +583,7 @@ class TwoPing:
                 for message_id in packet_check.opcodes[opcode_id].message_ids:
                     if message_id not in peer_state.sent_messages:
                         continue
-                    (_unused, _unused, ping_seq) = peer_state.sent_messages[message_id]
+                    _unused, _unused, ping_seq = peer_state.sent_messages[message_id]
                     if peer_state.peer_tuple[1]:
                         address = peer_state.peer_tuple[1][0]
                     else:
@@ -601,7 +600,7 @@ class TwoPing:
             return
         # Print results
         for ping_seq in sorted(found):
-            (loss_type, address) = found[ping_seq]
+            loss_type, address = found[ping_seq]
             if loss_type == "inbound":
                 loss_message = "Lost inbound packet from {address}: ping_seq={seq}"
             else:

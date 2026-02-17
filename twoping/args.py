@@ -15,7 +15,7 @@ from .utils import _, AES
 
 
 def _type_nagios(string):
-    (warn_rta, warn_loss, crit_rta, crit_loss) = string.split(",", 3)
+    warn_rta, warn_loss, crit_rta, crit_loss = string.split(",", 3)
     if (warn_loss[-1:] != "%") or (crit_loss[-1:] != "%"):
         raise argparse.ArgumentTypeError(_("Invalid limits"))
     return types.SimpleNamespace(
@@ -28,7 +28,7 @@ def _type_nagios(string):
 
 def _type_packet_loss(string):
     if ":" in string:
-        (v_out, v_in) = string.split(":", 1)
+        v_out, v_in = string.split(":", 1)
     else:
         v_out = v_in = string
     return types.SimpleNamespace(out_pct=float(v_out), in_pct=float(v_in))

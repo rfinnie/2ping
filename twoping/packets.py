@@ -330,7 +330,7 @@ class OpcodeHMAC(Opcode):
 
     def dump(self, max_length=None):
         if self.digest_index is not None:
-            (hasher, size, hasher_name) = self.digest_map[self.digest_index]
+            hasher, size, hasher_name = self.digest_map[self.digest_index]
             return npack(self.digest_index, 2) + bytes(size)
         return None
 
@@ -623,5 +623,5 @@ class Packet:
         return bytes(out)
 
     def calculate_hash(self, opcode, payload):
-        (hasher, size, hasher_name) = opcode.digest_map[opcode.digest_index]
+        hasher, size, hasher_name = opcode.digest_map[opcode.digest_index]
         return hmac.new(opcode.key, payload, hasher).digest()

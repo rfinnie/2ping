@@ -8,7 +8,7 @@ fail_fast: false
 
 repos:
   - repo: "https://github.com/pre-commit/pre-commit-hooks"
-    rev: "v4.4.0"
+    rev: "v6.0.0"
     hooks:
       - id: "check-added-large-files"
       - id: "check-case-conflict"
@@ -25,8 +25,8 @@ repos:
       - id: "requirements-txt-fixer"
       - id: "trailing-whitespace"
 
-  - repo: "https://github.com/adrienverge/yamllint.git"
-    rev: "v1.32.0"
+  - repo: "https://github.com/adrienverge/yamllint"
+    rev: "v1.38.0"
     hooks:
       - id: "yamllint"
         args:
@@ -34,21 +34,21 @@ repos:
           - ".yamllint.yml"
 
   - repo: "https://github.com/psf/black"
-    rev: "25.1.0"
+    rev: "26.1.0"
     hooks:
       - id: "black"
 
   - repo: "https://github.com/pycqa/flake8"
-    rev: "7.2.0"
+    rev: "7.3.0"
     hooks:
       - id: "flake8"
 
   - repo: "https://github.com/rhysd/actionlint"
-    rev: "v1.7.7"
+    rev: "v1.7.11"
     hooks:
       - id: "actionlint"
 
-  - repo: "https://github.com/fsfe/reuse-tool"
-    rev: "v5.0.2"
+  - repo: "https://codeberg.org/fsfe/reuse-tool"
+    rev: "v6.2.0"
     hooks:
       - id: "reuse"

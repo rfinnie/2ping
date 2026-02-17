@@ -10,6 +10,5 @@ from pathlib import Path
 from runpy import run_module
 import sys
 
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 run_module("twoping.cli", run_name="__main__")
