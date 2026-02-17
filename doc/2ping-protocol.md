@@ -632,6 +632,6 @@ This document is provided under the following license:
 
     SPDX-PackageName: 2ping
     SPDX-PackageSupplier: Ryan Finnie <ryan@finnie.org>
-    SPDX-PackageDownloadLocation: https://github.com/rfinnie/finnix-live-build
+    SPDX-PackageDownloadLocation: https://github.com/rfinnie/2ping
     SPDX-FileCopyrightText: © 2010 Ryan Finnie <ryan@finnie.org>
     SPDX-License-Identifier: CC-BY-SA-4.0
