@@ -40,7 +40,6 @@ repos:
     rev: "7.2.0"
     hooks:
       - id: "flake8"
-        additional_dependencies: ["Flake8-pyproject"]
 
   - repo: "https://github.com/rhysd/actionlint"
     rev: "v1.7.7"
