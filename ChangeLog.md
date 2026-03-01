@@ -1,3 +1,20 @@
+# 2ping 4.6 (2026-03-01)
+
+- Relicense from GPLv2 to MPL 2.0
+  - All files now have SPDX licensing information
+- Guard against netifaces race condition
+- End stats updates
+  - Do not display itemized loss numbers if no lost packets
+  - Only display raw packet counts with --debug
+- Argument parsing cleanups
+  - Do not add extra attributes to args, use type conversions instead
+  - Remove maximum --pattern size
+  - Clean up / simplify conversion parsing
+  - Remove hard-coded --encrypt-method / --auth-digest values
+  - Group ping-compatible and 2ping-specific options
+- Many packaging / scaffolding updates not tied to functionality
+
+
 # 2ping 4.5.1 (2021-03-20)
 
 - 2ping.bash_completion: Make more resilient to failure / missing
