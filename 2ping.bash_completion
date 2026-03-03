@@ -1,0 +1,31 @@
+# SPDX-PackageName: 2ping
+# SPDX-PackageSupplier: Ryan Finnie <ryan@finnie.org>
+# SPDX-PackageDownloadLocation: https://github.com/rfinnie/2ping
+# SPDX-FileCopyrightText: © 2010 Ryan Finnie <ryan@finnie.org>
+# SPDX-License-Identifier: MPL-2.0
+
+# shellcheck shell=bash
+
+_2ping()
+{
+    local cur prev words cword
+    if declare -F _init_completion >/dev/null 2>&1; then
+        _init_completion
+    elif declare -F _get_comp_words_by_ref >/dev/null 2>&1; then
+        COMPREPLY=()
+        _get_comp_words_by_ref cur prev words cword
+    else
+        return
+    fi
+
+    if [[ $cur == -* ]] && declare -F _parse_usage >/dev/null 2>&1; then
+        COMPREPLY=( $( compgen -W '$( _parse_usage "$1" )' -- "$cur" ) )
+        return
+    fi
+
+    if declare -F _known_hosts_real >/dev/null 2>&1; then
+        _known_hosts_real -- "$cur"
+    fi
+}
+
+complete -F _2ping 2ping 2ping6
