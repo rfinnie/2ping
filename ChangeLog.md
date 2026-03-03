@@ -1,3 +1,7 @@
+# 2ping 4.6.1 (2026-03-02)
+
+- Re-add bash-completion definition
+
 # 2ping 4.6 (2026-03-01)
 
 - Relicense from GPLv2 to MPL 2.0
