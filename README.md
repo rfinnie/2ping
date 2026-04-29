@@ -1,7 +1,5 @@
 # 2ping - A bi-directional ping utility
 
-![ci](https://github.com/rfinnie/2ping/workflows/ci/badge.svg)
-
 https://www.finnie.org/software/2ping/
 
 ## About
@@ -51,6 +49,6 @@ This document is provided under the following license:
 
     SPDX-PackageName: 2ping
     SPDX-PackageSupplier: Ryan Finnie <ryan@finnie.org>
-    SPDX-PackageDownloadLocation: https://github.com/rfinnie/2ping
+    SPDX-PackageDownloadLocation: https://codeberg.org/rfinnie/2ping
     SPDX-FileCopyrightText: © 2010 Ryan Finnie <ryan@finnie.org>
     SPDX-License-Identifier: CC-BY-SA-4.0
