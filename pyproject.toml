@@ -12,7 +12,7 @@ authors = [
 ]
 description = "2ping a bi-directional ping utility"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 license = "MPL-2.0"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -33,6 +33,9 @@ dependencies = []
 [project.urls]
 Homepage = "https://www.finnie.org/software/2ping/"
 
+[build-system]
+requires = ["setuptools>=59.6.0"]
+build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 full = [
@@ -47,6 +50,9 @@ include = [
     "twoping",
     "twoping.tests",
 ]
+
+[tool.setuptools.data-files]
+"share/man/man1" = ["doc/*.1"]
 
 [project.scripts]
 2ping = "twoping.cli:main"
