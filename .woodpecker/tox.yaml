@@ -12,6 +12,7 @@ steps:
   - name: "tox"
     image: "python:3.14-trixie"
     commands: |
+      set -x
       python -mpip install tox
       tox
   - name: "Notify Mastodon if failure"
