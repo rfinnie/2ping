@@ -13,6 +13,14 @@ steps:
     image: "python:3.14-trixie"
     commands: |
       set -x
+
+      mkdir -p ~/.pip
+      cat <<"EOM" >~/.pip/pip.conf
+      [global]
+      index-url = http://omniproxi.snowman.lan/pypi/simple/
+      trusted-host = omniproxi.snowman.lan
+      EOM
+
       python -mpip install tox
       tox
   - name: "Notify Mastodon if failure"
