@@ -1,6 +1,6 @@
 # SPDX-PackageName: 2ping
 # SPDX-PackageSupplier: Ryan Finnie <ryan@finnie.org>
-# SPDX-PackageDownloadLocation: https://codeberg.org/rfinnie/2ping
+# SPDX-PackageDownloadLocation: https://forge.colobox.com/rfinnie/2ping
 # SPDX-FileCopyrightText: © 2010 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 ---
@@ -48,7 +48,7 @@ repos:
     hooks:
       - id: "reuse-lint-file"
 
-  - repo: "https://codeberg.org/rfinnie/woodpecker-shellcheck"
+  - repo: "https://forge.colobox.com/rfinnie/woodpecker-shellcheck"
     rev: "v1.1.0"
     hooks:
       - id: "woodpecker-shellcheck"
