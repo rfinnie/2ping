@@ -1,5 +1,8 @@
 # 2ping - A bi-directional ping utility
 
+[![Git forge repository](https://img.shields.io/badge/git-forge-orange?logo=forgejo)](https://forge.colobox.com/rfinnie/2ping)
+[![CI pipeline status](https://woodpecker.colobox.com/api/badges/40/status.svg)](https://woodpecker.colobox.com/repos/40)
+
 https://www.finnie.org/software/2ping/
 
 ## About
