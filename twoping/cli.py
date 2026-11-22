@@ -187,7 +187,7 @@ class TwoPing:
             try:
                 socket.socket(socket.AF_INET6, socket.SOCK_DGRAM).close()
             except socket.error as e:
-                if e.errno == errno.EPROTONOSUPPORT:
+                if e.errno in (errno.EPROTONOSUPPORT, errno.EAFNOSUPPORT):
                     self.has_ipv6 = False
                 else:
                     raise

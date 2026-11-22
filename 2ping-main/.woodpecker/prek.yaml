@@ -1,0 +1,61 @@
+# SPDX-PackageName: 2ping
+# SPDX-PackageSupplier: Ryan Finnie <ryan@finnie.org>
+# SPDX-PackageDownloadLocation: https://forge.colobox.com/rfinnie/2ping
+# SPDX-FileComment: Woodpecker CI prek workflow
+# SPDX-FileCopyrightText: © 2026 Ryan Finnie <ryan@finnie.org>
+# SPDX-License-Identifier: MPL-2.0
+---
+when:
+  - event: ["push", "pull_request", "manual"]
+labels:
+  platform: "linux/amd64"
+  pool: "snowman"
+clone:
+  git:
+    image: "docker.io/woodpeckerci/plugin-git:latest@sha256:ebde4a4d07e0e24b630082484d192890dd4f6d442d90bf5466f0763860f83652"  # 2026-05-28
+steps:
+  - name: "prek"
+    image: "docker.io/library/python:3.14-trixie@sha256:11591407222400cafc1b2bd03fe09a90988f091fc9ddff4a901f80ceb02b78b3"  # 2026-05-25
+    commands: |
+      set -x
+
+      mkdir -p /etc/apt/apt.conf.d
+      cat <<"EOM" >/etc/apt/apt.conf.d/99proxy
+      Acquire::http::Proxy "http://deb-proxy.snowman.lan:8000";
+      Acquire::https::Proxy "http://deb-proxy.snowman.lan:8000";
+      EOM
+      mkdir -p ~/.pip
+      cat <<"EOM" >~/.pip/pip.conf
+      [global]
+      index-url = http://omniproxi.snowman.lan/pypi/simple/
+      trusted-host = omniproxi.snowman.lan
+      EOM
+
+      apt update
+      apt -y install shellcheck shfmt curl
+
+      mkdir -p ~/.cache/prek
+      cache_url="http://artifacts.snowman.lan/cache_prek_$${CI_REPO_OWNER}_$${CI_REPO_NAME}_$(uname -m).tar.gz"
+      curl --fail-with-body -H "Authorization: Basic $${ASSETS_AUTH}" "$${cache_url}" | tar -C ~/.cache/prek -zxf - || true
+      python -m pip install prek
+      prek --version
+      prek run --show-diff-on-failure --color=always --all-files
+      prek gc
+      tar -C ~/.cache/prek -zcf - . | curl --fail-with-body -T - -H "Authorization: Basic $${ASSETS_AUTH}" "$${cache_url}"
+    environment:
+      ASSETS_AUTH:
+        from_secret: "ASSETS_AUTH"
+  - name: "Notify Mastodon if failure"
+    when:
+      - status: ["failure"]
+    image: "docker.io/woodpeckerci/plugin-mastodon-post:latest@sha256:456597681cff794b6ddb7b085ce95c42a18301e512503898c4abdaa1080e7e4c"  # 2026-04-19
+    settings:
+      server_url: "https://m29.us"
+      access_token:
+        from_secret: "m29_token"
+      status: |
+        🪿 🪿 🪿 FAILURE: {{ CI_REPO }} 🪿 🪿 🪿
+        Workflow: {{ CI_WORKFLOW_NAME }} ({{ CI_PIPELINE_EVENT }} on {{ CI_COMMIT_REF }})
+
+        Pipeline: {{ CI_PIPELINE_URL }}
+        Commit: {{ CI_PIPELINE_FORGE_URL }}
