@@ -18,6 +18,11 @@ try:
 except ImportError as e:
     dns_resolver = e
 
+# Linux socket option values not exported by the socket module.
+IP_RECVERR = 11
+IPV6_RECVERR = 25
+MSG_ERRQUEUE = 8192
+
 try:
     import psutil
 except ImportError as e:
@@ -221,7 +226,6 @@ class TwoPing:
         sock_class.errors_received += 1
         error_string = str(e)
         try:
-            MSG_ERRQUEUE = 8192
             error_data, error_address = sock.recvfrom(16384, MSG_ERRQUEUE)
             print_address = error_address[0]
         except socket.error:
@@ -1251,12 +1255,17 @@ class TwoPing:
         bind = addrinfo[4]
 
         sock = socket.socket(family, type, proto)
-        try:
-            import IN
-
-            sock.setsockopt(socket.IPPROTO_IP, IN.IP_RECVERR, int(True))
-        except (ImportError, AttributeError, socket.error):
-            pass
+        # Ask the kernel to queue ICMP errors so they can be read back
+        # (Linux only; the stdlib "IN" module this once relied on no longer
+        # exists, and the socket module does not expose these constants).
+        if sys.platform.startswith("linux"):
+            try:
+                if family == socket.AF_INET6:
+                    sock.setsockopt(socket.IPPROTO_IPV6, IPV6_RECVERR, int(True))
+                else:
+                    sock.setsockopt(socket.IPPROTO_IP, IP_RECVERR, int(True))
+            except (AttributeError, socket.error):
+                pass
         if family == socket.AF_INET6:
             try:
                 sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, int(True))

@@ -4,8 +4,10 @@
 # SPDX-FileCopyrightText: © 2010 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 
+import errno
 import locale
 import logging
+import socket
 import unittest
 import unittest.mock
 
@@ -158,3 +160,99 @@ class TestCLILoopback(TestCLI):
 
     def test_loopback_pairs(self):
         self._client(["--loopback-pairs=3"], pairs=3)
+
+
+class TestInterfaceAddresses(unittest.TestCase):
+    def _twoping(self, argv=()):
+        return cli.TwoPing(args.parse_args(["2ping", "--listen"] + list(argv)))
+
+    @staticmethod
+    def _snic(family, address):
+        return unittest.mock.Mock(family=family, address=address)
+
+    def _fake_addrs(self):
+        return {
+            "lo": [self._snic(socket.AF_INET, "127.0.0.1"), self._snic(socket.AF_INET6, "::1")],
+            "eth0": [self._snic(socket.AF_INET, "192.0.2.10"), self._snic(-1, "aa:bb:cc:dd:ee:ff"), self._snic(socket.AF_INET, "")],
+        }
+
+    @unittest.skipIf(isinstance(cli.psutil, ImportError), "psutil required")
+    def test_system_addresses(self):
+        p = self._twoping()
+        p.has_ipv6 = True
+        with unittest.mock.patch.object(cli.psutil, "net_if_addrs", return_value=self._fake_addrs()):
+            addrs = set(p.get_system_addresses())
+        self.assertEqual(
+            addrs,
+            {("127.0.0.1", socket.AF_INET), ("192.0.2.10", socket.AF_INET), ("::1", socket.AF_INET6)},
+        )
+
+    @unittest.skipIf(isinstance(cli.psutil, ImportError), "psutil required")
+    def test_system_addresses_ipv4_only(self):
+        p = self._twoping(["--ipv4"])
+        p.has_ipv6 = True
+        with unittest.mock.patch.object(cli.psutil, "net_if_addrs", return_value=self._fake_addrs()):
+            addrs = set(p.get_system_addresses())
+        self.assertEqual(addrs, {("127.0.0.1", socket.AF_INET), ("192.0.2.10", socket.AF_INET)})
+
+    @unittest.skipIf(isinstance(cli.psutil, ImportError), "psutil required")
+    def test_system_addresses_no_ipv6_support(self):
+        p = self._twoping()
+        p.has_ipv6 = False
+        with unittest.mock.patch.object(cli.psutil, "net_if_addrs", return_value=self._fake_addrs()):
+            families = {family for _, family in p.get_system_addresses()}
+        self.assertEqual(families, {socket.AF_INET})
+
+    @unittest.skipIf(isinstance(cli.psutil, ImportError), "psutil required")
+    def test_psutil_error_falls_back_to_wildcard(self):
+        p = self._twoping()
+        p.has_ipv6 = True
+        with unittest.mock.patch.object(cli.psutil, "net_if_addrs", side_effect=PermissionError("denied")):
+            addrs = p.get_interface_addresses()
+        self.assertEqual(addrs, [("0.0.0.0", socket.AF_INET), ("::", socket.AF_INET6)])
+
+    def test_no_psutil_falls_back_to_wildcard(self):
+        p = self._twoping()
+        p.has_ipv6 = False
+        with unittest.mock.patch.object(cli, "psutil", ImportError("missing")):
+            addrs = p.get_interface_addresses()
+        self.assertEqual(addrs, [("0.0.0.0", socket.AF_INET)])
+
+    def test_all_interfaces_without_psutil(self):
+        p = self._twoping(["--all-interfaces"])
+        with unittest.mock.patch.object(cli, "psutil", ImportError("missing")):
+            with self.assertRaises(socket.error):
+                p.get_interface_addresses()
+
+    def test_user_supplied_addresses_win(self):
+        p = self._twoping(["--interface-address=127.0.0.1"])
+        self.assertEqual(p.get_interface_addresses(), [("127.0.0.1", socket.AF_UNSPEC)])
+
+
+class TestIPv6Detection(unittest.TestCase):
+    def _has_ipv6_with_errno(self, err):
+        with unittest.mock.patch("twoping.cli.socket.socket", side_effect=OSError(err, "simulated")):
+            return cli.TwoPing(args.parse_args(["2ping", "--listen"])).has_ipv6
+
+    def test_af_not_supported(self):
+        # IPv6 disabled on Linux raises EAFNOSUPPORT, not EPROTONOSUPPORT.
+        self.assertFalse(self._has_ipv6_with_errno(errno.EAFNOSUPPORT))
+
+    def test_proto_not_supported(self):
+        self.assertFalse(self._has_ipv6_with_errno(errno.EPROTONOSUPPORT))
+
+    def test_other_errors_propagate(self):
+        with self.assertRaises(OSError):
+            self._has_ipv6_with_errno(errno.EACCES)
+
+
+@unittest.skipUnless(cli.sys.platform.startswith("linux"), "Linux required")
+class TestRecvErr(unittest.TestCase):
+    def test_new_socket_enables_ip_recverr(self):
+        p = cli.TwoPing(args.parse_args(["2ping", "--listen"]))
+        addrinfo = socket.getaddrinfo("127.0.0.1", 0, socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)[0]
+        sock = p.new_socket(addrinfo)
+        try:
+            self.assertEqual(sock.getsockopt(socket.IPPROTO_IP, cli.IP_RECVERR), 1)
+        finally:
+            sock.close()

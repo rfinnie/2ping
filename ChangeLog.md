@@ -3,11 +3,20 @@
 - Fix crash at startup on hosts where IPv6 is disabled (socket creation
   fails with EAFNOSUPPORT instead of EPROTONOSUPPORT); fall back to IPv4
   only.
+- Fix IP_RECVERR never being enabled.  It relied on the "IN" module,
+  which no longer exists in Python 3, so ICMP errors (such as "Connection
+  refused") were silently never reported.  Now set directly on Linux, for
+  both IPv4 (IP_RECVERR) and IPv6 (IPV6_RECVERR).
 - Replace the optional "netifaces" dependency with "psutil" for listening
   on all addresses in --listen mode.
   - If interface enumeration fails (e.g. restricted Android), fall back to
     wildcard listening instead of failing.
   - The "full" extra, README and manpage updated accordingly.
+- Packaging: require setuptools >= 77, needed for the SPDX license
+  expression in pyproject.toml (older setuptools failed to build).
+- Add tests for interface address discovery, IPv6 detection and
+  IP_RECVERR.
+- README copyright year updated.
 
 # 2ping 4.6.1 (2026-03-02)
 

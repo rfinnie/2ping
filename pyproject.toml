@@ -34,7 +34,7 @@ dependencies = []
 Homepage = "https://www.finnie.org/software/2ping/"
 
 [build-system]
-requires = ["setuptools>=59.6.0"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
