@@ -103,7 +103,7 @@ Note that in listener mode, if the machine has an interface with
 multiple IP addresses and an request comes in via a sub IP, the reply
 still leaves via the interface\[cq]s main IP.
 So either this option \[en] or (preferred) listening on all IPs
-individually via the Python \[lq]netifaces\[rq] module \[en] must be
+individually via the Python \[lq]psutil\[rq] module \[en] must be
 used if you would like to respond via an interface\[cq]s sub-IP.
 .RE
 .TP
@@ -177,7 +177,7 @@ or explicit passing.
 --all-interfaces
 Deprecated.
 In listener mode, all addresses will be listened to by default if the
-Python \[lq]netifaces\[rq] module is installed, unless overridden by one
+Python \[lq]psutil\[rq] module is installed, unless overridden by one
 or more \f[I]--interface-address\f[R] invocations.
 .TP
 --auth=\f[I]key\f[R]

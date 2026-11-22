@@ -19,9 +19,9 @@ except ImportError as e:
     dns_resolver = e
 
 try:
-    import netifaces
+    import psutil
 except ImportError as e:
-    netifaces = e
+    psutil = e
 
 try:
     import systemd.daemon as systemd_daemon
@@ -687,23 +687,28 @@ class TwoPing:
         return sock_classes
 
     def get_system_addresses(self):
-        if isinstance(netifaces, ImportError):
+        if isinstance(psutil, ImportError):
             return []
 
+        try:
+            all_iface_addrs = psutil.net_if_addrs()
+        except OSError as e:
+            # Some platforms (e.g. recent Android) restrict interface enumeration.
+            self.logger.debug("Could not enumerate interface addresses: {}".format(e))
+            return []
+
+        want_ipv4 = self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)
+        want_ipv6 = self.has_ipv6 and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6))
+
         addrs = set()
-        for iface in netifaces.interfaces():
-            try:
-                iface_addrs = netifaces.ifaddresses(iface)
-            except ValueError:
-                continue
-            if (self.args.ipv4 or (not self.args.ipv4 and not self.args.ipv6)) and (netifaces.AF_INET in iface_addrs):
-                addrs.update([(f["addr"], netifaces.AF_INET) for f in iface_addrs[netifaces.AF_INET] if "addr" in f])
-            if (
-                self.has_ipv6
-                and (self.args.ipv6 or (not self.args.ipv4 and not self.args.ipv6))
-                and (netifaces.AF_INET6 in iface_addrs)
-            ):
-                addrs.update([(f["addr"], netifaces.AF_INET6) for f in iface_addrs[netifaces.AF_INET6] if "addr" in f])
+        for iface_addrs in all_iface_addrs.values():
+            for f in iface_addrs:
+                if not f.address:
+                    continue
+                if want_ipv4 and f.family == socket.AF_INET:
+                    addrs.add((f.address, socket.AF_INET))
+                elif want_ipv6 and f.family == socket.AF_INET6:
+                    addrs.add((f.address, socket.AF_INET6))
 
         return list(addrs)
 
@@ -728,23 +733,30 @@ class TwoPing:
             return
         raise caught_errors[-1][1]
 
+    def get_wildcard_addresses(self):
+        interface_addresses = [("0.0.0.0", socket.AF_INET)]
+        if self.has_ipv6:
+            interface_addresses.append(("::", socket.AF_INET6))
+        return interface_addresses
+
     def get_interface_addresses(self):
         if self.args.interface_address:
             # Addresses supplied by user
             interface_addresses = [(addr, socket.AF_UNSPEC) for addr in self.args.interface_address]
-        elif not isinstance(netifaces, ImportError):
-            # Addresses provided by netifaces
+        elif not isinstance(psutil, ImportError):
+            # Addresses provided by psutil
             interface_addresses = self.get_system_addresses()
+            if not interface_addresses:
+                # Enumeration failed or returned nothing usable
+                interface_addresses = self.get_wildcard_addresses()
         elif self.args.all_interfaces:
             # --all-interfaces is pretty much deprecated; this section is
-            # only triggered if it's explicitly passed but netifaces is not
+            # only triggered if it's explicitly passed but psutil is not
             # installed.
-            raise socket.error("All interface addresses not available; please install netifaces")
+            raise socket.error("All interface addresses not available; please install psutil")
         else:
             # Last resort
-            interface_addresses = [("0.0.0.0", socket.AF_INET)]
-            if self.has_ipv6:
-                interface_addresses.append(("::", socket.AF_INET6))
+            interface_addresses = self.get_wildcard_addresses()
 
         return interface_addresses
 

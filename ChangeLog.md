@@ -1,3 +1,14 @@
+# 2ping (unreleased)
+
+- Fix crash at startup on hosts where IPv6 is disabled (socket creation
+  fails with EAFNOSUPPORT instead of EPROTONOSUPPORT); fall back to IPv4
+  only.
+- Replace the optional "netifaces" dependency with "psutil" for listening
+  on all addresses in --listen mode.
+  - If interface enumeration fails (e.g. restricted Android), fall back to
+    wildcard listening instead of failing.
+  - The "full" extra, README and manpage updated accordingly.
+
 # 2ping 4.6.1 (2026-03-02)
 
 - Re-add bash-completion definition
